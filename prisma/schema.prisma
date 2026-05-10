@@ -1,0 +1,479 @@
+// Yos CRM — Prisma Schema
+// Two business entities: Yos Fitness + Yos Fitness Studio
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum Company {
+  YOS_FITNESS
+  YOS_FITNESS_STUDIO
+}
+
+enum MemberStatus {
+  ACTIVE
+  EXPIRED
+  FROZEN
+  INACTIVE
+  PROSPECT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum PaymentMode {
+  CASH
+  UPI
+  CARD
+  BANK_TRANSFER
+  CHEQUE
+  FREE
+}
+
+enum UserRole {
+  ADMIN
+  FRONT_DESK
+  TRAINER
+  ACCOUNTANT
+}
+
+enum EmployeeRole {
+  FRONT_DESK
+  TRAINER
+  CLEANER
+  MANAGER
+  ADMIN
+}
+
+enum SalaryType {
+  FIXED_MONTHLY
+  PER_DAY
+  PER_SHIFT
+}
+
+enum EmployeeAttendanceStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  WEEKLY_OFF
+  LEAVE
+  PAID_LEAVE
+}
+
+enum MessageChannel {
+  WHATSAPP
+  SMS
+  MANUAL
+}
+
+enum MessageStatus {
+  QUEUED
+  SENT
+  FAILED
+  MANUAL_SEND
+  CANCELLED
+}
+
+enum AutomationTrigger {
+  INACTIVE_4_DAYS
+  INACTIVE_5_DAYS
+  INACTIVE_6_DAYS
+  INACTIVE_7_DAYS
+  INACTIVE_14_DAYS
+  EXPIRY_7_DAYS
+  EXPIRY_3_DAYS
+  EXPIRY_1_DAY
+  EXPIRY_TODAY
+  ALREADY_EXPIRED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTH / USERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(FRONT_DESK)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee          Employee?
+  markedAttendances MemberAttendance[]
+  collectedPayments Payment[]
+  auditLogs         AuditLog[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MEMBERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Member {
+  id               String       @id @default(cuid())
+  memberId         String       @unique // YF-001 or YFS-001
+  fullName         String
+  phone            String
+  whatsapp         String?
+  gender           Gender?
+  dateOfBirth      DateTime?
+  address          String?
+  emergencyContact String?
+  emergencyPhone   String?
+  photoUrl         String?
+
+  joinDate DateTime  @default(now())
+  status   MemberStatus @default(ACTIVE)
+  notes    String?
+
+  // Current active membership snapshot (denormalized for speed)
+  currentPackageId String?
+  currentPackage   Package? @relation("CurrentPackage", fields: [currentPackageId], references: [id])
+  startDate        DateTime?
+  expiryDate       DateTime?
+  renewalDueDate   DateTime?
+  lastPaymentDate  DateTime?
+  lastAttendanceDate DateTime?
+
+  // Company that enrolled this member (primary)
+  primaryCompany Company @default(YOS_FITNESS)
+
+  // Assigned trainer
+  trainerId String?
+  trainer   Employee? @relation("TrainerMembers", fields: [trainerId], references: [id])
+
+  memberships      Membership[]
+  attendances      MemberAttendance[]
+  payments         Payment[]
+  renewalFollowUps RenewalFollowUp[]
+  messageLogs      MessageLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([expiryDate])
+  @@index([lastAttendanceDate])
+  @@index([primaryCompany])
+  @@map("members")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PACKAGES
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Package {
+  id           String   @id @default(cuid())
+  name         String
+  durationDays Int      // 30, 90, 180, 365
+  price        Decimal  @db.Decimal(10, 2)
+  // null = applicable to both companies
+  company      Company?
+  isActive     Boolean  @default(true)
+  isCustom     Boolean  @default(false)
+  notes        String?
+
+  currentMembers Member[]     @relation("CurrentPackage")
+  memberships    Membership[]
+  payments       Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("packages")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MEMBERSHIPS (history of each membership period)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Membership {
+  id         String  @id @default(cuid())
+  memberId   String
+  member     Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  packageId  String
+  package    Package @relation(fields: [packageId], references: [id])
+
+  startDate  DateTime
+  expiryDate DateTime
+  company    Company
+  amount     Decimal  @db.Decimal(10, 2)
+  discount   Decimal  @db.Decimal(10, 2) @default(0)
+  notes      String?
+
+  // Link to the payment that created this membership
+  paymentId  String?  @unique
+  payment    Payment? @relation(fields: [paymentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([memberId])
+  @@index([expiryDate])
+  @@map("memberships")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MEMBER ATTENDANCE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model MemberAttendance {
+  id          String   @id @default(cuid())
+  memberId    String
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  date        DateTime @db.Date
+  checkInTime DateTime
+  markedById  String
+  markedBy    User     @relation(fields: [markedById], references: [id])
+  remarks     String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([memberId, date])
+  @@index([date])
+  @@index([memberId])
+  @@map("member_attendance")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAYMENTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Payment {
+  id             String      @id @default(cuid())
+  memberId       String
+  member         Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  date           DateTime    @default(now())
+  amount         Decimal     @db.Decimal(10, 2)
+  discount       Decimal     @db.Decimal(10, 2) @default(0)
+  pendingAmount  Decimal     @db.Decimal(10, 2) @default(0)
+  paymentMode    PaymentMode
+  packageId      String?
+  package        Package?    @relation(fields: [packageId], references: [id])
+
+  // CRITICAL: which company received this payment
+  company        Company
+
+  collectedById  String
+  collectedBy    User        @relation(fields: [collectedById], references: [id])
+  transactionRef String?
+  notes          String?
+
+  // Membership created from this payment
+  membership     Membership?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+  @@index([company])
+  @@index([memberId])
+  @@map("payments")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EMPLOYEES
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Employee {
+  id            String       @id @default(cuid())
+  employeeId    String       @unique // EMP-001
+  fullName      String
+  role          EmployeeRole
+  phone         String
+  joinDate      DateTime
+  salaryType    SalaryType   @default(FIXED_MONTHLY)
+  monthlySalary Decimal?     @db.Decimal(10, 2)
+  perDaySalary  Decimal?     @db.Decimal(10, 2)
+  isActive      Boolean      @default(true)
+  notes         String?
+
+  // Link to auth user (optional — not all employees need login access)
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id])
+
+  traineeMembers  Member[]             @relation("TrainerMembers")
+  attendances     EmployeeAttendance[]
+  payrollRecords  PayrollRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("employees")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EMPLOYEE ATTENDANCE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model EmployeeAttendance {
+  id           String                   @id @default(cuid())
+  employeeId   String
+  employee     Employee                 @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date         DateTime                 @db.Date
+  status       EmployeeAttendanceStatus
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  notes        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([employeeId, date])
+  @@index([date])
+  @@map("employee_attendance")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAYROLL
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PayrollRecord {
+  id           String   @id @default(cuid())
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id])
+  month        Int      // 1-12
+  year         Int
+  presentDays  Int      @default(0)
+  absentDays   Int      @default(0)
+  halfDays     Int      @default(0)
+  weeklyOffs   Int      @default(0)
+  leaveDays    Int      @default(0)
+  paidLeaveDays Int     @default(0)
+  workingDays  Int      @default(0) // calendar working days in month
+  grossSalary  Decimal  @db.Decimal(10, 2)
+  deductions   Decimal  @db.Decimal(10, 2) @default(0)
+  bonus        Decimal  @db.Decimal(10, 2) @default(0)
+  netSalary    Decimal  @db.Decimal(10, 2)
+  isPaid       Boolean  @default(false)
+  paidDate     DateTime?
+  paidMode     String?
+  notes        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([employeeId, month, year])
+  @@map("payroll_records")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MESSAGING
+// ─────────────────────────────────────────────────────────────────────────────
+
+model MessageTemplate {
+  id        String            @id @default(cuid())
+  name      String
+  trigger   AutomationTrigger
+  body      String            // supports {{name}}, {{days_absent}}, {{expiry_date}} etc.
+  isActive  Boolean           @default(true)
+  company   Company?          // null = both
+
+  messageLogs MessageLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("message_templates")
+}
+
+model MessageLog {
+  id            String         @id @default(cuid())
+  memberId      String
+  member        Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  templateId    String?
+  template      MessageTemplate? @relation(fields: [templateId], references: [id])
+  message       String
+  channel       MessageChannel
+  status        MessageStatus  @default(QUEUED)
+  sentAt        DateTime?
+  failureReason String?
+  trigger       AutomationTrigger?
+  isManual      Boolean        @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([memberId])
+  @@index([status])
+  @@map("message_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENEWAL FOLLOW-UPS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model RenewalFollowUp {
+  id           String   @id @default(cuid())
+  memberId     String
+  member       Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  followUpDate DateTime @default(now())
+  type         String   // CALL, MESSAGE, IN_PERSON
+  notes        String?
+  isCompleted  Boolean  @default(false)
+  completedAt  DateTime?
+  completedBy  String?
+  reminderSent Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([memberId])
+  @@map("renewal_follow_ups")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTOMATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AutomationLog {
+  id               String  @id @default(cuid())
+  type             String  // INACTIVE_CHECK, RENEWAL_REMINDER, DAILY_SUMMARY
+  status           String  // SUCCESS, FAILED, PARTIAL
+  membersProcessed Int     @default(0)
+  messagesSent     Int     @default(0)
+  errorMessage     String?
+  details          Json?
+
+  createdAt DateTime @default(now())
+
+  @@map("automation_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIT
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String   // CREATE, UPDATE, DELETE, RENEW, MARK_ATTENDANCE
+  entity    String   // Member, Payment, Employee, Membership
+  entityId  String?
+  oldValues Json?
+  newValues Json?
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId])
+  @@map("audit_logs")
+}

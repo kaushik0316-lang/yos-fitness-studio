@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+
+# Block internal CRM routes from indexing
+Disallow: /dashboard
+Disallow: /members
+Disallow: /attendance
+Disallow: /renewals
+Disallow: /payments
+Disallow: /employees
+Disallow: /employee-attendance
+Disallow: /payroll
+Disallow: /reports
+Disallow: /messages
+Disallow: /automation
+Disallow: /settings
+Disallow: /login
+Disallow: /api/
+
+Sitemap: https://www.yosfitness.in/sitemap.xml
