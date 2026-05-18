@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
         joinDate: new Date(),
         salaryType: "FIXED_MONTHLY",
         pin: data.pin,
-        isActive: false,   // Admin must activate before they can check in
+        isActive: true,
       },
     });
 
