@@ -11,6 +11,7 @@ const PUBLIC_PAGES = new Set([
   "/strength-training-mylapore",
   "/checkin",
   "/my-attendance",
+  "/join",
   "/login",
 ]);
 
@@ -18,6 +19,7 @@ const PUBLIC_PAGES = new Set([
 const PUBLIC_API_PREFIXES = [
   "/api/checkin",
   "/api/my-attendance",
+  "/api/join",
   "/api/auth",
 ];
 

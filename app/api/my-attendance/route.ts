@@ -20,10 +20,8 @@ export async function POST(req: NextRequest) {
     const monthEnd   = endOfMonth(monthStart);
 
     const records = await prisma.employeeAttendance.findMany({
-      where: {
-        employeeId: employee.id,
-        date: { gte: monthStart, lte: monthEnd },
-      },
+      where: { employeeId: employee.id, date: { gte: monthStart, lte: monthEnd } },
+      include: { shifts: { orderBy: { shiftIndex: "asc" } } },
       orderBy: { date: "asc" },
     });
 
@@ -44,8 +42,11 @@ export async function POST(req: NextRequest) {
       records: records.map((r) => ({
         date: r.date.toISOString().split("T")[0],
         status: r.status,
-        checkInTime: r.checkInTime?.toISOString() ?? null,
-        checkOutTime: r.checkOutTime?.toISOString() ?? null,
+        shifts: r.shifts.map((s) => ({
+          shiftIndex: s.shiftIndex,
+          checkInTime: s.checkInTime.toISOString(),
+          checkOutTime: s.checkOutTime?.toISOString() ?? null,
+        })),
       })),
     });
   } catch (err) {

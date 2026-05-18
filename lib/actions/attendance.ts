@@ -81,14 +81,10 @@ export async function markEmployeeAttendance(input: {
       employeeId: input.employeeId,
       date,
       status: input.status as any,
-      checkInTime: input.checkInTime ? new Date(input.checkInTime) : null,
-      checkOutTime: input.checkOutTime ? new Date(input.checkOutTime) : null,
       notes: input.notes,
     },
     update: {
       status: input.status as any,
-      checkInTime: input.checkInTime ? new Date(input.checkInTime) : null,
-      checkOutTime: input.checkOutTime ? new Date(input.checkOutTime) : null,
       notes: input.notes,
     },
   });

@@ -10,6 +10,7 @@ interface SuccessData {
   action: "checkin" | "checkout";
   employeeName: string;
   time: string;
+  shiftNumber?: number;
 }
 
 export default function CheckInPage() {
@@ -77,6 +78,7 @@ export default function CheckInPage() {
               action: data.action,
               employeeName: data.employee.fullName,
               time: data.time,
+              shiftNumber: data.shiftNumber,
             });
             setPhase("success");
           }
@@ -111,6 +113,9 @@ export default function CheckInPage() {
             {isCheckin ? "Checked In" : "Checked Out"}
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">{successData.employeeName}</h2>
+          {successData.shiftNumber && successData.shiftNumber > 1 && (
+            <p className="text-gray-500 text-sm mb-1">Shift {successData.shiftNumber}</p>
+          )}
           <p className="text-gray-400 text-lg mb-8">{successData.time}</p>
           <Link
             href="/my-attendance"
