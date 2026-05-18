@@ -264,7 +264,7 @@ export default function MarketingPage() {
             <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
               <Image src="/Logo.png" alt="Yos Fitness Studio logo" width={48} height={48} className="h-10 w-auto object-contain" priority />
               <div className="leading-tight">
-                <p className="font-extrabold text-gray-900 text-sm leading-none">Yos Fitness Studio</p>
+                <p className="font-extrabold text-gray-900 text-sm leading-none uppercase tracking-wide">Yos Fitness Studio</p>
               </div>
             </Link>
 
