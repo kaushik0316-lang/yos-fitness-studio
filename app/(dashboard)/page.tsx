@@ -275,6 +275,31 @@ export default function MarketingPage() {
               <a href="#memberships" className="hover:text-red-600 transition-colors">Membership</a>
               <a href="#location" className="hover:text-red-600 transition-colors">Find Us</a>
               <a href="#faq" className="hover:text-red-600 transition-colors">FAQ</a>
+
+              {/* Staff Portal dropdown */}
+              <div className="relative group">
+                <button className="flex items-center gap-1 hover:text-red-600 transition-colors select-none">
+                  Staff Portal
+                  <ChevronDown className="h-3.5 w-3.5 transition-transform duration-200 group-hover:rotate-180" aria-hidden="true" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50 overflow-hidden">
+                  <div className="py-1.5">
+                    <Link href="/checkin" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
+                      <span className="text-base">📍</span>
+                      <span className="font-medium text-sm">Staff Check-In</span>
+                    </Link>
+                    <Link href="/my-attendance" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
+                      <span className="text-base">📅</span>
+                      <span className="font-medium text-sm">My Attendance</span>
+                    </Link>
+                    <div className="mx-4 my-1 border-t border-gray-100" />
+                    <Link href="/join" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
+                      <span className="text-base">✍️</span>
+                      <span className="font-medium text-sm">Register as Staff</span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -886,7 +911,7 @@ export default function MarketingPage() {
         {/* ── Footer ───────────────────────────────────────────────────────── */}
         <footer className="bg-stone-950 text-gray-400">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
               <div>
                 <div className="flex items-center gap-3 mb-4">
                   <Image src="/Logo.png" alt="Yos Fitness Studio logo" width={40} height={40} className="h-8 w-auto object-contain" />
@@ -921,6 +946,18 @@ export default function MarketingPage() {
                     { label: "Weight Loss Training", href: "/weight-loss-training-mylapore" },
                     { label: "Strength Training", href: "/strength-training-mylapore" },
                     { label: "Gym in Mylapore", href: "/gym-in-mylapore" },
+                  ].map(({ label, href }) => (
+                    <li key={label}><Link href={href} className="hover:text-red-400 transition-colors">{label}</Link></li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="text-white font-bold text-sm mb-4">Staff Portal</p>
+                <ul className="space-y-2 text-sm">
+                  {[
+                    { label: "Staff Check-In", href: "/checkin" },
+                    { label: "My Attendance", href: "/my-attendance" },
+                    { label: "Register as Staff", href: "/join" },
                   ].map(({ label, href }) => (
                     <li key={label}><Link href={href} className="hover:text-red-400 transition-colors">{label}</Link></li>
                   ))}
