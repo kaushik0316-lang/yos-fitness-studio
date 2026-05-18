@@ -302,6 +302,7 @@ model Employee {
   monthlySalary Decimal?     @db.Decimal(10, 2)
   perDaySalary  Decimal?     @db.Decimal(10, 2)
   isActive      Boolean      @default(true)
+  pin           String?      @unique
   notes         String?
 
   // Link to auth user (optional — not all employees need login access)
@@ -331,6 +332,10 @@ model EmployeeAttendance {
   checkInTime  DateTime?
   checkOutTime DateTime?
   notes        String?
+  checkInLat   Float?
+  checkInLng   Float?
+  checkOutLat  Float?
+  checkOutLng  Float?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

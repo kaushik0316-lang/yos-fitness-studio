@@ -1,0 +1,232 @@
+"use client";
+
+import Image from "next/image";
+import { useRef, useState, KeyboardEvent, ChangeEvent } from "react";
+
+type Phase = "input" | "locating" | "loading" | "success" | "error";
+
+interface SuccessData {
+  action: "checkin" | "checkout";
+  employeeName: string;
+  time: string;
+}
+
+export default function CheckInPage() {
+  const [digits, setDigits] = useState<string[]>(["", "", "", ""]);
+  const [phase, setPhase] = useState<Phase>("input");
+  const [successData, setSuccessData] = useState<SuccessData | null>(null);
+  const [errorMsg, setErrorMsg] = useState("");
+  const inputs = useRef<(HTMLInputElement | null)[]>([]);
+
+  function resetForm() {
+    setDigits(["", "", "", ""]);
+    setPhase("input");
+    setSuccessData(null);
+    setErrorMsg("");
+    setTimeout(() => inputs.current[0]?.focus(), 50);
+  }
+
+  function handleChange(index: number, e: ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value.replace(/\D/g, "").slice(-1);
+    const next = [...digits];
+    next[index] = val;
+    setDigits(next);
+    if (val && index < 3) {
+      inputs.current[index + 1]?.focus();
+    }
+  }
+
+  function handleKeyDown(index: number, e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Backspace") {
+      if (digits[index]) {
+        const next = [...digits];
+        next[index] = "";
+        setDigits(next);
+      } else if (index > 0) {
+        inputs.current[index - 1]?.focus();
+        const next = [...digits];
+        next[index - 1] = "";
+        setDigits(next);
+      }
+    }
+  }
+
+  async function handleSubmit() {
+    const pin = digits.join("");
+    if (pin.length < 4) return;
+
+    setPhase("locating");
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setPhase("loading");
+        try {
+          const res = await fetch("/api/checkin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pin, lat, lng }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            setErrorMsg(data.error ?? "Something went wrong.");
+            setPhase("error");
+          } else {
+            setSuccessData({
+              action: data.action,
+              employeeName: data.employee.fullName,
+              time: data.time,
+            });
+            setPhase("success");
+          }
+        } catch {
+          setErrorMsg("Network error. Check your connection and try again.");
+          setPhase("error");
+        }
+      },
+      (err) => {
+        let msg = "Could not get your location. Please enable GPS and try again.";
+        if (err.code === 1) msg = "Location permission denied. Please allow location access and try again.";
+        setErrorMsg(msg);
+        setPhase("error");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
+
+  const pinComplete = digits.every((d) => d !== "");
+
+  // ─── Success screen ────────────────────────────────────────────────────────
+  if (phase === "success" && successData) {
+    const isCheckin = successData.action === "checkin";
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10" style={{ background: "#0f0f0f" }}>
+        <div className="w-full max-w-sm text-center">
+          <div className="text-7xl mb-6">✅</div>
+          <div
+            className="inline-block px-5 py-2 rounded-full text-white font-bold text-sm uppercase tracking-widest mb-6"
+            style={{ background: isCheckin ? "#16a34a" : "#dc2626" }}
+          >
+            {isCheckin ? "Checked In" : "Checked Out"}
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">{successData.employeeName}</h2>
+          <p className="text-gray-400 text-lg mb-10">{successData.time}</p>
+          <button
+            onClick={resetForm}
+            className="w-full py-4 rounded-xl font-semibold text-white text-base"
+            style={{ background: "#dc2626" }}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Error screen ──────────────────────────────────────────────────────────
+  if (phase === "error") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10" style={{ background: "#0f0f0f" }}>
+        <div className="w-full max-w-sm text-center">
+          <div className="text-7xl mb-6">❌</div>
+          <h2 className="text-xl font-bold text-white mb-4">Oops!</h2>
+          <p className="text-gray-300 text-base mb-10 leading-relaxed">{errorMsg}</p>
+          <button
+            onClick={resetForm}
+            className="w-full py-4 rounded-xl font-semibold text-white text-base"
+            style={{ background: "#dc2626" }}
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Main input screen ─────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10" style={{ background: "#0f0f0f" }}>
+      <div className="w-full max-w-sm flex flex-col items-center">
+        {/* Logo */}
+        <Image
+          src="/Logo.png"
+          alt="Yos Fitness Studio"
+          width={200}
+          height={48}
+          className="h-12 w-auto object-contain mb-8"
+          priority
+        />
+
+        {/* Heading */}
+        <h1 className="text-2xl font-bold text-white mb-2 text-center">Staff Attendance</h1>
+        <p className="text-gray-400 text-base text-center mb-10">
+          Enter your PIN to check in or out
+        </p>
+
+        {/* PIN boxes */}
+        <div className="flex gap-4 mb-10">
+          {digits.map((digit, i) => (
+            <input
+              key={i}
+              ref={(el) => { inputs.current[i] = el; }}
+              type="tel"
+              inputMode="numeric"
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleChange(i, e)}
+              onKeyDown={(e) => handleKeyDown(i, e)}
+              disabled={phase === "locating" || phase === "loading"}
+              className="h-14 w-14 text-center text-2xl font-bold rounded-xl border-2 outline-none text-white transition-colors"
+              style={{
+                background: "#1a1a1a",
+                borderColor: digit ? "#dc2626" : "#374151",
+                caretColor: "#dc2626",
+              }}
+              onFocus={(e) => e.target.select()}
+            />
+          ))}
+        </div>
+
+        {/* Submit button */}
+        <button
+          onClick={handleSubmit}
+          disabled={!pinComplete || phase === "locating" || phase === "loading"}
+          className="w-full py-4 rounded-xl font-semibold text-white text-base flex items-center justify-center gap-3 transition-opacity disabled:opacity-50"
+          style={{ background: "#dc2626" }}
+        >
+          {phase === "locating" && (
+            <>
+              <Spinner />
+              Getting location...
+            </>
+          )}
+          {phase === "loading" && (
+            <>
+              <Spinner />
+              Marking attendance...
+            </>
+          )}
+          {(phase === "input") && "Mark Attendance"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Spinner() {
+  return (
+    <svg
+      className="animate-spin h-5 w-5 text-white"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+      />
+    </svg>
+  );
+}
