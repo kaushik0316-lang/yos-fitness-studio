@@ -6,6 +6,7 @@ import {
   Zap, Flame, CheckCircle2, ArrowRight, Award,
   Shield, Activity, BarChart2, MessageCircle, ChevronDown,
 } from "lucide-react";
+import { MobileNav } from "@/components/layout/MobileNav";
 
 // ── Contact & domain constants ───────────────────────────────────────────────
 const PHONE_DISPLAY = "+91 98406 90418";
@@ -309,8 +310,10 @@ export default function MarketingPage() {
               </a>
               <a href={waLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2 rounded-xl shadow-md shadow-red-200 transition-all" aria-label="WhatsApp Yos Fitness Studio">
                 <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                <span>WhatsApp Us</span>
+                <span className="hidden sm:inline">WhatsApp Us</span>
               </a>
+              {/* Mobile hamburger — renders client-side */}
+              <MobileNav />
             </div>
           </nav>
         </header>
