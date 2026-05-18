@@ -43,7 +43,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   PRESENT:    { label: "Present",    color: "#16a34a", bg: "rgba(22,163,74,0.15)" },
   ABSENT:     { label: "Absent",     color: "#dc2626", bg: "rgba(220,38,38,0.15)" },
   HALF_DAY:   { label: "Half Day",   color: "#d97706", bg: "rgba(217,119,6,0.15)" },
-  WEEKLY_OFF: { label: "Weekly Off", color: "#6b7280", bg: "rgba(107,114,128,0.15)" },
+  WEEKLY_OFF: { label: "Week Off",   color: "#6b7280", bg: "rgba(107,114,128,0.15)" },
   LEAVE:      { label: "Leave",      color: "#2563eb", bg: "rgba(37,99,235,0.15)" },
   PAID_LEAVE: { label: "Paid Leave", color: "#7c3aed", bg: "rgba(124,58,237,0.15)" },
 };
@@ -73,6 +73,21 @@ function duration(inISO: string, outISO: string | null): string {
 function getDaysInMonth(month: number, year: number) { return new Date(year, month, 0).getDate(); }
 function getDayName(dateStr: string) { return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date(dateStr).getDay()]; }
 
+function totalMonthHours(records: AttendanceRecord[]): string {
+  let mins = 0;
+  for (const r of records) {
+    for (const s of r.shifts) {
+      if (s.checkOutTime) {
+        mins += (new Date(s.checkOutTime).getTime() - new Date(s.checkInTime).getTime()) / 60000;
+      }
+    }
+  }
+  if (mins < 1) return "";
+  const h = Math.floor(mins / 60);
+  const m = Math.round(mins % 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function MyAttendancePage() {
@@ -84,6 +99,7 @@ export default function MyAttendancePage() {
   const [viewMonth, setViewMonth] = useState(today.getMonth() + 1);
   const [viewYear, setViewYear]   = useState(today.getFullYear());
   const [savedPin, setSavedPin]   = useState("");
+  const [signOutConfirm, setSignOutConfirm] = useState(false);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
   function handleChange(index: number, e: ChangeEvent<HTMLInputElement>) {
@@ -120,6 +136,15 @@ export default function MyAttendancePage() {
     await fetch_(savedPin, m, y);
   }
 
+  function handleSignOut() {
+    if (!signOutConfirm) {
+      setSignOutConfirm(true);
+      setTimeout(() => setSignOutConfirm(false), 3000);
+      return;
+    }
+    setPhase("input"); setDigits(["","","",""]); setData(null); setSignOutConfirm(false);
+  }
+
   const pinComplete = digits.every((d) => d !== "");
 
   // ── View screen ────────────────────────────────────────────────────────────
@@ -130,16 +155,33 @@ export default function MyAttendancePage() {
     for (const r of data.records) recordMap[r.date] = r;
     const isCurrentMonth = viewMonth === today.getMonth() + 1 && viewYear === today.getFullYear();
     const todayStr = today.toISOString().split("T")[0];
+    const monthTotal = totalMonthHours(data.records);
+    const hasAnyRecord = data.records.length > 0;
+
+    const summaryItems = [
+      { key: "PRESENT",    label: "Present",    val: data.summary.PRESENT },
+      { key: "ABSENT",     label: "Absent",     val: data.summary.ABSENT },
+      { key: "HALF_DAY",   label: "Half Day",   val: data.summary.HALF_DAY },
+      { key: "LEAVE",      label: "Leave",      val: data.summary.LEAVE },
+      { key: "PAID_LEAVE", label: "Paid Leave", val: data.summary.PAID_LEAVE },
+      { key: "WEEKLY_OFF", label: "Week Off",   val: data.summary.WEEKLY_OFF },
+    ];
 
     return (
       <div className="min-h-screen flex flex-col" style={{ background: "#0f0f0f" }}>
+
         {/* Header */}
         <div className="px-4 pt-8 pb-2 flex flex-col items-center">
-          <Image src="/Logo.png" alt="Yos" width={160} height={40} className="h-10 w-auto object-contain mb-5" />
+          <Image src="/Logo.png" alt="Yos" width={120} height={120} className="h-12 w-auto object-contain mb-5" />
           <h1 className="text-xl font-bold text-white">{data.employee.fullName}</h1>
           <p className="text-gray-500 text-sm mt-1">
             {ROLE_LABELS[data.employee.role] ?? data.employee.role} · {data.employee.employeeId}
           </p>
+          {monthTotal && (
+            <div className="mt-3 px-4 py-1.5 rounded-full text-xs font-semibold" style={{ background: "rgba(22,163,74,0.15)", color: "#16a34a" }}>
+              ⏱ {monthTotal} worked this month
+            </div>
+          )}
         </div>
 
         {/* Month nav */}
@@ -148,106 +190,150 @@ export default function MyAttendancePage() {
             ← Prev
           </button>
           <span className="text-white font-bold">{MONTH_NAMES[data.month - 1]} {data.year}</span>
-          <button onClick={() => changeMonth(1)} disabled={isCurrentMonth} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-300 hover:text-white disabled:opacity-30" style={{ background: "#1a1a1a" }}>
+          <button
+            onClick={() => changeMonth(1)}
+            disabled={isCurrentMonth}
+            title={isCurrentMonth ? "This is the current month" : "Next month"}
+            className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+            style={{ background: "#1a1a1a" }}
+          >
             Next →
           </button>
         </div>
 
-        {/* Summary */}
+        {/* Summary — 3 cols × 2 rows, Paid Leave shown separately */}
         <div className="px-4 pb-4 grid grid-cols-3 gap-2">
-          {[
-            { key: "PRESENT",    label: "Present",   val: data.summary.PRESENT },
-            { key: "ABSENT",     label: "Absent",    val: data.summary.ABSENT },
-            { key: "HALF_DAY",   label: "Half Day",  val: data.summary.HALF_DAY },
-            { key: "LEAVE",      label: "Leave",     val: data.summary.LEAVE + data.summary.PAID_LEAVE },
-            { key: "WEEKLY_OFF", label: "Week Off",  val: data.summary.WEEKLY_OFF },
-          ].map(({ key, label, val }) => (
+          {summaryItems.map(({ key, label, val }) => (
             <div key={key} className="flex flex-col items-center py-3 rounded-xl" style={{ background: STATUS_CONFIG[key]?.bg, color: STATUS_CONFIG[key]?.color }}>
               <span className="text-2xl font-bold leading-none">{val}</span>
-              <span className="text-xs mt-1 opacity-80">{label}</span>
+              <span className="text-[11px] mt-1 opacity-80 text-center">{label}</span>
             </div>
           ))}
         </div>
 
-        {/* Day list */}
-        <div className="px-3 pb-6 space-y-2 flex-1">
-          {Array.from({ length: totalDays }, (_, i) => {
-            const day = i + 1;
-            const dateStr = `${data.year}-${String(data.month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-            const rec = recordMap[dateStr];
-            const dayName = getDayName(dateStr);
-            const isSunday = dayName === "Sun";
-            const isToday = dateStr === todayStr;
-            const isFuture = isCurrentMonth && day > today.getDate();
-            const cfg = rec ? STATUS_CONFIG[rec.status] : null;
+        {/* Empty state */}
+        {!hasAnyRecord ? (
+          <div className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="text-5xl mb-4">📭</div>
+            <p className="text-white font-semibold text-base mb-1">No attendance recorded</p>
+            <p className="text-gray-500 text-sm">No entries found for {MONTH_NAMES[data.month - 1]} {data.year}.</p>
+          </div>
+        ) : (
+          /* Day list */
+          <div className="px-3 pb-36 space-y-2 flex-1">
+            {Array.from({ length: totalDays }, (_, i) => {
+              const day = i + 1;
+              const dateStr = `${data.year}-${String(data.month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+              const rec = recordMap[dateStr];
+              const dayName = getDayName(dateStr);
+              const isSunday = dayName === "Sun";
+              const isToday = dateStr === todayStr;
+              const isFuture = isCurrentMonth && day > today.getDate();
+              const cfg = rec ? STATUS_CONFIG[rec.status] : null;
+              const hasOpenShift = rec?.shifts.some((s) => !s.checkOutTime);
 
-            return (
-              <div key={dateStr} className="rounded-xl overflow-hidden" style={{ background: "#141414", borderLeft: isToday ? "3px solid #dc2626" : "3px solid transparent" }}>
-                {/* Day header row */}
-                <div className="flex items-center gap-3 px-4 py-2.5">
-                  <div className="w-10 flex-shrink-0 text-center">
-                    <p className={`text-base font-bold leading-none ${isSunday ? "text-red-400" : "text-white"}`}>{day}</p>
-                    <p className={`text-[10px] mt-0.5 ${isSunday ? "text-red-500" : "text-gray-500"}`}>{dayName}</p>
+              return (
+                <div
+                  key={dateStr}
+                  className="rounded-xl overflow-hidden"
+                  style={{ background: "#141414", borderLeft: isToday ? "3px solid #dc2626" : "3px solid transparent" }}
+                >
+                  {/* Day header row */}
+                  <div className="flex items-center gap-3 px-4 py-2.5">
+                    <div className="w-10 flex-shrink-0 text-center">
+                      <p className={`text-base font-bold leading-none ${isSunday || isToday ? "text-red-400" : "text-white"}`}>{day}</p>
+                      <p className={`text-[10px] mt-0.5 ${isSunday ? "text-red-500" : "text-gray-500"}`}>{dayName}</p>
+                    </div>
+                    <div className="flex-1 flex items-center gap-2 flex-wrap">
+                      {rec ? (
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-md" style={{ background: cfg?.bg, color: cfg?.color }}>
+                          {cfg?.label ?? rec.status}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-600">
+                          {isFuture ? "—" : isSunday ? "Sunday" : "Not marked"}
+                        </span>
+                      )}
+                      {/* Still-in pulse */}
+                      {hasOpenShift && (
+                        <span className="flex items-center gap-1.5">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#d97706" }} />
+                            <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: "#d97706" }} />
+                          </span>
+                          <span className="text-[10px] font-semibold" style={{ color: "#d97706" }}>Still in</span>
+                        </span>
+                      )}
+                    </div>
+                    {/* Total hours for the day */}
+                    {rec && rec.shifts.length > 0 && (() => {
+                      const total = rec.shifts.reduce((sum, s) => {
+                        if (!s.checkOutTime) return sum;
+                        return sum + (new Date(s.checkOutTime).getTime() - new Date(s.checkInTime).getTime());
+                      }, 0) / 60000;
+                      if (total < 1) return null;
+                      const h = Math.floor(total / 60), m = Math.round(total % 60);
+                      return (
+                        <span className="text-xs text-gray-400 flex-shrink-0">
+                          {h > 0 ? `${h}h ${m}m` : `${m}m`}
+                        </span>
+                      );
+                    })()}
                   </div>
-                  <div className="flex-1">
-                    {rec ? (
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-md" style={{ background: cfg?.bg, color: cfg?.color }}>
-                        {cfg?.label ?? rec.status}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-gray-600">{isFuture ? "" : isSunday ? "Sunday" : "Not marked"}</span>
-                    )}
-                  </div>
-                  {/* Total hours for the day */}
-                  {rec && rec.shifts.length > 0 && (() => {
-                    const total = rec.shifts.reduce((sum, s) => {
-                      if (!s.checkOutTime) return sum;
-                      return sum + (new Date(s.checkOutTime).getTime() - new Date(s.checkInTime).getTime());
-                    }, 0) / 60000;
-                    if (total < 1) return null;
-                    const h = Math.floor(total / 60), m = Math.round(total % 60);
-                    return (
-                      <span className="text-xs text-gray-400 flex-shrink-0">
-                        {h > 0 ? `${h}h ${m}m` : `${m}m`} total
-                      </span>
-                    );
-                  })()}
+
+                  {/* Shifts */}
+                  {rec && rec.shifts.length > 0 && (
+                    <div className="border-t mx-3 mb-2" style={{ borderColor: "#1f1f1f" }}>
+                      {rec.shifts.map((s) => {
+                        const isOpen = !s.checkOutTime;
+                        return (
+                          <div key={s.shiftIndex} className="flex items-center gap-3 px-1 py-2">
+                            {rec.shifts.length > 1 && (
+                              <span className="text-[10px] text-gray-600 w-12 flex-shrink-0 font-medium">Shift {s.shiftIndex}</span>
+                            )}
+                            <div className="flex items-center gap-2 flex-1 flex-wrap">
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: "rgba(22,163,74,0.15)", color: "#16a34a" }}>
+                                IN {fmt(s.checkInTime)}
+                              </span>
+                              {isOpen ? (
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: "rgba(217,119,6,0.15)", color: "#d97706" }}>
+                                  Still in
+                                </span>
+                              ) : (
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: "rgba(220,38,38,0.15)", color: "#dc2626" }}>
+                                  OUT {fmt(s.checkOutTime)}
+                                </span>
+                              )}
+                              {s.checkOutTime && (
+                                <span className="text-[10px] text-gray-500">({duration(s.checkInTime, s.checkOutTime)})</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
+              );
+            })}
+          </div>
+        )}
 
-                {/* Shifts */}
-                {rec && rec.shifts.length > 0 && (
-                  <div className="border-t mx-3 mb-2" style={{ borderColor: "#1f1f1f" }}>
-                    {rec.shifts.map((s) => (
-                      <div key={s.shiftIndex} className="flex items-center gap-3 px-1 py-2">
-                        {rec.shifts.length > 1 && (
-                          <span className="text-[10px] text-gray-600 w-12 flex-shrink-0 font-medium">Shift {s.shiftIndex}</span>
-                        )}
-                        <div className="flex items-center gap-2 flex-1 flex-wrap">
-                          <span className="text-xs" style={{ color: "#16a34a" }}>▲ {fmt(s.checkInTime)}</span>
-                          {s.checkOutTime
-                            ? <span className="text-xs" style={{ color: "#dc2626" }}>▼ {fmt(s.checkOutTime)}</span>
-                            : <span className="text-xs text-gray-600 italic">Still in</span>
-                          }
-                          {s.checkOutTime && (
-                            <span className="text-[10px] text-gray-600">({duration(s.checkInTime, s.checkOutTime)})</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Footer actions */}
-        <div className="px-4 pb-8 pt-2 space-y-3">
-          <Link href="/checkin" className="block w-full py-4 rounded-xl font-semibold text-white text-base text-center" style={{ background: "#dc2626" }}>
+        {/* Sticky footer */}
+        <div className="fixed bottom-0 left-0 right-0 px-4 pb-6 pt-4 space-y-2" style={{ background: "linear-gradient(to top, #0f0f0f 75%, transparent)" }}>
+          <Link
+            href="/checkin"
+            className="block w-full py-3.5 rounded-xl font-semibold text-white text-base text-center"
+            style={{ background: "#dc2626" }}
+          >
             Mark Attendance
           </Link>
-          <button onClick={() => { setPhase("input"); setDigits(["","","",""]); setData(null); }} className="block w-full py-3 rounded-xl font-medium text-gray-500 text-sm text-center" style={{ background: "#1a1a1a" }}>
-            Sign Out
+          <button
+            onClick={handleSignOut}
+            className="block w-full py-3 rounded-xl font-medium text-sm text-center transition-colors"
+            style={{ background: "#1a1a1a", color: signOutConfirm ? "#dc2626" : "#6b7280" }}
+          >
+            {signOutConfirm ? "Tap again to confirm sign out" : "Sign Out"}
           </button>
         </div>
       </div>
@@ -274,9 +360,9 @@ export default function MyAttendancePage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10" style={{ background: "#0f0f0f" }}>
       <div className="w-full max-w-sm flex flex-col items-center">
-        <Image src="/Logo.png" alt="Yos" width={200} height={48} className="h-12 w-auto object-contain mb-8" priority />
+        <Image src="/Logo.png" alt="Yos" width={120} height={120} className="h-12 w-auto object-contain mb-8" priority />
         <h1 className="text-2xl font-bold text-white mb-2 text-center">My Attendance</h1>
-        <p className="text-gray-400 text-base text-center mb-10">Enter your PIN to view your attendance</p>
+        <p className="text-gray-400 text-base text-center mb-10">Enter your 4-digit PIN to view your attendance</p>
 
         <div className="flex gap-4 mb-10">
           {digits.map((digit, i) => (
