@@ -15,9 +15,9 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 const features = [
-  { icon: Users, title: "Member Management", desc: "Track 400+ members across both gyms" },
-  { icon: CalendarCheck, title: "Quick Attendance", desc: "One-tap check-in at the front desk" },
-  { icon: TrendingUp, title: "Revenue Reports", desc: "Real-time collections per company" },
+  { icon: Users, title: "Member Management", desc: "Memberships, renewals and payments in one place" },
+  { icon: CalendarCheck, title: "Staff Attendance", desc: "PIN-based check-in with shift tracking" },
+  { icon: TrendingUp, title: "Revenue Reports", desc: "Real-time collections and payroll overview" },
 ];
 
 export default function LoginPage() {
@@ -53,8 +53,8 @@ export default function LoginPage() {
               <Dumbbell className="h-7 w-7 text-white" />
             </div>
             <div>
-              <p className="text-white font-extrabold text-xl leading-none">Yos CRM</p>
-              <p className="text-gray-500 text-xs mt-0.5">Fitness Management Platform</p>
+              <p className="text-white font-extrabold text-xl leading-none">Yos Fitness Studio</p>
+              <p className="text-gray-500 text-xs mt-0.5">Mylapore, Chennai</p>
             </div>
           </div>
 
@@ -86,7 +86,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <div className="mt-auto pt-12">
-            <p className="text-gray-700 text-xs">© 2026 Yos Fitness · Yos Fitness Studio · Bengaluru</p>
+            <p className="text-gray-700 text-xs">© 2026 Yos Fitness Studio · Mylapore, Chennai</p>
           </div>
         </div>
       </div>
@@ -100,7 +100,7 @@ export default function LoginPage() {
             <div className="bg-orange-500 rounded-xl p-2.5">
               <Dumbbell className="h-6 w-6 text-white" />
             </div>
-            <span className="text-gray-900 font-extrabold text-2xl">Yos CRM</span>
+            <span className="text-gray-900 font-extrabold text-2xl">Yos Fitness Studio</span>
           </div>
 
           {/* Card */}
@@ -162,6 +162,18 @@ export default function LoginPage() {
                 {isSubmitting ? "Signing in..." : "Sign in to dashboard"}
               </button>
             </form>
+
+            <p className="text-center text-xs text-gray-400 mt-6">
+              Forgot your password?{" "}
+              <a
+                href="https://wa.me/919840690418?text=Hi%2C+I+need+help+resetting+my+Yos+CRM+login+password."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-orange-500 hover:text-orange-600 font-semibold"
+              >
+                Contact admin on WhatsApp
+              </a>
+            </p>
 
           </div>
         </div>
