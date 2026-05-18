@@ -42,6 +42,22 @@ enum PaymentMode {
   FREE
 }
 
+enum PaymentType {
+  ADMISSION
+  RENEWAL
+  BALANCE
+}
+
+enum MembershipCategory {
+  PERSONAL_TRAINING
+  GENERAL_FITNESS
+  SEMI_PRIVATE_COACHING
+  TRANSFORMATION_PACKAGE
+  STUDENT_PACKAGE
+  HIIT_CLASSES
+  CUSTOM
+}
+
 enum UserRole {
   ADMIN
   FRONT_DESK
@@ -141,6 +157,14 @@ model Member {
   joinDate DateTime  @default(now())
   status   MemberStatus @default(ACTIVE)
   notes    String?
+
+  // Extended member profile fields
+  email              String?
+  bloodGroup         String?
+  weight             Decimal?     @db.Decimal(5, 2)
+  height             Decimal?     @db.Decimal(5, 2)
+  healthConditions   String?
+  intentionOfJoining String?
 
   // Current active membership snapshot (denormalized for speed)
   currentPackageId String?
@@ -274,6 +298,16 @@ model Payment {
   collectedBy    User        @relation(fields: [collectedById], references: [id])
   transactionRef String?
   notes          String?
+
+  // Receipt / billing fields
+  receiptNumber      Int?
+  paymentType        PaymentType  @default(ADMISSION)
+  categoryLabel      String?
+  periodLabel        String?
+  startDate          DateTime?
+  expiryDate         DateTime?
+  previousReceiptNo  Int?
+  previousAmount     Decimal?     @db.Decimal(10, 2)
 
   // Membership created from this payment
   membership     Membership?

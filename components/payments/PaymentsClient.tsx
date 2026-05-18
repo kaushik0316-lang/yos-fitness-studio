@@ -11,6 +11,7 @@ import type { Company, UserRole } from "@prisma/client";
 type Payment = {
   id: string; date: Date; amount: any; discount: any; pendingAmount: any;
   paymentMode: string; company: Company; transactionRef: string | null; notes: string | null;
+  receiptNumber: number | null; paymentType: string | null;
   member: { id: string; memberId: string; fullName: string; phone: string };
   package: { name: string } | null;
   collectedBy: { name: string };
@@ -130,7 +131,7 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                {["Date", "Member", "Amount", "Mode", "Package", "Company", "Collected By", "Ref"].map((h) => (
+                {["Receipt #", "Date", "Member", "Amount", "Mode", "Package", "Company", "Collected By"].map((h) => (
                   <th key={h} className="text-left px-5 py-3.5 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">
                     {h}
                   </th>
@@ -140,7 +141,7 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
             <tbody>
               {payments.length === 0 ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={9}>
                     <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-300">
                       <CreditCard className="h-12 w-12" />
                       <p className="text-sm text-gray-400 font-medium">No payments found</p>
@@ -150,6 +151,15 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
               ) : (
                 payments.map((p) => (
                   <tr key={p.id} className="border-b border-gray-50 hover:bg-orange-50/20 transition-colors last:border-0">
+                    <td className="px-5 py-4">
+                      {p.receiptNumber ? (
+                        <Link href={`/payments/${p.id}/receipt`} className="font-mono text-sm font-bold text-orange-600 hover:underline">
+                          #{p.receiptNumber}
+                        </Link>
+                      ) : (
+                        <span className="text-gray-300 text-sm">—</span>
+                      )}
+                    </td>
                     <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(p.date)}</td>
                     <td className="px-5 py-4">
                       <Link href={`/members/${p.member.id}`} className="font-semibold text-gray-900 hover:text-orange-600 transition-colors">
@@ -175,7 +185,6 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
                       </span>
                     </td>
                     <td className="px-5 py-4 text-sm text-gray-600">{p.collectedBy.name}</td>
-                    <td className="px-5 py-4 text-xs text-gray-400 font-mono">{p.transactionRef ?? "—"}</td>
                   </tr>
                 ))
               )}

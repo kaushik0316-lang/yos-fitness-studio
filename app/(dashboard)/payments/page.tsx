@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { PaymentsClient } from "@/components/payments/PaymentsClient";
 import { Company } from "@prisma/client";
 import { startOfDay, endOfDay, startOfMonth, endOfMonth } from "date-fns";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Payments" };
@@ -65,6 +66,14 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
     <>
       <Header title="Payments" subtitle="All transactions across both companies" />
       <div className="flex-1 p-6">
+        <div className="flex justify-end mb-4">
+          <Link
+            href="/payments/new"
+            className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 rounded-xl text-sm font-bold text-white transition-colors shadow-md shadow-orange-200"
+          >
+            + New Receipt
+          </Link>
+        </div>
         <PaymentsClient
           payments={payments as any}
           total={total}
@@ -77,7 +86,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
           userRole={session!.user.role}
           userId={session!.user.id}
         />
-      </div>
+        </div>
     </>
   );
 }
