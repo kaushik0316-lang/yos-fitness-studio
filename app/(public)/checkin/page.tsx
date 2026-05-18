@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRef, useState, KeyboardEvent, ChangeEvent } from "react";
 
 type Phase = "input" | "locating" | "loading" | "success" | "error";
@@ -110,7 +111,14 @@ export default function CheckInPage() {
             {isCheckin ? "Checked In" : "Checked Out"}
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">{successData.employeeName}</h2>
-          <p className="text-gray-400 text-lg mb-10">{successData.time}</p>
+          <p className="text-gray-400 text-lg mb-8">{successData.time}</p>
+          <Link
+            href="/my-attendance"
+            className="block w-full py-3 rounded-xl font-semibold text-center text-sm mb-3"
+            style={{ background: "#1a1a1a", color: "#9ca3af" }}
+          >
+            View My Attendance →
+          </Link>
           <button
             onClick={resetForm}
             className="w-full py-4 rounded-xl font-semibold text-white text-base"

@@ -10,12 +10,14 @@ const PUBLIC_PAGES = new Set([
   "/semi-private-coaching-chennai",
   "/strength-training-mylapore",
   "/checkin",
+  "/my-attendance",
   "/login",
 ]);
 
 // Public API routes — no auth required
 const PUBLIC_API_PREFIXES = [
   "/api/checkin",
+  "/api/my-attendance",
   "/api/auth",
 ];
 
