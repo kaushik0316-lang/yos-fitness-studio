@@ -10,18 +10,18 @@ const ROLE_OPTIONS = [
   { value: "FRONT_DESK", label: "Front Desk" },
   { value: "TRAINER",    label: "Trainer" },
   { value: "CLEANER",    label: "Cleaner" },
-  { value: "MANAGER",    label: "Manager" },
 ];
 
 export default function JoinPage() {
   const [phase, setPhase] = useState<Phase>("form");
-  const [form, setForm] = useState({ fullName: "", phone: "", role: "FRONT_DESK", pin: "", pinConfirm: "" });
+  const [form, setForm] = useState({ joinCode: "", fullName: "", phone: "", role: "FRONT_DESK", pin: "", pinConfirm: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [result, setResult] = useState<{ employeeId: string; fullName: string } | null>(null);
   const [serverError, setServerError] = useState("");
 
   function validate() {
     const e: Record<string, string> = {};
+    if (form.joinCode.trim().length < 1) e.joinCode = "Join code is required";
     if (form.fullName.trim().length < 2) e.fullName = "Enter your full name";
     if (!/^\d{10}$/.test(form.phone.replace(/\s/g, ""))) e.phone = "Enter a valid 10-digit phone number";
     if (!/^\d{4,6}$/.test(form.pin)) e.pin = "PIN must be 4–6 digits";
@@ -39,7 +39,7 @@ export default function JoinPage() {
       const res = await fetch("/api/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName: form.fullName.trim(), phone: form.phone.trim(), role: form.role, pin: form.pin }),
+        body: JSON.stringify({ joinCode: form.joinCode.trim(), fullName: form.fullName.trim(), phone: form.phone.trim(), role: form.role, pin: form.pin }),
       });
       const data = await res.json();
       if (!res.ok) { setServerError(data.error ?? "Something went wrong."); setPhase("error"); return; }
@@ -58,22 +58,24 @@ export default function JoinPage() {
           <div className="text-6xl mb-6">🎉</div>
           <h2 className="text-2xl font-bold text-white mb-2">Welcome, {result.fullName}!</h2>
           <p className="text-gray-400 mb-2">You're registered as</p>
-          <div className="inline-block px-4 py-2 rounded-xl font-mono font-bold text-lg text-white mb-2" style={{ background: "#1a1a1a" }}>
+          <div className="inline-block px-4 py-2 rounded-xl font-mono font-bold text-lg text-white mb-4" style={{ background: "#1a1a1a" }}>
             {result.employeeId}
           </div>
-          <p className="text-gray-400 text-sm mb-1">Your check-in PIN</p>
+
+          {/* Pending approval notice */}
+          <div className="w-full rounded-xl px-4 py-3 mb-4 text-left" style={{ background: "#1a1a1a", borderLeft: "3px solid #d97706" }}>
+            <p className="text-yellow-400 text-sm font-bold mb-1">⏳ Waiting for admin approval</p>
+            <p className="text-gray-400 text-xs">Your account has been created but check-in is disabled until the manager activates it. You'll be notified once you're active.</p>
+          </div>
+
+          <p className="text-gray-400 text-sm mb-1">Your check-in PIN (save this)</p>
           <div className="inline-block px-6 py-3 rounded-xl font-mono font-bold text-3xl text-white mb-8 tracking-widest" style={{ background: "#dc2626" }}>
             {form.pin}
           </div>
-          <p className="text-gray-500 text-sm mb-8">Remember your PIN — you'll use it every day to check in and view your attendance.</p>
-          <div className="space-y-3">
-            <Link href="/checkin" className="block w-full py-4 rounded-xl font-semibold text-white text-base text-center" style={{ background: "#dc2626" }}>
-              Check In Now
-            </Link>
-            <Link href="/my-attendance" className="block w-full py-3 rounded-xl font-medium text-sm text-center" style={{ background: "#1a1a1a", color: "#9ca3af" }}>
-              View My Attendance
-            </Link>
-          </div>
+          <p className="text-gray-500 text-sm mb-8">Once the manager activates your account, use this PIN every day to check in at the gym.</p>
+          <Link href="/" className="block w-full py-4 rounded-xl font-semibold text-white text-base text-center" style={{ background: "#1a1a1a" }}>
+            Back to Home
+          </Link>
         </div>
       </div>
     );
@@ -106,6 +108,19 @@ export default function JoinPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Join Code */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Staff Join Code</label>
+            <p className="text-xs text-gray-600 mb-2">Ask your manager for the join code before registering</p>
+            <input
+              value={form.joinCode} onChange={(e) => setForm({ ...form, joinCode: e.target.value })}
+              type="text" placeholder="Enter join code"
+              className="w-full py-3.5 px-4 rounded-xl text-sm text-white outline-none border-2 transition-colors tracking-widest font-mono"
+              style={{ background: "#1a1a1a", borderColor: errors.joinCode ? "#dc2626" : "#2a2a2a" }}
+            />
+            {errors.joinCode && <p className="text-xs text-red-500 mt-1">{errors.joinCode}</p>}
+          </div>
+
           {/* Full Name */}
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Full Name</label>

@@ -13,15 +13,18 @@ interface SuccessData {
   shiftNumber?: number;
 }
 
+const TOTAL_BOXES = 6;
+const MIN_DIGITS   = 4;
+
 export default function CheckInPage() {
-  const [digits, setDigits] = useState<string[]>(["", "", "", ""]);
+  const [digits, setDigits] = useState<string[]>(Array(TOTAL_BOXES).fill(""));
   const [phase, setPhase] = useState<Phase>("input");
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
   function resetForm() {
-    setDigits(["", "", "", ""]);
+    setDigits(Array(TOTAL_BOXES).fill(""));
     setPhase("input");
     setSuccessData(null);
     setErrorMsg("");
@@ -33,7 +36,7 @@ export default function CheckInPage() {
     const next = [...digits];
     next[index] = val;
     setDigits(next);
-    if (val && index < 3) {
+    if (val && index < TOTAL_BOXES - 1) {
       inputs.current[index + 1]?.focus();
     }
   }
@@ -54,8 +57,13 @@ export default function CheckInPage() {
   }
 
   async function handleSubmit() {
-    const pin = digits.join("");
-    if (pin.length < 4) return;
+    // Collect only leading filled digits (stop at first empty box)
+    let pin = "";
+    for (const d of digits) {
+      if (!d) break;
+      pin += d;
+    }
+    if (pin.length < MIN_DIGITS) return;
 
     setPhase("locating");
 
@@ -97,7 +105,8 @@ export default function CheckInPage() {
     );
   }
 
-  const pinComplete = digits.every((d) => d !== "");
+  // Enable submit once the first MIN_DIGITS boxes are filled
+  const pinComplete = digits.slice(0, MIN_DIGITS).every((d) => d !== "");
 
   // ─── Success screen ────────────────────────────────────────────────────────
   if (phase === "success" && successData) {
@@ -172,9 +181,10 @@ export default function CheckInPage() {
 
         {/* Heading */}
         <h1 className="text-2xl font-bold text-white mb-2 text-center">Staff Attendance</h1>
-        <p className="text-gray-400 text-base text-center mb-10">
+        <p className="text-gray-400 text-base text-center mb-2">
           Enter your PIN to check in or out
         </p>
+        <p className="text-gray-600 text-xs text-center mb-10">4–6 digits</p>
 
         {/* PIN boxes */}
         <div className="flex gap-4 mb-10">

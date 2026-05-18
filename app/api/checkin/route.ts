@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 const GYM_LAT = 13.0347589;
 const GYM_LNG = 80.2713245;
 const GEOFENCE_RADIUS_M = 250;
+
+// Gym operating hours: 5:30 AM – 10:30 PM IST
+const OPEN_MINUTES  = 5 * 60 + 30;   // 330
+const CLOSE_MINUTES = 22 * 60 + 30;  // 1350
+
+function isWithinOperatingHours(): boolean {
+  const now = new Date();
+  // Convert UTC → IST (UTC+5:30)
+  const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+  const totalMinutes = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
+  return totalMinutes >= OPEN_MINUTES && totalMinutes <= CLOSE_MINUTES;
+}
 
 function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
@@ -26,6 +39,24 @@ function getISTDate(): Date {
 
 export async function POST(req: NextRequest) {
   try {
+    // ── Rate limit: 10 attempts / 15 min per IP; block 30 min on breach ────
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+    const rl = checkRateLimit(`${ip}:checkin`, { maxAttempts: 10, windowMs: 15 * 60 * 1000, blockMs: 30 * 60 * 1000 });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Too many attempts. Try again in ${rl.retryAfterSeconds} seconds.` },
+        { status: 429 }
+      );
+    }
+
+    // ── Operating hours check ───────────────────────────────────────────────
+    if (!isWithinOperatingHours()) {
+      return NextResponse.json(
+        { error: "Check-in is only available between 5:30 AM and 10:30 PM." },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { pin, lat, lng } = body as { pin: string; lat: number; lng: number };
 
