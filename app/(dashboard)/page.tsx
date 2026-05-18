@@ -12,7 +12,7 @@ import { MobileNav } from "@/components/layout/MobileNav";
 const PHONE_DISPLAY = "+91 98406 90418";
 const PHONE_TEL = "+919840690418";
 const WHATSAPP_NUMBER = "919840690418";
-const SITE_URL = "https://www.yosfitness.in";
+const SITE_URL = "https://yosfitnessstudio.in";
 const WA_ENQUIRY =
   "Hi%20Yos%20Fitness%20Studio!%20I%20would%20like%20to%20enquire%20about%20membership.";
 const WA_SEMI_PRIVATE =
@@ -25,8 +25,8 @@ const GBP_PROFILE_URL = "https://maps.app.goo.gl/rDUREt3pHRpgcC649";
 const GOOGLE_REVIEW_URL = "https://g.page/r/CfPmKe5IdqqCEBM/review";
 
 // ── Address ──────────────────────────────────────────────────────────────────
-const STREET_ADDRESS = "1st and 2nd Floor, Old. 54 & 55 New, 107 & 109, Kutchery Rd";
-const ADDRESS_SHORT = "Kutchery Rd, Mylapore — 600 004";
+const STREET_ADDRESS = "1st & 2nd Floor, Old No. 54 & 55, New No. 107 & 109, Kutchery Road";
+const ADDRESS_SHORT = "107 & 109, Kutchery Road, Mylapore — 600 004";
 
 // ── Opening hours ────────────────────────────────────────────────────────────
 const HOURS_WEEKDAY = "Mon – Sat: 6:00 AM – 12:00 PM and 4:00 PM – 9:30 PM";
@@ -85,13 +85,13 @@ const localBusinessSchema = {
   telephone: PHONE_DISPLAY,
   address: {
     "@type": "PostalAddress",
-    streetAddress: "1st and 2nd Floor, Old. 54 & 55 New, 107 & 109, Kutchery Rd",
+    streetAddress: STREET_ADDRESS,
     addressLocality: "Mylapore",
     addressRegion: "Tamil Nadu",
     postalCode: "600004",
     addressCountry: "IN",
   },
-  geo: { "@type": "GeoCoordinates", latitude: "13.0337", longitude: "80.2654" },
+  geo: { "@type": "GeoCoordinates", latitude: "13.0347589", longitude: "80.2713245" },
   sameAs: [GBP_PROFILE_URL],
   openingHoursSpecification: [
     { "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"], opens: "06:00", closes: "12:00" },
@@ -161,7 +161,7 @@ const faqSchema = {
     {
       "@type": "Question",
       name: "Which areas is Yos Fitness Studio near?",
-      acceptedAnswer: { "@type": "Answer", text: "Yos Fitness Studio is located at 1st and 2nd Floor, Old. 54 & 55 New, 107 & 109, Kutchery Rd, Mylapore, Chennai — 600004. Members come from nearby areas including Mandaveli, Alwarpet, Santhome, Luz, Royapettah, and Triplicane." },
+      acceptedAnswer: { "@type": "Answer", text: "Yos Fitness Studio is located at 1st & 2nd Floor, Old No. 54 & 55, New No. 107 & 109, Kutchery Road, Mylapore, Chennai — 600 004. Members come from nearby areas including Mandaveli, Alwarpet, Santhome, Luz, Royapettah, and Triplicane." },
     },
   ],
 };
@@ -242,7 +242,7 @@ const faqs = [
   },
   {
     q: "Which areas is Yos Fitness Studio near?",
-    a: "Yos Fitness Studio is at Kutchery Rd, Mylapore, Chennai — 600004. Members come from Mandaveli, Alwarpet, Santhome, Luz, Royapettah, and Triplicane — all a short distance from the studio.",
+    a: "Yos Fitness Studio is at 1st & 2nd Floor, Old No. 54 & 55, New No. 107 & 109, Kutchery Road, Mylapore, Chennai — 600 004. Members come from Mandaveli, Alwarpet, Santhome, Luz, Royapettah, and Triplicane — all a short distance from the studio.",
   },
 ];
 
@@ -330,7 +330,7 @@ export default function MarketingPage() {
             </div>
             <div className="inline-flex items-center gap-2 bg-red-600/15 border border-red-600/25 rounded-full px-4 py-1.5 mb-6">
               <MapPin className="h-3.5 w-3.5 text-red-400 flex-shrink-0" aria-hidden="true" />
-              <span className="text-red-300 text-xs font-semibold tracking-wide">Friendly Neighbourhood Gym · Mylapore, Chennai</span>
+              <span className="text-red-300 text-xs font-semibold tracking-wide">107 & 109, Kutchery Road, Mylapore, Chennai — 600 004</span>
             </div>
 
             <h1 id="hero-heading" className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-[1.1] tracking-tight max-w-4xl">
@@ -370,7 +370,7 @@ export default function MarketingPage() {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-white text-sm font-medium">
               <a href={GBP_PROFILE_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-red-100 transition-colors" aria-label="Get directions to Yos Fitness Studio">
                 <MapPin className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
-                <span>Kutchery Rd, Mylapore — 600 004</span>
+                <span>107 & 109, Kutchery Road, Mylapore — 600 004</span>
               </a>
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
@@ -718,7 +718,7 @@ export default function MarketingPage() {
                       <div>
                         <p className="font-semibold text-gray-900 text-sm">Address</p>
                         <address className="not-italic text-gray-600 text-sm mt-0.5 leading-relaxed">
-                          1st and 2nd Floor, Old. 54 & 55 New,<br />107 & 109, Kutchery Rd<br />Mylapore, Chennai — 600 004<br />Tamil Nadu, India
+                          1st & 2nd Floor, Old No. 54 & 55,<br />New No. 107 & 109, Kutchery Road<br />Mylapore, Chennai — 600 004<br />Tamil Nadu, India
                         </address>
                       </div>
                     </div>
@@ -828,7 +828,7 @@ export default function MarketingPage() {
                   <svg className="h-4 w-4 text-red-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
                   </svg>
-                  <span className="text-gray-600">www.yosfitness.in</span>
+                  <span className="text-gray-600">www.yosfitnessstudio.in</span>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
@@ -969,7 +969,7 @@ export default function MarketingPage() {
               <div>
                 <p className="text-white font-bold text-sm mb-4">Contact Us</p>
                 <address className="not-italic space-y-3 text-sm">
-                  <div className="flex gap-2.5"><MapPin className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" aria-hidden="true" /><span>1st and 2nd Floor, Old. 54 & 55 New,<br />107 & 109, Kutchery Rd<br />Mylapore — 600 004<br />Tamil Nadu, India</span></div>
+                  <div className="flex gap-2.5"><MapPin className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" aria-hidden="true" /><span>1st & 2nd Floor, Old No. 54 & 55,<br />New No. 107 & 109, Kutchery Road<br />Mylapore — 600 004<br />Tamil Nadu, India</span></div>
                   <div className="flex gap-2.5"><Phone className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" aria-hidden="true" /><a href={`tel:${PHONE_TEL}`} className="hover:text-red-400 transition-colors font-semibold">{PHONE_DISPLAY}</a></div>
                   <div className="flex gap-2.5"><Clock className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" aria-hidden="true" /><span>Mon–Sat: 6:00 AM–12:00 PM<br />& 4:00 PM–9:30 PM<br />Sunday: 8:00–11:00 AM</span></div>
                 </address>
