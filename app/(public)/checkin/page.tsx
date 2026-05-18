@@ -13,7 +13,7 @@ interface SuccessData {
   shiftNumber?: number;
 }
 
-const TOTAL_BOXES = 6;
+const TOTAL_BOXES = 4;
 const MIN_DIGITS   = 4;
 
 export default function CheckInPage() {
@@ -181,10 +181,9 @@ export default function CheckInPage() {
 
         {/* Heading */}
         <h1 className="text-2xl font-bold text-white mb-2 text-center">Staff Attendance</h1>
-        <p className="text-gray-400 text-base text-center mb-2">
-          Enter your PIN to check in or out
+        <p className="text-gray-400 text-base text-center mb-10">
+          Enter your 4-digit PIN to check in or out
         </p>
-        <p className="text-gray-600 text-xs text-center mb-10">4–6 digits</p>
 
         {/* PIN boxes */}
         <div className="flex gap-4 mb-10">

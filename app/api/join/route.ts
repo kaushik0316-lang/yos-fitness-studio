@@ -8,7 +8,7 @@ const joinSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
   phone: z.string().regex(/^\d{10}$/, "Enter a valid 10-digit phone number"),
   role: z.enum(["FRONT_DESK", "TRAINER", "CLEANER"]),
-  pin: z.string().regex(/^\d{4,6}$/, "PIN must be 4–6 digits"),
+  pin: z.string().regex(/^\d{4}$/, "PIN must be exactly 4 digits"),
 });
 
 async function generateEmployeeId(prisma: any): Promise<string> {

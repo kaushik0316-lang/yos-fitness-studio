@@ -82,15 +82,15 @@ export function AddEmployeeDialog({ open, onClose }: Props) {
 
           {/* PIN — used for check-in kiosk */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Check-in PIN * <span className="text-gray-400 font-normal">(4–6 digits, used at the kiosk)</span></label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Check-in PIN * <span className="text-gray-400 font-normal">(4 digits, used at the kiosk)</span></label>
             <input
               {...register("pin", {
                 required: "PIN is required",
-                pattern: { value: /^\d{4,6}$/, message: "Must be 4–6 digits" },
+                pattern: { value: /^\d{4}$/, message: "Must be exactly 4 digits" },
               })}
               type="text"
               inputMode="numeric"
-              maxLength={6}
+              maxLength={4}
               placeholder="e.g. 1234"
               className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none font-mono tracking-widest"
             />

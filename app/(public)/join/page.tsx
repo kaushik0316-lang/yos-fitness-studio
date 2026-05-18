@@ -24,7 +24,7 @@ export default function JoinPage() {
     if (form.joinCode.trim().length < 1) e.joinCode = "Join code is required";
     if (form.fullName.trim().length < 2) e.fullName = "Enter your full name";
     if (!/^\d{10}$/.test(form.phone.replace(/\s/g, ""))) e.phone = "Enter a valid 10-digit phone number";
-    if (!/^\d{4,6}$/.test(form.pin)) e.pin = "PIN must be 4–6 digits";
+    if (!/^\d{4}$/.test(form.pin)) e.pin = "PIN must be exactly 4 digits";
     if (form.pin !== form.pinConfirm) e.pinConfirm = "PINs do not match";
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -164,10 +164,10 @@ export default function JoinPage() {
           {/* PIN */}
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Choose Your PIN</label>
-            <p className="text-xs text-gray-600 mb-2">4–6 digits · You'll use this every day to check in and view attendance</p>
+            <p className="text-xs text-gray-600 mb-2">4 digits · You'll use this every day to check in and view attendance</p>
             <input
-              value={form.pin} onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, "").slice(0, 6) })}
-              type="tel" inputMode="numeric" maxLength={6} placeholder="e.g. 1234"
+              value={form.pin} onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+              type="tel" inputMode="numeric" maxLength={4} placeholder="e.g. 1234"
               className="w-full py-3.5 px-4 rounded-xl text-sm text-white outline-none border-2 font-mono tracking-widest transition-colors"
               style={{ background: "#1a1a1a", borderColor: errors.pin ? "#dc2626" : "#2a2a2a" }}
             />
@@ -178,8 +178,8 @@ export default function JoinPage() {
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Confirm PIN</label>
             <input
-              value={form.pinConfirm} onChange={(e) => setForm({ ...form, pinConfirm: e.target.value.replace(/\D/g, "").slice(0, 6) })}
-              type="tel" inputMode="numeric" maxLength={6} placeholder="Re-enter PIN"
+              value={form.pinConfirm} onChange={(e) => setForm({ ...form, pinConfirm: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+              type="tel" inputMode="numeric" maxLength={4} placeholder="Re-enter PIN"
               className="w-full py-3.5 px-4 rounded-xl text-sm text-white outline-none border-2 font-mono tracking-widest transition-colors"
               style={{ background: "#1a1a1a", borderColor: errors.pinConfirm ? "#dc2626" : "#2a2a2a" }}
             />
