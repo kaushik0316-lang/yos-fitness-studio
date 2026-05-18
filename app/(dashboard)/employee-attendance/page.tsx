@@ -38,6 +38,7 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
         shiftIndex: s.shiftIndex,
         checkInTime: s.checkInTime.toISOString(),
         checkOutTime: s.checkOutTime?.toISOString() ?? null,
+        deviceId: s.deviceId ?? null,
       })),
     };
   }

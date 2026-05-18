@@ -151,6 +151,7 @@ export async function POST(req: NextRequest) {
           checkInTime: now,
           checkInLat: lat,
           checkInLng: lng,
+          deviceId: deviceId ?? null,
         },
       });
       // Ensure status is PRESENT (might have been manually changed)

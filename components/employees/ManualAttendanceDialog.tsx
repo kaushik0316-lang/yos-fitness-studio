@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 type AttendanceStatus = "PRESENT" | "ABSENT" | "HALF_DAY" | "WEEKLY_OFF" | "LEAVE" | "PAID_LEAVE";
 
-type Shift = { shiftIndex: number; checkInTime: string; checkOutTime: string | null };
+type Shift = { shiftIndex: number; checkInTime: string; checkOutTime: string | null; deviceId?: string | null };
 
 type Props = {
   employeeId: string;

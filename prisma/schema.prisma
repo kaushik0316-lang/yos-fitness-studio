@@ -352,10 +352,12 @@ model AttendanceShift {
   checkInLng   Float?
   checkOutLat  Float?
   checkOutLng  Float?
+  deviceId     String?            // kiosk browser fingerprint — links shifts to a specific device
 
   createdAt DateTime @default(now())
 
   @@index([attendanceId])
+  @@index([deviceId])
   @@map("attendance_shifts")
 }
 

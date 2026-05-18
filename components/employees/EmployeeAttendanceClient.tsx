@@ -12,7 +12,7 @@ import { StaffTab } from "./StaffTab";
 import { ManualAttendanceDialog } from "./ManualAttendanceDialog";
 import type { UserRole } from "@prisma/client";
 
-type Shift = { shiftIndex: number; checkInTime: string; checkOutTime: string | null };
+type Shift = { shiftIndex: number; checkInTime: string; checkOutTime: string | null; deviceId: string | null };
 type DayRecord = { status: string; shifts: Shift[] };
 
 type Employee = {
@@ -118,6 +118,20 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
     const todayStr = new Date().toISOString().split("T")[0];
     const isCurrentMonth = month === new Date().getMonth() + 1 && year === new Date().getFullYear();
 
+    // Build a map: deviceId → Set of employeeIds that used it this month
+    // so we can flag shared-device check-ins
+    const deviceToEmployees: Record<string, Set<string>> = {};
+    for (const [empId, dates] of Object.entries(attendanceMap)) {
+      for (const rec of Object.values(dates)) {
+        for (const s of rec.shifts) {
+          if (s.deviceId) {
+            if (!deviceToEmployees[s.deviceId]) deviceToEmployees[s.deviceId] = new Set();
+            deviceToEmployees[s.deviceId].add(empId);
+          }
+        }
+      }
+    }
+
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
@@ -157,23 +171,46 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                         </span>
                         {rec.shifts.length > 0 && (
                           <div className="mt-2 space-y-1">
-                            {rec.shifts.map((s) => (
-                              <div key={s.shiftIndex} className="flex items-center gap-3 text-xs text-gray-600">
-                                {rec.shifts.length > 1 && (
-                                  <span className="text-gray-400 w-12 flex-shrink-0 font-medium">Shift {s.shiftIndex}</span>
-                                )}
-                                <span className="text-green-600 font-medium">▲ {fmtTime(s.checkInTime)}</span>
-                                {s.checkOutTime
-                                  ? <span className="text-red-500 font-medium">▼ {fmtTime(s.checkOutTime)}</span>
-                                  : <span className="text-amber-500 italic text-xs">Still in</span>
-                                }
-                                {s.checkOutTime && (() => {
-                                  const mins = (new Date(s.checkOutTime).getTime() - new Date(s.checkInTime).getTime()) / 60000;
-                                  const h = Math.floor(mins / 60), m = Math.round(mins % 60);
-                                  return <span className="text-gray-400">({h > 0 ? `${h}h ${m}m` : `${m}m`})</span>;
-                                })()}
-                              </div>
-                            ))}
+                            {rec.shifts.map((s) => {
+                              const sharedWith = s.deviceId
+                                ? Array.from(deviceToEmployees[s.deviceId] ?? []).filter((id) => id !== detailEmp.id)
+                                : [];
+                              const sharedNames = sharedWith
+                                .map((id) => allEmployees.find((e) => e.id === id)?.fullName ?? "Unknown")
+                                .join(", ");
+                              return (
+                                <div key={s.shiftIndex} className="space-y-0.5">
+                                  <div className="flex items-center gap-3 text-xs text-gray-600">
+                                    {rec.shifts.length > 1 && (
+                                      <span className="text-gray-400 w-12 flex-shrink-0 font-medium">Shift {s.shiftIndex}</span>
+                                    )}
+                                    <span className="text-green-600 font-medium">▲ {fmtTime(s.checkInTime)}</span>
+                                    {s.checkOutTime
+                                      ? <span className="text-red-500 font-medium">▼ {fmtTime(s.checkOutTime)}</span>
+                                      : <span className="text-amber-500 italic text-xs">Still in</span>
+                                    }
+                                    {s.checkOutTime && (() => {
+                                      const mins = (new Date(s.checkOutTime).getTime() - new Date(s.checkInTime).getTime()) / 60000;
+                                      const h = Math.floor(mins / 60), m = Math.round(mins % 60);
+                                      return <span className="text-gray-400">({h > 0 ? `${h}h ${m}m` : `${m}m`})</span>;
+                                    })()}
+                                  </div>
+                                  {/* Device info row */}
+                                  {s.deviceId && (
+                                    <div className="flex items-center gap-1.5 pl-0.5">
+                                      <span className="text-[10px] text-gray-400 font-mono">
+                                        📱 Device ···{s.deviceId.slice(-6)}
+                                      </span>
+                                      {sharedWith.length > 0 && (
+                                        <span className="text-[10px] bg-red-100 text-red-600 font-semibold px-1.5 py-0.5 rounded-full">
+                                          ⚠ also used by {sharedNames}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </>
