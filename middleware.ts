@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Only these pages are publicly accessible
+// Public marketing pages — no auth required
 const PUBLIC_PAGES = new Set([
   "/",
   "/gym-in-mylapore",
@@ -10,15 +10,24 @@ const PUBLIC_PAGES = new Set([
   "/semi-private-coaching-chennai",
   "/strength-training-mylapore",
   "/checkin",
+  "/login",
 ]);
 
-// Public API routes (no auth required)
-const PUBLIC_API_PREFIXES = ["/api/checkin"];
+// Public API routes — no auth required
+const PUBLIC_API_PREFIXES = [
+  "/api/checkin",
+  "/api/auth",
+];
+
+// CRM routes that require a valid session
+const PROTECTED_ROUTES = new Set([
+  "/employee-attendance",
+]);
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow public marketing pages and check-in page
+  // Allow public pages
   if (PUBLIC_PAGES.has(pathname)) {
     return NextResponse.next();
   }
@@ -28,7 +37,22 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Block everything else — CRM, login, auth, API, admin — redirect to homepage
+  // Protected CRM routes — check for session cookie
+  if (PROTECTED_ROUTES.has(pathname)) {
+    const sessionToken =
+      req.cookies.get("authjs.session-token") ||
+      req.cookies.get("__Secure-authjs.session-token");
+
+    if (!sessionToken) {
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return NextResponse.next();
+  }
+
+  // Everything else — redirect to homepage
   return NextResponse.redirect(new URL("/", req.url));
 }
 
