@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef, useState, KeyboardEvent, ChangeEvent } from "react";
+import { useRef, useState, useEffect, KeyboardEvent, ChangeEvent } from "react";
 
-type Phase = "input" | "locating" | "loading" | "success" | "error";
+type Phase = "input" | "locating" | "loading" | "success" | "error" | "cooldown";
 
 interface SuccessData {
   action: "checkin" | "checkout";
@@ -13,21 +13,43 @@ interface SuccessData {
   shiftNumber?: number;
 }
 
-const TOTAL_BOXES = 4;
-const MIN_DIGITS   = 4;
+const TOTAL_BOXES    = 4;
+const MIN_DIGITS     = 4;
+const COOLDOWN_SECS  = 120; // seconds to wait between different employees
 
 export default function CheckInPage() {
   const [digits, setDigits] = useState<string[]>(Array(TOTAL_BOXES).fill(""));
   const [phase, setPhase] = useState<Phase>("input");
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [countdown, setCountdown] = useState(0);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
+  const deviceId = useRef<string>("");
+
+  // Generate or load a persistent device ID from localStorage
+  useEffect(() => {
+    let id = localStorage.getItem("kiosk_device_id");
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem("kiosk_device_id", id);
+    }
+    deviceId.current = id;
+  }, []);
+
+  // Countdown timer for cooldown phase
+  useEffect(() => {
+    if (phase !== "cooldown") return;
+    if (countdown <= 0) { resetForm(); return; }
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [phase, countdown]);
 
   function resetForm() {
     setDigits(Array(TOTAL_BOXES).fill(""));
     setPhase("input");
     setSuccessData(null);
     setErrorMsg("");
+    setCountdown(0);
     setTimeout(() => inputs.current[0]?.focus(), 50);
   }
 
@@ -75,7 +97,7 @@ export default function CheckInPage() {
           const res = await fetch("/api/checkin", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pin, lat, lng }),
+            body: JSON.stringify({ pin, lat, lng, deviceId: deviceId.current }),
           });
           const data = await res.json();
           if (!res.ok) {
@@ -89,6 +111,8 @@ export default function CheckInPage() {
               shiftNumber: data.shiftNumber,
             });
             setPhase("success");
+            // Start cooldown so the next person must wait before entering a different PIN
+            setCountdown(COOLDOWN_SECS);
           }
         } catch {
           setErrorMsg("Network error. Check your connection and try again.");
@@ -134,11 +158,49 @@ export default function CheckInPage() {
             View My Attendance →
           </Link>
           <button
-            onClick={resetForm}
+            onClick={() => setPhase("cooldown")}
             className="w-full py-4 rounded-xl font-semibold text-white text-base"
             style={{ background: "#dc2626" }}
           >
             Done
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Cooldown screen (prevents proxy check-ins) ────────────────────────────
+  if (phase === "cooldown") {
+    const pct = Math.round((countdown / COOLDOWN_SECS) * 283); // stroke-dashoffset for circle
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10" style={{ background: "#0f0f0f" }}>
+        <div className="w-full max-w-sm text-center">
+          {/* Countdown ring */}
+          <div className="relative w-32 h-32 mx-auto mb-6">
+            <svg className="w-32 h-32 -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="#1a1a1a" strokeWidth="8" />
+              <circle
+                cx="50" cy="50" r="45" fill="none" stroke="#dc2626" strokeWidth="8"
+                strokeDasharray="283"
+                strokeDashoffset={283 - pct}
+                strokeLinecap="round"
+                style={{ transition: "stroke-dashoffset 1s linear" }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-3xl font-extrabold text-white">{countdown}</span>
+            </div>
+          </div>
+          <h2 className="text-xl font-bold text-white mb-3">Next person, please wait</h2>
+          <p className="text-gray-400 text-sm mb-8 leading-relaxed">
+            This helps ensure each staff member checks in themselves.
+          </p>
+          <button
+            onClick={resetForm}
+            className="w-full py-4 rounded-xl font-semibold text-base transition-opacity"
+            style={{ background: "#1a1a1a", color: "#6b7280" }}
+          >
+            Skip ({countdown}s)
           </button>
         </div>
       </div>

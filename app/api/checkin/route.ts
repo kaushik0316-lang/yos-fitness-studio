@@ -2,6 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
 
+// ── Per-device cooldown: prevent proxy check-ins ──────────────────────────────
+// After a check-in, the same device must wait 2 minutes before a DIFFERENT
+// employee can check in from it. Same employee re-entry (check-out) is always allowed.
+const DEVICE_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+
+interface DeviceEntry { employeeId: string; at: number }
+const deviceMap = new Map<string, DeviceEntry>();
+
+function checkDeviceCooldown(deviceId: string, employeeId: string): { allowed: boolean; waitSeconds?: number } {
+  const entry = deviceMap.get(deviceId);
+  if (!entry) return { allowed: true };
+  const elapsed = Date.now() - entry.at;
+  // Same employee checking in again (i.e. checkout) → always allow
+  if (entry.employeeId === employeeId) return { allowed: true };
+  // Different employee within cooldown window → block
+  if (elapsed < DEVICE_COOLDOWN_MS) {
+    return { allowed: false, waitSeconds: Math.ceil((DEVICE_COOLDOWN_MS - elapsed) / 1000) };
+  }
+  return { allowed: true };
+}
+
+function recordDeviceCheckin(deviceId: string, employeeId: string) {
+  deviceMap.set(deviceId, { employeeId, at: Date.now() });
+}
+
 const GYM_LAT = 13.0347589;
 const GYM_LNG = 80.2713245;
 const GEOFENCE_RADIUS_M = 250;
@@ -58,7 +83,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { pin, lat, lng } = body as { pin: string; lat: number; lng: number };
+    const { pin, lat, lng, deviceId } = body as { pin: string; lat: number; lng: number; deviceId?: string };
 
     if (!pin || lat === undefined || lng === undefined) {
       return NextResponse.json({ error: "PIN, latitude, and longitude are required." }, { status: 400 });
@@ -67,6 +92,18 @@ export async function POST(req: NextRequest) {
     const employee = await prisma.employee.findUnique({ where: { pin } });
     if (!employee) return NextResponse.json({ error: "Invalid PIN. Please try again." }, { status: 401 });
     if (!employee.isActive) return NextResponse.json({ error: "Your account is inactive. Contact the admin." }, { status: 403 });
+
+    // ── Device cooldown: block proxy check-ins ────────────────────────────────
+    if (deviceId) {
+      const dc = checkDeviceCooldown(deviceId, employee.id);
+      if (!dc.allowed) {
+        const mins = Math.ceil((dc.waitSeconds ?? 120) / 60);
+        return NextResponse.json(
+          { error: `Another employee just checked in from this device. Please wait ${dc.waitSeconds} seconds (${mins} min) before checking in a different person.` },
+          { status: 429 }
+        );
+      }
+    }
 
     const distance = haversineDistance(lat, lng, GYM_LAT, GYM_LNG);
     if (distance > GEOFENCE_RADIUS_M) {
@@ -125,6 +162,9 @@ export async function POST(req: NextRequest) {
       }
       action = "checkin";
     }
+
+    // Record device → employee mapping for cooldown enforcement
+    if (deviceId) recordDeviceCheckin(deviceId, employee.id);
 
     const timeStr = now.toLocaleTimeString("en-IN", {
       timeZone: "Asia/Kolkata",

@@ -3,12 +3,13 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format, eachDayOfInterval, startOfMonth, endOfMonth } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2, Save, CalendarDays, Users, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Save, CalendarDays, Users, Clock, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { markEmployeeAttendance } from "@/lib/actions/attendance";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { StaffTab } from "./StaffTab";
+import { ManualAttendanceDialog } from "./ManualAttendanceDialog";
 import type { UserRole } from "@prisma/client";
 
 type Shift = { shiftIndex: number; checkInTime: string; checkOutTime: string | null };
@@ -55,6 +56,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
   const router = useRouter();
   const [tab, setTab] = useState<"attendance" | "staff">("attendance");
   const [detailEmp, setDetailEmp] = useState<Employee | null>(null);
+  const [editDay, setEditDay] = useState<{ dateStr: string; displayDate: string } | null>(null);
   const [localMap, setLocalMap] = useState<Record<string, Record<string, string>>>(() => {
     // Flatten to status-only for the grid
     const flat: Record<string, Record<string, string>> = {};
@@ -135,6 +137,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
             const isSunday = dayName === "Sun";
             const isToday = dateStr === todayStr;
             const isFuture = isCurrentMonth && day > new Date().getDate();
+            const displayDate = format(new Date(dateStr), "EEE, d MMM");
 
             return (
               <div key={dateStr} className={cn("px-4 py-3", isToday && "bg-orange-50/50")}>
@@ -162,7 +165,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                                 <span className="text-green-600 font-medium">▲ {fmtTime(s.checkInTime)}</span>
                                 {s.checkOutTime
                                   ? <span className="text-red-500 font-medium">▼ {fmtTime(s.checkOutTime)}</span>
-                                  : <span className="text-gray-400 italic text-xs">Still in</span>
+                                  : <span className="text-amber-500 italic text-xs">Still in</span>
                                 }
                                 {s.checkOutTime && (() => {
                                   const mins = (new Date(s.checkOutTime).getTime() - new Date(s.checkInTime).getTime()) / 60000;
@@ -178,11 +181,35 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                       <span className="text-xs text-gray-400">{isFuture ? "" : isSunday ? "Sunday" : "Not marked"}</span>
                     )}
                   </div>
+
+                  {/* Edit button — admins only, not future dates */}
+                  {canEdit && !isFuture && (
+                    <button
+                      onClick={() => setEditDay({ dateStr, displayDate })}
+                      title="Edit attendance"
+                      className="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 transition-colors"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
+
+        {/* Manual attendance edit dialog */}
+        {editDay && detailEmp && (
+          <ManualAttendanceDialog
+            employeeId={detailEmp.id}
+            employeeName={detailEmp.fullName}
+            date={editDay.dateStr}
+            displayDate={editDay.displayDate}
+            currentStatus={(attendanceMap[detailEmp.id]?.[editDay.dateStr]?.status as any) ?? null}
+            existingShifts={attendanceMap[detailEmp.id]?.[editDay.dateStr]?.shifts ?? []}
+            onClose={() => { setEditDay(null); router.refresh(); }}
+          />
+        )}
       </div>
     );
   }
