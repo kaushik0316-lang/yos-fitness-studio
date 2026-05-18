@@ -17,9 +17,9 @@ let callCount = 0;
 function maybePrune() {
   if (++callCount % 100 !== 0) return;
   const now = Date.now();
-  for (const [key, entry] of store.entries()) {
+  Array.from(store.entries()).forEach(([key, entry]) => {
     if (now - entry.windowStart > 60 * 60 * 1000) store.delete(key);
-  }
+  });
 }
 
 export function checkRateLimit(
