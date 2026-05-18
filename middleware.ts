@@ -1,7 +1,7 @@
+import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
-// Public marketing pages — no auth required
+// Public marketing & staff-portal pages — no auth required
 const PUBLIC_PAGES = new Set([
   "/",
   "/gym-in-mylapore",
@@ -15,50 +15,52 @@ const PUBLIC_PAGES = new Set([
   "/login",
 ]);
 
-// Public API routes — no auth required
-const PUBLIC_API_PREFIXES = [
-  "/api/checkin",
-  "/api/my-attendance",
-  "/api/join",
-  "/api/auth",
+// CRM routes that require a verified session (path-prefix match)
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/attendance",
+  "/automation",
+  "/employee-attendance",
+  "/employees",
+  "/members",
+  "/messages",
+  "/payments",
+  "/payroll",
+  "/renewals",
+  "/reports",
+  "/settings",
 ];
 
-// CRM routes that require a valid session
-const PROTECTED_ROUTES = new Set([
-  "/employee-attendance",
-]);
-
-export function middleware(req: NextRequest) {
+export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  // Allow public pages
+  // Always allow public pages
   if (PUBLIC_PAGES.has(pathname)) {
     return NextResponse.next();
   }
 
-  // Allow public API routes
-  if (PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+  // Always let API routes handle their own auth
+  if (pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
 
-  // Protected CRM routes — check for session cookie
-  if (PROTECTED_ROUTES.has(pathname)) {
-    const sessionToken =
-      req.cookies.get("authjs.session-token") ||
-      req.cookies.get("__Secure-authjs.session-token");
+  // CRM routes — require a valid, verified session
+  const isProtected = PROTECTED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
+  );
 
-    if (!sessionToken) {
+  if (isProtected) {
+    if (!req.auth) {
       const loginUrl = new URL("/login", req.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }
-
     return NextResponse.next();
   }
 
-  // Everything else — redirect to homepage
+  // Anything else → homepage
   return NextResponse.redirect(new URL("/", req.url));
-}
+});
 
 export const config = {
   matcher: [
