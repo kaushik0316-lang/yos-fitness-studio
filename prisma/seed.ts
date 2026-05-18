@@ -321,8 +321,6 @@ async function main() {
           employeeId: emp.id,
           date: new Date(date),
           status,
-          checkInTime: status === EmployeeAttendanceStatus.PRESENT ? new Date(date.setHours(8, 0, 0, 0)) : undefined,
-          checkOutTime: status === EmployeeAttendanceStatus.PRESENT ? new Date(date.setHours(17, 0, 0, 0)) : undefined,
         },
       }).catch(() => {});
 
