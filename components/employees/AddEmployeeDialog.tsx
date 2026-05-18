@@ -31,6 +31,7 @@ export function AddEmployeeDialog({ open, onClose }: Props) {
     try {
       const result = await createEmployee({
         ...data,
+        fullName: data.fullName.toUpperCase(),
         monthlySalary: data.monthlySalary ? Number(data.monthlySalary) : undefined,
         perDaySalary: data.perDaySalary ? Number(data.perDaySalary) : undefined,
       });
@@ -54,8 +55,8 @@ export function AddEmployeeDialog({ open, onClose }: Props) {
             <label className="block text-xs font-medium text-gray-600 mb-1">Full Name *</label>
             <input
               {...register("fullName", { required: true })}
-              placeholder="e.g. Ravi Kumar"
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+              placeholder="e.g. RAVI KUMAR"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none uppercase"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">

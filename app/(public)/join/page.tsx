@@ -113,9 +113,9 @@ export default function JoinPage() {
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Staff Join Code</label>
             <p className="text-xs text-gray-600 mb-2">Ask your manager for the join code before registering</p>
             <input
-              value={form.joinCode} onChange={(e) => setForm({ ...form, joinCode: e.target.value })}
+              value={form.joinCode} onChange={(e) => setForm({ ...form, joinCode: e.target.value.toUpperCase() })}
               type="text" placeholder="Enter join code"
-              className="w-full py-3.5 px-4 rounded-xl text-sm text-white outline-none border-2 transition-colors tracking-widest font-mono"
+              className="w-full py-3.5 px-4 rounded-xl text-sm text-white outline-none border-2 transition-colors tracking-widest font-mono uppercase"
               style={{ background: "#1a1a1a", borderColor: errors.joinCode ? "#dc2626" : "#2a2a2a" }}
             />
             {errors.joinCode && <p className="text-xs text-red-500 mt-1">{errors.joinCode}</p>}
@@ -125,9 +125,9 @@ export default function JoinPage() {
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Full Name</label>
             <input
-              value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+              value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value.toUpperCase() })}
               placeholder="Your full name"
-              className="w-full py-3.5 px-4 rounded-xl text-sm text-white outline-none border-2 transition-colors"
+              className="w-full py-3.5 px-4 rounded-xl text-sm text-white outline-none border-2 transition-colors uppercase"
               style={{ background: "#1a1a1a", borderColor: errors.fullName ? "#dc2626" : "#2a2a2a" }}
             />
             {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
@@ -137,7 +137,7 @@ export default function JoinPage() {
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Phone Number</label>
             <input
-              value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, "") })}
               type="tel" inputMode="numeric" placeholder="98765 43210"
               className="w-full py-3.5 px-4 rounded-xl text-sm text-white outline-none border-2 transition-colors"
               style={{ background: "#1a1a1a", borderColor: errors.phone ? "#dc2626" : "#2a2a2a" }}
