@@ -307,7 +307,7 @@ export default function MarketingPage() {
                 <Phone className="h-3.5 w-3.5" aria-hidden="true" />
                 <span className="hidden lg:inline">Call Us</span>
               </a>
-              <a href={waLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2 rounded-xl shadow-md shadow-red-200 transition-all" aria-label="WhatsApp Yos Fitness Studio">
+              <a href={waLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 bg-[#25D366] hover:bg-[#1ebe5d] text-white text-sm font-bold px-4 py-2 rounded-xl shadow-md shadow-green-200 transition-all" aria-label="WhatsApp Yos Fitness Studio">
                 <MessageCircle className="h-4 w-4" aria-hidden="true" />
                 <span className="hidden sm:inline">WhatsApp Us</span>
               </a>
@@ -340,7 +340,7 @@ export default function MarketingPage() {
             </p>
 
             <div className="mt-10 flex flex-col sm:flex-row gap-4">
-              <a href={waSemiPrivate} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-base px-8 py-4 rounded-2xl shadow-xl shadow-red-900/50 transition-all">
+              <a href={waSemiPrivate} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] active:scale-95 text-white font-bold text-base px-8 py-4 rounded-2xl shadow-xl shadow-green-900/30 transition-all">
                 <MessageCircle className="h-5 w-5" aria-hidden="true" />
                 Ask About Semi-Private Coaching
               </a>
@@ -419,7 +419,7 @@ export default function MarketingPage() {
                   ))}
                 </div>
                 <div className="mt-8 flex flex-col sm:flex-row gap-3">
-                  <a href={waSemiPrivate} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold px-6 py-3.5 rounded-xl shadow-lg shadow-red-200 transition-all text-sm">
+                  <a href={waSemiPrivate} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] active:scale-95 text-white font-bold px-6 py-3.5 rounded-xl shadow-lg shadow-green-200 transition-all text-sm">
                     <MessageCircle className="h-4 w-4" aria-hidden="true" />
                     WhatsApp for Semi-Private Coaching
                   </a>
@@ -580,7 +580,7 @@ export default function MarketingPage() {
               ))}
             </div>
             <div className="mt-10 text-center">
-              <a href={waSemiPrivate} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold px-8 py-4 rounded-2xl shadow-lg shadow-red-200 transition-all">
+              <a href={waSemiPrivate} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold px-8 py-4 rounded-2xl shadow-lg shadow-green-200 transition-all">
                 <MessageCircle className="h-4 w-4" aria-hidden="true" />
                 Ask About Semi-Private Coaching
               </a>
@@ -629,33 +629,110 @@ export default function MarketingPage() {
                 for current pricing and to find the right plan for your goal.
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              {[
-                { label: "Monthly", duration: "30 days", ideal: "Try coached training and experience the Yos difference first-hand.", highlight: false },
-                { label: "Quarterly", duration: "90 days", ideal: "The most popular choice — consistent progress and better value.", highlight: true },
-                { label: "Half-Yearly", duration: "180 days", ideal: "Best value for members committed to long-term results.", highlight: false },
-              ].map(({ label, duration, ideal, highlight }) => (
-                <article key={label} className={`rounded-2xl p-7 border transition-all ${highlight ? "bg-red-600 border-red-500 shadow-xl shadow-red-900/30 scale-[1.02]" : "bg-white/5 border-white/10 hover:border-red-500/50 hover:bg-white/8"}`}>
-                  {highlight && <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest mb-3 inline-block">Most Popular</span>}
-                  <h3 className="text-xl font-extrabold text-white mb-1">{label}</h3>
-                  <p className={`text-sm mb-3 ${highlight ? "text-red-100" : "text-gray-400"}`}>{duration}</p>
-                  <p className={`text-sm leading-relaxed mb-5 ${highlight ? "text-white/90" : "text-gray-400"}`}>{ideal}</p>
-                  <ul className={`space-y-2 text-sm mb-6 ${highlight ? "text-white" : "text-gray-300"}`}>
-                    {["Coaching-guided workouts", "Attendance tracking", "Progress check-ins"].map((f) => (
-                      <li key={f} className="flex items-center gap-2">
-                        <CheckCircle2 className={`h-4 w-4 flex-shrink-0 ${highlight ? "text-white" : "text-red-400"}`} aria-hidden="true" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <a href={waLink} target="_blank" rel="noopener noreferrer" className={`block text-center font-bold py-3 rounded-xl transition-all text-sm ${highlight ? "bg-white text-red-700 hover:bg-red-50" : "bg-red-600 hover:bg-red-700 text-white"}`}>
+
+            {/* Programme blocks */}
+            <div className="space-y-8 max-w-5xl mx-auto">
+
+              {/* Programme 1: General Membership */}
+              <article className="bg-white/5 border border-white/10 rounded-2xl p-7 hover:border-red-500/40 transition-all">
+                <div className="mb-5">
+                  <h3 className="text-xl font-extrabold text-white mb-1">General Membership</h3>
+                  <p className="text-gray-400 text-sm">Access the gym, train with coaching guidance, and track your progress.</p>
+                </div>
+                <ul className="flex flex-wrap gap-x-6 gap-y-1.5 mb-6">
+                  {["Equipment access", "Coaching guidance", "Attendance tracking"].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-gray-300 text-sm">
+                      <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-red-400" aria-hidden="true" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div className="flex gap-3 flex-wrap">
+                    <span className="bg-white/8 border border-white/15 text-gray-300 text-sm font-semibold px-4 py-2 rounded-xl">3 Months</span>
+                    <span className="bg-red-600 border border-red-500 text-white text-sm font-bold px-4 py-2 rounded-xl relative">
+                      6 Months
+                      <span className="absolute -top-2 -right-2 bg-white text-red-600 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wide leading-none">Popular</span>
+                    </span>
+                    <span className="bg-white/8 border border-white/15 text-gray-300 text-sm font-semibold px-4 py-2 rounded-xl">12 Months</span>
+                  </div>
+                  <a href={waLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-green-900/30">
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
                     Get Pricing on WhatsApp
                   </a>
-                </article>
-              ))}
+                </div>
+              </article>
+
+              {/* Programme 2: Semi-Private Coaching */}
+              <article className="bg-white/5 border border-white/10 rounded-2xl p-7 hover:border-red-500/40 transition-all">
+                <div className="mb-5">
+                  <div className="flex items-center gap-3 mb-1">
+                    <h3 className="text-xl font-extrabold text-white">Semi-Private Coaching</h3>
+                    <span className="bg-red-600/30 border border-red-500/40 text-red-300 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest">Max 4 per slot</span>
+                  </div>
+                  <p className="text-gray-400 text-sm">Small-group coaching with a dedicated coach — personal training quality at an accessible price.</p>
+                </div>
+                <ul className="flex flex-wrap gap-x-6 gap-y-1.5 mb-6">
+                  {["Max 4 per session", "Dedicated coach", "Form correction", "Progress tracking"].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-gray-300 text-sm">
+                      <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-red-400" aria-hidden="true" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div className="flex gap-3 flex-wrap">
+                    <span className="bg-white/8 border border-white/15 text-gray-300 text-sm font-semibold px-4 py-2 rounded-xl">3 Months</span>
+                    <span className="bg-red-600 border border-red-500 text-white text-sm font-bold px-4 py-2 rounded-xl relative">
+                      6 Months
+                      <span className="absolute -top-2 -right-2 bg-white text-red-600 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wide leading-none">Popular</span>
+                    </span>
+                    <span className="bg-white/8 border border-white/15 text-gray-300 text-sm font-semibold px-4 py-2 rounded-xl">12 Months</span>
+                  </div>
+                  <a href={waSemiPrivate} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-green-900/30">
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                    Get Pricing on WhatsApp
+                  </a>
+                </div>
+              </article>
+
+              {/* Programme 3: Personal Training */}
+              <article className="bg-white/5 border border-white/10 rounded-2xl p-7 hover:border-red-500/40 transition-all">
+                <div className="mb-5">
+                  <div className="flex items-center gap-3 mb-1">
+                    <h3 className="text-xl font-extrabold text-white">Personal Training</h3>
+                    <span className="bg-red-600/30 border border-red-500/40 text-red-300 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest">1-on-1</span>
+                  </div>
+                  <p className="text-gray-400 text-sm">Fully personalised one-on-one coaching built entirely around your goal.</p>
+                </div>
+                <ul className="flex flex-wrap gap-x-6 gap-y-1.5 mb-6">
+                  {["Fully personalised programme", "Dedicated coach", "Technique coaching", "Full accountability"].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-gray-300 text-sm">
+                      <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-red-400" aria-hidden="true" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div className="flex gap-3 flex-wrap">
+                    <span className="bg-white/8 border border-white/15 text-gray-300 text-sm font-semibold px-4 py-2 rounded-xl">3 Months</span>
+                    <span className="bg-red-600 border border-red-500 text-white text-sm font-bold px-4 py-2 rounded-xl relative">
+                      6 Months
+                      <span className="absolute -top-2 -right-2 bg-white text-red-600 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wide leading-none">Popular</span>
+                    </span>
+                    <span className="bg-white/8 border border-white/15 text-gray-300 text-sm font-semibold px-4 py-2 rounded-xl">12 Months</span>
+                  </div>
+                  <a href={waSemiPrivate} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-green-900/30">
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                    Get Pricing on WhatsApp
+                  </a>
+                </div>
+              </article>
+
             </div>
+
             <p className="text-center text-gray-500 text-sm mt-8">
-              Semi-private coaching and personal training packages also available.{" "}
+              Prices vary by programme and duration. WhatsApp us for current rates and availability.{" "}
               <a href={waSemiPrivate} target="_blank" rel="noopener noreferrer" className="text-red-400 hover:underline font-semibold">Ask about semi-private coaching →</a>
             </p>
           </div>
@@ -682,7 +759,7 @@ export default function MarketingPage() {
               All within easy reach of Yos Fitness Studio, Mylapore.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-              <a href={waLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold px-7 py-3.5 rounded-xl shadow-md shadow-red-200 transition-all text-sm">
+              <a href={waLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold px-7 py-3.5 rounded-xl shadow-md shadow-green-200 transition-all text-sm">
                 <MessageCircle className="h-4 w-4" aria-hidden="true" />
                 WhatsApp to Enquire
               </a>
@@ -736,7 +813,7 @@ export default function MarketingPage() {
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <a href={waLink} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-5 rounded-xl text-sm transition-all shadow-md shadow-red-200">
+                  <a href={waLink} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold py-3 px-5 rounded-xl text-sm transition-all shadow-md shadow-green-200">
                     <MessageCircle className="h-4 w-4" aria-hidden="true" />
                     WhatsApp Us
                   </a>
@@ -787,7 +864,7 @@ export default function MarketingPage() {
             </div>
             <div className="mt-8 text-center">
               <p className="text-gray-600 text-sm mb-4">Still have a question? We are happy to help.</p>
-              <a href={waLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl shadow-md shadow-red-200 transition-all text-sm">
+              <a href={waLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold px-6 py-3 rounded-xl shadow-md shadow-green-200 transition-all text-sm">
                 <MessageCircle className="h-4 w-4" aria-hidden="true" />
                 Ask Us on WhatsApp
               </a>
@@ -893,7 +970,7 @@ export default function MarketingPage() {
               or simply come and see the studio — no pressure, just a friendly conversation.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-              <a href={waSemiPrivate} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-white text-red-700 hover:bg-red-50 active:scale-95 font-bold text-base px-8 py-4 rounded-2xl shadow-xl shadow-red-900/20 transition-all">
+              <a href={waSemiPrivate} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-white text-[#16a34a] hover:bg-green-50 active:scale-95 font-bold text-base px-8 py-4 rounded-2xl shadow-xl shadow-red-900/20 transition-all">
                 <MessageCircle className="h-5 w-5" aria-hidden="true" />
                 Ask About Semi-Private Coaching
               </a>
