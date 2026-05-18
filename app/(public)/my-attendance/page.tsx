@@ -177,11 +177,6 @@ export default function MyAttendancePage() {
           <p className="text-gray-500 text-sm mt-1">
             {ROLE_LABELS[data.employee.role] ?? data.employee.role} · {data.employee.employeeId}
           </p>
-          {monthTotal && (
-            <div className="mt-3 px-4 py-1.5 rounded-full text-xs font-semibold" style={{ background: "rgba(22,163,74,0.15)", color: "#16a34a" }}>
-              ⏱ {monthTotal} worked this month
-            </div>
-          )}
         </div>
 
         {/* Month nav */}
@@ -201,12 +196,26 @@ export default function MyAttendancePage() {
           </button>
         </div>
 
-        {/* Summary — 3 cols × 2 rows, Paid Leave shown separately */}
+        {/* Featured: Total Hours + Days Present */}
+        <div className="px-4 pb-3 grid grid-cols-2 gap-3">
+          <div className="flex flex-col items-center py-4 rounded-2xl" style={{ background: "rgba(22,163,74,0.12)", border: "1px solid rgba(22,163,74,0.25)" }}>
+            <span className="text-3xl font-extrabold leading-none" style={{ color: "#16a34a" }}>
+              {monthTotal || "0h"}
+            </span>
+            <span className="text-xs mt-1.5 font-semibold" style={{ color: "#16a34a", opacity: 0.75 }}>Total Hours</span>
+          </div>
+          <div className="flex flex-col items-center py-4 rounded-2xl" style={{ background: "rgba(22,163,74,0.07)", border: "1px solid rgba(22,163,74,0.15)" }}>
+            <span className="text-3xl font-extrabold leading-none text-white">{data.summary.PRESENT}</span>
+            <span className="text-xs mt-1.5 font-semibold text-gray-500">Days Present</span>
+          </div>
+        </div>
+
+        {/* Secondary summary — 3 cols */}
         <div className="px-4 pb-4 grid grid-cols-3 gap-2">
-          {summaryItems.map(({ key, label, val }) => (
-            <div key={key} className="flex flex-col items-center py-3 rounded-xl" style={{ background: STATUS_CONFIG[key]?.bg, color: STATUS_CONFIG[key]?.color }}>
-              <span className="text-2xl font-bold leading-none">{val}</span>
-              <span className="text-[11px] mt-1 opacity-80 text-center">{label}</span>
+          {summaryItems.filter(({ key }) => !["PRESENT"].includes(key)).map(({ key, label, val }) => (
+            <div key={key} className="flex flex-col items-center py-2.5 rounded-xl" style={{ background: STATUS_CONFIG[key]?.bg, color: STATUS_CONFIG[key]?.color }}>
+              <span className="text-xl font-bold leading-none">{val}</span>
+              <span className="text-[10px] mt-1 opacity-80 text-center">{label}</span>
             </div>
           ))}
         </div>
@@ -265,7 +274,7 @@ export default function MyAttendancePage() {
                         </span>
                       )}
                     </div>
-                    {/* Total hours for the day */}
+                    {/* Total hours for the day — prominent */}
                     {rec && rec.shifts.length > 0 && (() => {
                       const total = rec.shifts.reduce((sum, s) => {
                         if (!s.checkOutTime) return sum;
@@ -274,7 +283,7 @@ export default function MyAttendancePage() {
                       if (total < 1) return null;
                       const h = Math.floor(total / 60), m = Math.round(total % 60);
                       return (
-                        <span className="text-xs text-gray-400 flex-shrink-0">
+                        <span className="text-sm font-bold flex-shrink-0" style={{ color: "#16a34a" }}>
                           {h > 0 ? `${h}h ${m}m` : `${m}m`}
                         </span>
                       );
