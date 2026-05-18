@@ -265,7 +265,7 @@ export default function MarketingPage() {
               <Image src="/Logo.png" alt="Yos Fitness Studio logo" width={48} height={48} className="h-10 w-auto object-contain" priority />
               <div className="leading-tight">
                 <p className="font-extrabold text-gray-900 text-sm leading-none">Yos Fitness Studio</p>
-                <p className="text-[10px] text-gray-500 leading-none mt-0.5">Kutchery Rd, Mylapore</p>
+                <p className="text-[10px] text-gray-500 leading-none mt-0.5">Kutchery Road, Mylapore</p>
               </div>
             </Link>
 
@@ -328,9 +328,8 @@ export default function MarketingPage() {
             <div className="mb-7">
               <Image src="/Logo.png" alt="Yos Fitness Studio logo" width={64} height={64} className="h-14 w-auto object-contain" priority />
             </div>
-            <div className="inline-flex items-center gap-2 bg-red-600/15 border border-red-600/25 rounded-full px-4 py-1.5 mb-6">
-              <MapPin className="h-3.5 w-3.5 text-red-400 flex-shrink-0" aria-hidden="true" />
-              <span className="text-red-300 text-xs font-semibold tracking-wide">107 & 109, Kutchery Road, Mylapore, Chennai — 600 004</span>
+            <div className="inline-flex items-center bg-red-600/15 border border-red-600/25 rounded-full px-4 py-1.5 mb-6">
+              <span className="text-red-300 text-xs font-semibold tracking-wide">Friendly Neighbourhood Gym · Mylapore</span>
             </div>
 
             <h1 id="hero-heading" className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-[1.1] tracking-tight max-w-4xl">
