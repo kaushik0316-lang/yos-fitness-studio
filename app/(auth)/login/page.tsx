@@ -33,7 +33,7 @@ export default function LoginPage() {
     setError("");
     const result = await signIn("credentials", { email: data.email, password: data.password, redirect: false });
     if (result?.error) { setError("Invalid email or password. Please try again."); return; }
-    router.push("/dashboard");
+    router.push("/employee-attendance");
     router.refresh();
   }
 
@@ -163,22 +163,6 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Demo creds */}
-            <div className="mt-6 bg-orange-50 border border-orange-100 rounded-2xl p-4">
-              <p className="text-[11px] font-bold text-orange-600 uppercase tracking-widest mb-3">Demo credentials</p>
-              <div className="space-y-2.5">
-                {[
-                  { role: "Admin", email: "admin@yosfitness.in", pass: "admin123" },
-                  { role: "Front Desk", email: "priya@yosfitness.in", pass: "staff123" },
-                ].map((c) => (
-                  <div key={c.role} className="flex items-center justify-between gap-4">
-                    <span className="text-xs font-bold text-gray-700 w-20 flex-shrink-0">{c.role}</span>
-                    <span className="text-xs text-gray-500 truncate">{c.email}</span>
-                    <span className="text-xs font-mono bg-white border border-orange-200 rounded-md px-1.5 py-0.5 text-gray-600 flex-shrink-0">{c.pass}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </div>
