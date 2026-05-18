@@ -113,10 +113,11 @@ export default function JoinPage() {
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Staff Join Code</label>
             <p className="text-xs text-gray-600 mb-2">Ask your manager for the join code before registering</p>
             <input
-              value={form.joinCode} onChange={(e) => setForm({ ...form, joinCode: e.target.value.toUpperCase() })}
+              value={form.joinCode}
+              onChange={(e) => { const v = e.target.value.toUpperCase(); setForm(f => ({ ...f, joinCode: v })); }}
               type="text" placeholder="Enter join code"
-              className="w-full py-3.5 px-4 rounded-xl text-sm text-white outline-none border-2 transition-colors tracking-widest font-mono uppercase"
-              style={{ background: "#1a1a1a", borderColor: errors.joinCode ? "#dc2626" : "#2a2a2a" }}
+              className="w-full py-3.5 px-4 rounded-xl text-sm text-white outline-none border-2 transition-colors tracking-widest font-mono"
+              style={{ background: "#1a1a1a", borderColor: errors.joinCode ? "#dc2626" : "#2a2a2a", textTransform: "uppercase" }}
             />
             {errors.joinCode && <p className="text-xs text-red-500 mt-1">{errors.joinCode}</p>}
           </div>
@@ -125,10 +126,11 @@ export default function JoinPage() {
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Full Name</label>
             <input
-              value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value.toUpperCase() })}
+              value={form.fullName}
+              onChange={(e) => { const v = e.target.value.toUpperCase(); setForm(f => ({ ...f, fullName: v })); }}
               placeholder="Your full name"
-              className="w-full py-3.5 px-4 rounded-xl text-sm text-white outline-none border-2 transition-colors uppercase"
-              style={{ background: "#1a1a1a", borderColor: errors.fullName ? "#dc2626" : "#2a2a2a" }}
+              className="w-full py-3.5 px-4 rounded-xl text-sm text-white outline-none border-2 transition-colors"
+              style={{ background: "#1a1a1a", borderColor: errors.fullName ? "#dc2626" : "#2a2a2a", textTransform: "uppercase" }}
             />
             {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
           </div>
