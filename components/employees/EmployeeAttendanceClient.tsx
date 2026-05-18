@@ -299,7 +299,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
             </div>
           </div>
 
-          {canEdit && <p className="text-xs text-gray-500">Click a cell to cycle status · Click employee name to see shift times</p>}
+          {canEdit && <p className="text-xs text-gray-500">Click a cell to cycle status · Click employee name for full detail</p>}
 
           {employees.length === 0 ? (
             <div className="bg-white rounded-xl border p-12 text-center">
@@ -318,9 +318,9 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                   <tr>
                     <th className="text-left px-3 py-2 font-semibold text-gray-600 sticky left-0 bg-gray-50 min-w-[160px]">Employee</th>
                     {days.map((day) => (
-                      <th key={day.toISOString()} className={cn("px-1 py-2 font-medium text-center min-w-[28px]", day.getDay() === 0 ? "text-red-400" : "text-gray-500")}>
+                      <th key={day.toISOString()} className={cn("px-1 py-2 font-medium text-center min-w-[80px]", day.getDay() === 0 ? "text-red-400" : "text-gray-500")}>
                         <div>{format(day, "d")}</div>
-                        <div className="text-gray-400">{format(day, "EEE")[0]}</div>
+                        <div className="text-[10px] text-gray-400">{format(day, "EEE")}</div>
                       </th>
                     ))}
                     <th className="px-3 py-2 font-semibold text-gray-600 text-center min-w-[140px]">Summary</th>
@@ -343,24 +343,46 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                         {days.map((day) => {
                           const dateStr = format(day, "yyyy-MM-dd");
                           const status = localMap[emp.id]?.[dateStr] ?? "";
-                          const hasShifts = (attendanceMap[emp.id]?.[dateStr]?.shifts.length ?? 0) > 1;
+                          const shifts = attendanceMap[emp.id]?.[dateStr]?.shifts ?? [];
                           const isSunday = day.getDay() === 0;
                           const isFuture = day > new Date();
                           return (
-                            <td key={dateStr} className="px-0.5 py-1 text-center">
+                            <td key={dateStr} className="px-1 py-1 text-center align-top">
+                              {/* Status badge — click to cycle */}
                               <button
                                 onClick={() => !isFuture && cycleStatus(emp.id, dateStr)}
                                 disabled={!canEdit || isFuture}
                                 title={STATUS_OPTIONS.find((s) => s.value === status)?.title ?? "Not marked"}
-                                className={cn("w-6 h-6 rounded text-[10px] font-bold transition-colors mx-auto block relative",
+                                className={cn(
+                                  "w-full rounded text-[10px] font-bold transition-colors px-1 py-0.5 mb-0.5",
                                   status ? STATUS_COLOR[status] : isSunday ? "bg-gray-100 text-gray-300" : "bg-gray-100 text-gray-400 hover:bg-gray-200",
                                   canEdit && !isFuture && "cursor-pointer"
                                 )}
                               >
                                 {status ? STATUS_OPTIONS.find((s) => s.value === status)?.label : (isSunday ? "—" : "")}
-                                {/* dot indicator for multiple shifts */}
-                                {hasShifts && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-400 rounded-full" title="Multiple shifts" />}
                               </button>
+                              {/* Shift times */}
+                              {shifts.length > 0 && (
+                                <div className="space-y-1">
+                                  {shifts.map((s) => (
+                                    <div key={s.shiftIndex} className="text-left leading-tight">
+                                      {shifts.length > 1 && (
+                                        <div className="text-[9px] text-gray-400 font-medium">S{s.shiftIndex}</div>
+                                      )}
+                                      <div className="text-[10px] font-medium text-green-600">
+                                        ▲ {fmtTime(s.checkInTime)}
+                                      </div>
+                                      {s.checkOutTime ? (
+                                        <div className="text-[10px] font-medium text-red-500">
+                                          ▼ {fmtTime(s.checkOutTime)}
+                                        </div>
+                                      ) : (
+                                        <div className="text-[9px] text-amber-500 italic">in…</div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </td>
                           );
                         })}
