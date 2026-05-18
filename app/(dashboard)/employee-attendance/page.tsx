@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { EmployeeAttendanceClient } from "@/components/employees/EmployeeAttendanceClient";
-import { startOfDay, endOfDay, startOfMonth, endOfMonth, format } from "date-fns";
+import { startOfMonth, endOfMonth, format } from "date-fns";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Employee Attendance" };
@@ -18,10 +18,15 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
   const monthStart = startOfMonth(new Date(year, month - 1, 1));
   const monthEnd   = endOfMonth(monthStart);
 
-  const [employees, attendances] = await Promise.all([
+  const [activeEmployees, allEmployees, attendances] = await Promise.all([
+    // Active only — used for the attendance grid
     prisma.employee.findMany({
       where: { isActive: true },
       orderBy: { fullName: "asc" },
+    }),
+    // All (active + inactive) — used for the Staff management tab
+    prisma.employee.findMany({
+      orderBy: [{ isActive: "desc" }, { fullName: "asc" }],
     }),
     prisma.employeeAttendance.findMany({
       where: { date: { gte: monthStart, lte: monthEnd } },
@@ -29,7 +34,7 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
     }),
   ]);
 
-  // Build a lookup: employeeId → { "2026-04-01": status, ... }
+  // Build lookup: employeeId → { "2026-05-01": status, ... }
   const attendanceMap: Record<string, Record<string, string>> = {};
   for (const a of attendances) {
     if (!attendanceMap[a.employeeId]) attendanceMap[a.employeeId] = {};
@@ -38,10 +43,11 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
 
   return (
     <>
-      <Header title="Employee Attendance" subtitle={`${format(monthStart, "MMMM yyyy")}`} />
+      <Header title="Employee Attendance" subtitle={format(monthStart, "MMMM yyyy")} />
       <div className="flex-1 p-6">
         <EmployeeAttendanceClient
-          employees={employees as any}
+          employees={activeEmployees as any}
+          allEmployees={allEmployees as any}
           attendanceMap={attendanceMap}
           month={month}
           year={year}
