@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap } from "lucide-react";
+import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ImportResult = {
@@ -262,6 +262,7 @@ function ReceiptsImport() {
       <FixGhostsPanel />
       <BackfillPanel />
       <SyncExpiryPanel />
+      <FixNoPaymentPanel />
     </div>
   );
 }
@@ -543,6 +544,62 @@ function SyncExpiryPanel() {
           <StatPill icon={CheckCircle}   label="Processed"   value={result.membersProcessed} color="text-sky-600 bg-sky-50" />
           <StatPill icon={CheckCircle}   label="Set ACTIVE"  value={result.setActive}        color="text-green-600 bg-green-50" />
           <StatPill icon={AlertTriangle} label="Set EXPIRED" value={result.setExpired}       color="text-amber-600 bg-amber-50" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Fix members with no payments → PROSPECT ───────────────────────────── */
+
+function FixNoPaymentPanel() {
+  const [loading, setLoading] = useState(false);
+  const [updated, setUpdated] = useState<number | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+
+  async function run() {
+    if (!confirm("This will mark all members with no payment records as PROSPECT instead of ACTIVE. Continue?")) return;
+    setLoading(true); setError(null);
+    try {
+      const res  = await fetch("/api/import/fix-no-payment", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setUpdated(data.updated);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-violet-200 p-5 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <UserCheck className="h-4 w-4 text-violet-500" />
+            Fix Members With No Payments → Prospect
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Members imported from the Member Master but with no receipt records were incorrectly
+            set to <strong>ACTIVE</strong>. This sets them to <strong>PROSPECT</strong> — they applied
+            but never paid.
+          </p>
+        </div>
+        <button
+          onClick={run} disabled={loading}
+          className={cn(
+            "flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+            loading ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-violet-500 hover:bg-violet-600 text-white shadow-md shadow-violet-200"
+          )}
+        >
+          <UserCheck className="h-3.5 w-3.5" />
+          {loading ? "Fixing…" : "Run Fix"}
+        </button>
+      </div>
+      {error && <ErrorBanner message={error} />}
+      {updated !== null && (
+        <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2">
+          <CheckCircle className="h-4 w-4" />
+          {updated} members changed to Prospect
         </div>
       )}
     </div>

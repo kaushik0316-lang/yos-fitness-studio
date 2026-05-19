@@ -49,7 +49,7 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
     const params = new URLSearchParams(searchParams.toString());
     if (value === "" || value === "ALL") params.delete(key);
     else params.set(key, value);
-    params.delete("page");
+    if (key !== "page") params.delete("page"); // reset to p1 on filter change, not on page click
     router.push(`${pathname}?${params.toString()}`);
   }
 
@@ -298,18 +298,44 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
               {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
             </p>
             <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => updateQuery("page", String(p))}
-                  className={cn(
-                    "w-8 h-8 rounded-xl text-xs font-semibold transition-colors",
-                    p === page ? "bg-orange-500 text-white shadow-md shadow-orange-200" : "hover:bg-gray-200 text-gray-500"
-                  )}
-                >
-                  {p}
-                </button>
-              ))}
+              {/* Prev */}
+              <button
+                onClick={() => updateQuery("page", String(page - 1))}
+                disabled={page <= 1}
+                className="w-8 h-8 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >‹</button>
+
+              {/* Page numbers: show window around current page */}
+              {(() => {
+                const window = 2;
+                const start = Math.max(1, page - window);
+                const end   = Math.min(totalPages, page + window);
+                const pages: (number | "…")[] = [];
+                if (start > 1) { pages.push(1); if (start > 2) pages.push("…"); }
+                for (let i = start; i <= end; i++) pages.push(i);
+                if (end < totalPages) { if (end < totalPages - 1) pages.push("…"); pages.push(totalPages); }
+                return pages.map((p, i) =>
+                  p === "…" ? (
+                    <span key={`ellipsis-${i}`} className="w-8 text-center text-xs text-gray-400">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => updateQuery("page", String(p))}
+                      className={cn(
+                        "w-8 h-8 rounded-xl text-xs font-semibold transition-colors",
+                        p === page ? "bg-orange-500 text-white shadow-md shadow-orange-200" : "hover:bg-gray-200 text-gray-500"
+                      )}
+                    >{p}</button>
+                  )
+                );
+              })()}
+
+              {/* Next */}
+              <button
+                onClick={() => updateQuery("page", String(page + 1))}
+                disabled={page >= totalPages}
+                className="w-8 h-8 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >›</button>
             </div>
           </div>
         )}
