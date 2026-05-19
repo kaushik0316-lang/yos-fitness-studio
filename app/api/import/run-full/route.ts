@@ -105,7 +105,12 @@ function findByName(name: string, idx: Record<string, string[]>, wordsMap: Recor
 function readSheet(filePath: string) {
   const buf = fs.readFileSync(filePath);
   const wb  = XLSX.read(buf, { type: "buffer" });
-  return XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "", raw: true });
+  // Pick the first sheet that has actual data rows (skips empty Chart sheets)
+  const sheetName = wb.SheetNames.find(name => {
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[name], { header: 1, defval: "", raw: true });
+    return rows.length > 1;
+  }) ?? wb.SheetNames[0];
+  return XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[sheetName], { header: 1, defval: "", raw: true });
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -135,8 +140,8 @@ export async function POST(req: NextRequest) {
     const name    = String(row[1] ?? "").trim().toUpperCase();
     const gender  = String(row[2] ?? "").trim().toUpperCase();
     const dob     = safeDate(excelDate(row[3]));
-    const mobile  = String(row[6] ?? "").replace(/\D/g, "").slice(-10);
-    const doj     = safeDate(excelDate(row[10])) ?? new Date("2015-01-01");
+    const mobile  = String(row[9] ?? "").replace(/\D/g, "").slice(-10);  // col 9 = MOBILE
+    const doj     = safeDate(excelDate(row[17])) ?? new Date("2015-01-01"); // col 17 = DOJ
 
     if (!name || gender === "CANCELED" || name.includes("CANCEL") || !applNo) { memberSkipped++; continue; }
 
