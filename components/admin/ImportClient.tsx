@@ -47,7 +47,6 @@ export function ImportClient() {
 
 function MembersImport() {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [company, setCompany] = useState("YOS_FITNESS");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -62,7 +61,6 @@ function MembersImport() {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      fd.append("company", company);
 
       const res = await fetch("/api/import/members", { method: "POST", body: fd });
       const data = await res.json();
@@ -80,33 +78,11 @@ function MembersImport() {
     <div className="space-y-4">
       <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm text-blue-700">
         <strong>Member Master import</strong> — creates new member records from your Excel file.
-        Matches the <em>APPLICATION NUMBER</em> column to generate member IDs (e.g. YF-101).
+        Members are company-agnostic; their IDs are generated from the APPLICATION NUMBER (e.g. YF-101).
         Duplicate phone numbers and existing IDs are skipped with a warning.
       </div>
 
-      {/* Company select */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
-        <div>
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Company</label>
-          <div className="flex gap-3 mt-2">
-            {[
-              { value: "YOS_FITNESS", label: "Yos Fitness", color: "border-orange-400 bg-orange-50 text-orange-700" },
-              { value: "YOS_FITNESS_STUDIO", label: "Yos Studio", color: "border-indigo-400 bg-indigo-50 text-indigo-700" },
-            ].map((c) => (
-              <button
-                key={c.value}
-                onClick={() => setCompany(c.value)}
-                className={cn(
-                  "px-4 py-2 rounded-xl border-2 text-sm font-semibold transition-all",
-                  company === c.value ? c.color : "border-gray-200 text-gray-500 hover:border-gray-300"
-                )}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* File picker */}
         <div>
           <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Excel File</label>

@@ -25,13 +25,14 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
-  const company = formData.get("company") as string | null;
 
-  if (!file || !company) {
-    return NextResponse.json({ error: "Missing file or company" }, { status: 400 });
+  if (!file) {
+    return NextResponse.json({ error: "Missing file" }, { status: 400 });
   }
 
-  const prefix = company === "YOS_FITNESS" ? "YF" : "YFS";
+  // Members are company-agnostic. Use YF- prefix for all imported IDs.
+  // primaryCompany defaults to YOS_FITNESS and can be edited per-member later.
+  const prefix = "YF";
   const buffer = Buffer.from(await file.arrayBuffer());
   const wb = XLSX.read(buffer, { type: "buffer" });
 
@@ -108,7 +109,7 @@ export async function POST(req: NextRequest) {
       weight,
       height,
       intentionOfJoining: purpose,
-      primaryCompany: company,
+      primaryCompany: "YOS_FITNESS",
       status: "ACTIVE",
       joinDate: doj ?? new Date(),
     });
