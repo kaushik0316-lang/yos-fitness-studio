@@ -29,18 +29,18 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
       include: { shifts: { orderBy: { shiftIndex: "asc" } } },
       orderBy: { date: "asc" },
     }),
-    // Sales count this calendar month per employee
+    // Sales amount this calendar month per employee
     prisma.payment.groupBy({
       by: ["soldById"],
       where: { soldById: { not: null }, date: { gte: thisMonthStart, lte: thisMonthEnd } },
-      _count: { id: true },
+      _sum: { amount: true },
     }),
   ]);
 
-  // Map employeeId → sales count this month
+  // Map employeeId → total sales amount this month
   const salesMap: Record<string, number> = {};
   for (const s of salesByEmployee) {
-    if (s.soldById) salesMap[s.soldById] = s._count.id;
+    if (s.soldById) salesMap[s.soldById] = Number(s._sum.amount ?? 0);
   }
 
   // Build lookup: employeeId → { "2026-05-01": { status, shifts[] } }

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Plus, Pencil, Eye, EyeOff, UserCheck, UserX } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { setEmployeeActive } from "@/lib/actions/employees";
@@ -174,7 +175,7 @@ function StaffRow({
           </span>
           {salesThisMonth > 0 && (
             <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-orange-100 text-orange-700">
-              🏆 {salesThisMonth} sale{salesThisMonth !== 1 ? "s" : ""} this month
+              🏆 {formatCurrency(salesThisMonth)} this month
             </span>
           )}
         </div>
