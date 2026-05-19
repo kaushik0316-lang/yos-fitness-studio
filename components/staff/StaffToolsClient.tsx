@@ -6,7 +6,7 @@ import QRCode from "react-qr-code";
 import {
   Receipt, Copy, Check, Printer, ExternalLink, QrCode,
   MessageCircle, Users, RotateCcw, CreditCard, AlertTriangle,
-  IndianRupee, TrendingUp, CalendarX,
+  IndianRupee, CalendarX, UserX, ClipboardList,
 } from "lucide-react";
 import { formatCurrency, cn, COMPANY_COLORS } from "@/lib/utils";
 import type { Company } from "@prisma/client";
@@ -22,9 +22,12 @@ type Props = {
   userRole: string;
   todayPaymentCount: number;
   todayPaymentTotal: number;
+  monthPaymentTotal: number;
+  monthPaymentCount: number;
   expiringThisWeek: number;
   expiringToday: number;
   activeMembers: number;
+  expiredMembers: number;
   expiringSoonList: ExpiringSoon[];
 };
 
@@ -37,8 +40,9 @@ function daysUntil(iso: string | null) {
 export function StaffToolsClient({
   formUrl, userName, userRole,
   todayPaymentCount, todayPaymentTotal,
+  monthPaymentTotal, monthPaymentCount,
   expiringThisWeek, expiringToday,
-  activeMembers, expiringSoonList,
+  activeMembers, expiredMembers, expiringSoonList,
 }: Props) {
   const [copied, setCopied] = useState(false);
   const hasForm = !!formUrl;
@@ -64,6 +68,9 @@ export function StaffToolsClient({
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   }
 
+  const now = new Date();
+  const monthName = now.toLocaleString("en-IN", { month: "long" });
+
   const statCards = [
     {
       label: "Today's Collections",
@@ -73,6 +80,15 @@ export function StaffToolsClient({
       strip: "bg-orange-500",
       iconBg: "bg-orange-50",
       iconColor: "text-orange-600",
+    },
+    {
+      label: `${monthName}'s Revenue`,
+      value: formatCurrency(monthPaymentTotal),
+      sub: `${monthPaymentCount} receipt${monthPaymentCount !== 1 ? "s" : ""} this month`,
+      icon: IndianRupee,
+      strip: "bg-green-500",
+      iconBg: "bg-green-50",
+      iconColor: "text-green-600",
     },
     {
       label: "Active Members",
@@ -93,13 +109,13 @@ export function StaffToolsClient({
       iconColor: expiringToday > 0 ? "text-red-600" : "text-amber-600",
     },
     {
-      label: "Pending Renewals",
-      value: expiringThisWeek.toString(),
-      sub: "follow up today",
-      icon: TrendingUp,
-      strip: "bg-violet-500",
-      iconBg: "bg-violet-50",
-      iconColor: "text-violet-600",
+      label: "Lapsed Members",
+      value: expiredMembers.toString(),
+      sub: expiredMembers > 0 ? "need follow-up" : "all up to date",
+      icon: UserX,
+      strip: expiredMembers > 0 ? "bg-red-400" : "bg-gray-300",
+      iconBg: expiredMembers > 0 ? "bg-red-50" : "bg-gray-50",
+      iconColor: expiredMembers > 0 ? "text-red-500" : "text-gray-400",
     },
   ];
 
@@ -108,6 +124,7 @@ export function StaffToolsClient({
     { label: "Members", desc: "View & search all members", href: "/members", icon: Users, accent: "border-gray-200 hover:border-gray-400", iconBg: "bg-gray-50", iconColor: "text-gray-500" },
     { label: "Renewals", desc: "Follow up expiring members", href: "/renewals", icon: RotateCcw, accent: "border-amber-200 hover:border-amber-400", iconBg: "bg-amber-50", iconColor: "text-amber-500" },
     { label: "Payments", desc: "View all transactions", href: "/payments", icon: CreditCard, accent: "border-blue-200 hover:border-blue-400", iconBg: "bg-blue-50", iconColor: "text-blue-500" },
+    { label: "Attendance", desc: "Employee attendance log", href: "/employee-attendance", icon: ClipboardList, accent: "border-violet-200 hover:border-violet-400", iconBg: "bg-violet-50", iconColor: "text-violet-500" },
   ];
 
   return (
@@ -126,7 +143,7 @@ export function StaffToolsClient({
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {statCards.map((s) => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 relative overflow-hidden">
             <div className={`absolute inset-x-0 top-0 h-[3px] ${s.strip}`} />
@@ -153,7 +170,7 @@ export function StaffToolsClient({
           {/* Quick Actions */}
           <div>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Actions</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               {quickActions.map((a) => (
                 <Link key={a.href} href={a.href}
                   className={cn("flex items-center gap-3 bg-white border-2 rounded-2xl p-4 transition-all group shadow-sm", a.accent)}>

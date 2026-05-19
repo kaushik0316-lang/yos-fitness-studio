@@ -4,39 +4,49 @@ import { prisma } from "@/lib/prisma";
 import { Header } from "@/components/layout/Header";
 import { StaffToolsClient } from "@/components/staff/StaffToolsClient";
 import { REGISTRATION_FORM_URL } from "@/lib/site-config";
-import { startOfDay, endOfDay, addDays } from "date-fns";
+import { startOfDay, endOfDay, addDays, startOfMonth } from "date-fns";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Staff Dashboard" };
+export const metadata = { title: "Operations Dashboard" };
 
 export default async function StaffToolsPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const today = new Date();
+  const monthStart = startOfMonth(today);
 
-  const [todayPayments, expiringThisWeek, expiringToday, activeMembers] = await Promise.all([
+  const [todayPayments, monthPayments, expiringThisWeek, expiringToday, activeMembers, expiredMembers] = await Promise.all([
     // Today's collections
     prisma.payment.aggregate({
       where: { date: { gte: startOfDay(today), lte: endOfDay(today) } },
       _sum: { amount: true },
       _count: true,
     }),
-    // Expiring in 7 days
+    // This month's collections
+    prisma.payment.aggregate({
+      where: { date: { gte: monthStart, lte: endOfDay(today) } },
+      _sum: { amount: true },
+      _count: true,
+    }),
+    // Expiring in next 7 days (still active)
     prisma.member.count({
       where: {
-        expiryDate: { gte: today, lte: addDays(today, 7) },
-        status: { in: ["ACTIVE", "EXPIRED"] },
+        expiryDate: { gte: startOfDay(today), lte: addDays(today, 7) },
+        status: "ACTIVE",
       },
     }),
     // Expiring today
     prisma.member.count({
       where: {
         expiryDate: { gte: startOfDay(today), lte: endOfDay(today) },
+        status: "ACTIVE",
       },
     }),
     // Total active members
     prisma.member.count({ where: { status: "ACTIVE" } }),
+    // Already expired (lapsed, needs follow-up)
+    prisma.member.count({ where: { status: "EXPIRED" } }),
   ]);
 
   // Members expiring soon (for the list)
@@ -59,7 +69,7 @@ export default async function StaffToolsPage() {
 
   return (
     <>
-      <Header title="Staff Dashboard" subtitle="Quick actions, stats and member tools" />
+      <Header title="Operations Dashboard" subtitle="Quick actions, stats and member tools" />
       <div className="flex-1 p-6">
         <StaffToolsClient
           formUrl={REGISTRATION_FORM_URL}
@@ -67,9 +77,12 @@ export default async function StaffToolsPage() {
           userRole={session.user.role ?? "FRONT_DESK"}
           todayPaymentCount={todayPayments._count}
           todayPaymentTotal={Number(todayPayments._sum.amount ?? 0)}
+          monthPaymentTotal={Number(monthPayments._sum.amount ?? 0)}
+          monthPaymentCount={monthPayments._count}
           expiringThisWeek={expiringThisWeek}
           expiringToday={expiringToday}
           activeMembers={activeMembers}
+          expiredMembers={expiredMembers}
           expiringSoonList={expiringSoonList.map((m) => ({
             ...m,
             expiryDate: m.expiryDate ? m.expiryDate.toISOString() : null,

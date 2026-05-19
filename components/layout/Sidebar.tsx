@@ -20,7 +20,7 @@ const navGroups = [
       { label: "Attendance", href: "/attendance", icon: CalendarCheck, roles: ["ADMIN", "FRONT_DESK", "TRAINER"] },
       { label: "Renewals", href: "/renewals", icon: RotateCcw, roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
       { label: "Payments", href: "/payments", icon: CreditCard, roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
-      { label: "Staff Tools", href: "/staff-tools", icon: Wrench, roles: ["ADMIN", "FRONT_DESK"] },
+      { label: "Operations", href: "/staff-tools", icon: Wrench, roles: ["ADMIN", "FRONT_DESK"] },
     ],
   },
   {
