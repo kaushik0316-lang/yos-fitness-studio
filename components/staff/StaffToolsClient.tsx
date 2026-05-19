@@ -4,35 +4,44 @@ import { useState } from "react";
 import Link from "next/link";
 import QRCode from "react-qr-code";
 import {
-  Receipt, Copy, Check, Printer, ExternalLink,
-  QrCode, ClipboardList, MessageCircle,
+  Receipt, Copy, Check, Printer, ExternalLink, QrCode,
+  MessageCircle, Users, RotateCcw, CreditCard, AlertTriangle,
+  IndianRupee, TrendingUp, CalendarX,
 } from "lucide-react";
-import { GYM_NAME, GYM_WHATSAPP } from "@/lib/site-config";
+import { formatCurrency, cn, COMPANY_COLORS } from "@/lib/utils";
+import type { Company } from "@prisma/client";
+
+type ExpiringSoon = {
+  id: string; memberId: string; fullName: string;
+  phone: string; expiryDate: string | null; primaryCompany: Company;
+};
 
 type Props = {
   formUrl: string;
   userName: string;
   userRole: string;
+  todayPaymentCount: number;
+  todayPaymentTotal: number;
+  expiringThisWeek: number;
+  expiringToday: number;
+  activeMembers: number;
+  expiringSoonList: ExpiringSoon[];
 };
 
-export function StaffToolsClient({ formUrl, userName, userRole }: Props) {
+function daysUntil(iso: string | null) {
+  if (!iso) return null;
+  const diff = Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
+  return diff;
+}
+
+export function StaffToolsClient({
+  formUrl, userName, userRole,
+  todayPaymentCount, todayPaymentTotal,
+  expiringThisWeek, expiringToday,
+  activeMembers, expiringSoonList,
+}: Props) {
   const [copied, setCopied] = useState(false);
   const hasForm = !!formUrl;
-
-  function copyLink() {
-    if (!formUrl) return;
-    navigator.clipboard.writeText(formUrl).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-
-  function shareWhatsApp() {
-    const msg = encodeURIComponent(
-      `Hi! Please fill in this quick registration form for ${GYM_NAME}:\n${formUrl}`
-    );
-    window.open(`https://wa.me/?text=${msg}`, "_blank");
-  }
 
   const greeting = (() => {
     const h = new Date().getHours();
@@ -41,127 +50,240 @@ export function StaffToolsClient({ formUrl, userName, userRole }: Props) {
     return "Good evening";
   })();
 
+  function copyLink() {
+    if (!formUrl) return;
+    navigator.clipboard.writeText(formUrl).then(() => {
+      setCopied(true); setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function shareWhatsApp() {
+    const msg = encodeURIComponent(
+      `Hi! Please fill in this quick registration form for Yos Fitness Studio:\n${formUrl}`
+    );
+    window.open(`https://wa.me/?text=${msg}`, "_blank");
+  }
+
+  const statCards = [
+    {
+      label: "Today's Collections",
+      value: formatCurrency(todayPaymentTotal),
+      sub: `${todayPaymentCount} receipt${todayPaymentCount !== 1 ? "s" : ""}`,
+      icon: IndianRupee,
+      strip: "bg-orange-500",
+      iconBg: "bg-orange-50",
+      iconColor: "text-orange-600",
+    },
+    {
+      label: "Active Members",
+      value: activeMembers.toString(),
+      sub: "across both gyms",
+      icon: Users,
+      strip: "bg-blue-500",
+      iconBg: "bg-blue-50",
+      iconColor: "text-blue-600",
+    },
+    {
+      label: "Expiring This Week",
+      value: expiringThisWeek.toString(),
+      sub: expiringToday > 0 ? `${expiringToday} expire today` : "in next 7 days",
+      icon: CalendarX,
+      strip: expiringToday > 0 ? "bg-red-500" : "bg-amber-500",
+      iconBg: expiringToday > 0 ? "bg-red-50" : "bg-amber-50",
+      iconColor: expiringToday > 0 ? "text-red-600" : "text-amber-600",
+    },
+    {
+      label: "Pending Renewals",
+      value: expiringThisWeek.toString(),
+      sub: "follow up today",
+      icon: TrendingUp,
+      strip: "bg-violet-500",
+      iconBg: "bg-violet-50",
+      iconColor: "text-violet-600",
+    },
+  ];
+
+  const quickActions = [
+    { label: "New Receipt", desc: "Record a member payment", href: "/payments/new", icon: Receipt, accent: "border-orange-200 hover:border-orange-400", iconBg: "bg-orange-50", iconColor: "text-orange-500" },
+    { label: "Members", desc: "View & search all members", href: "/members", icon: Users, accent: "border-gray-200 hover:border-gray-400", iconBg: "bg-gray-50", iconColor: "text-gray-500" },
+    { label: "Renewals", desc: "Follow up expiring members", href: "/renewals", icon: RotateCcw, accent: "border-amber-200 hover:border-amber-400", iconBg: "bg-amber-50", iconColor: "text-amber-500" },
+    { label: "Payments", desc: "View all transactions", href: "/payments", icon: CreditCard, accent: "border-blue-200 hover:border-blue-400", iconBg: "bg-blue-50", iconColor: "text-blue-500" },
+  ];
+
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6">
+
       {/* Greeting */}
-      <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg shadow-orange-200">
-        <p className="text-orange-100 text-sm font-medium">{greeting},</p>
-        <h2 className="text-2xl font-extrabold mt-0.5">{userName} 👋</h2>
-        <p className="text-orange-100 text-sm mt-1 capitalize">
-          {userRole.replace("_", " ").toLowerCase()} · Yos Fitness Studio
-        </p>
-      </div>
-
-      {/* Quick Actions */}
-      <div>
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Actions</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Link
-            href="/payments/new"
-            className="flex items-center gap-4 bg-white border-2 border-orange-100 hover:border-orange-400 rounded-2xl p-5 transition-all group shadow-sm"
-          >
-            <div className="bg-orange-50 rounded-xl p-3 group-hover:bg-orange-100 transition-colors">
-              <Receipt className="h-5 w-5 text-orange-500" />
-            </div>
-            <div>
-              <p className="font-bold text-gray-900 text-sm">New Receipt</p>
-              <p className="text-xs text-gray-400 mt-0.5">Record a member payment</p>
-            </div>
-          </Link>
-
-          <Link
-            href="/members"
-            className="flex items-center gap-4 bg-white border-2 border-gray-100 hover:border-gray-300 rounded-2xl p-5 transition-all group shadow-sm"
-          >
-            <div className="bg-gray-50 rounded-xl p-3 group-hover:bg-gray-100 transition-colors">
-              <ClipboardList className="h-5 w-5 text-gray-500" />
-            </div>
-            <div>
-              <p className="font-bold text-gray-900 text-sm">Members</p>
-              <p className="text-xs text-gray-400 mt-0.5">View & search all members</p>
-            </div>
-          </Link>
+      <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-5 text-white shadow-lg shadow-orange-200 flex items-center justify-between">
+        <div>
+          <p className="text-orange-100 text-sm font-medium">{greeting},</p>
+          <h2 className="text-xl font-extrabold mt-0.5">{userName} 👋</h2>
+          <p className="text-orange-100 text-xs mt-1 capitalize">
+            {userRole.replace("_", " ").toLowerCase()} · Yos Fitness Studio
+          </p>
         </div>
+        <div className="text-5xl opacity-20 select-none">🏋️</div>
       </div>
 
-      {/* Registration Form */}
-      <div>
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Member Registration Form</p>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          {!hasForm ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
-              <div className="bg-gray-100 rounded-2xl p-4">
-                <QrCode className="h-8 w-8 text-gray-300" />
-              </div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {statCards.map((s) => (
+          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 relative overflow-hidden">
+            <div className={`absolute inset-x-0 top-0 h-[3px] ${s.strip}`} />
+            <div className="flex items-start justify-between mt-1">
               <div>
-                <p className="font-semibold text-gray-600 text-sm">No form URL configured yet</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Ask your admin to add <code className="bg-gray-100 px-1.5 py-0.5 rounded text-orange-600 text-[11px]">NEXT_PUBLIC_REGISTRATION_FORM_URL</code> in Vercel settings
-                </p>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-tight">{s.label}</p>
+                <p className="text-2xl font-extrabold text-gray-900 mt-1.5">{s.value}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{s.sub}</p>
+              </div>
+              <div className={`${s.iconBg} rounded-xl p-2.5 flex-shrink-0`}>
+                <s.icon className={`h-4 w-4 ${s.iconColor}`} />
               </div>
             </div>
-          ) : (
-            <div className="flex flex-col sm:flex-row gap-6 items-center">
-              {/* QR Preview */}
-              <div className="flex-shrink-0 bg-white p-3 rounded-xl border-2 border-gray-100">
-                <QRCode value={formUrl} size={120} />
-              </div>
+          </div>
+        ))}
+      </div>
 
-              {/* Actions */}
-              <div className="flex-1 space-y-3 w-full">
-                <div>
-                  <p className="text-sm font-semibold text-gray-800 mb-1">Share with new member</p>
-                  <p className="text-xs text-gray-400">
-                    Send the link directly or ask them to scan the QR code
-                  </p>
-                </div>
+      {/* Main 2-col grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                {/* Link box */}
-                <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 border border-gray-200">
-                  <p className="flex-1 text-xs text-gray-500 truncate font-mono">{formUrl}</p>
-                </div>
+        {/* Left col */}
+        <div className="space-y-6">
 
-                {/* Action buttons */}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={copyLink}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 transition-all"
-                  >
-                    {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-                    {copied ? "Copied!" : "Copy Link"}
-                  </button>
-
-                  <button
-                    onClick={shareWhatsApp}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-[#25D366] hover:bg-[#1ebe5d] text-white transition-colors"
-                  >
-                    <MessageCircle className="h-3.5 w-3.5" />
-                    Send via WhatsApp
-                  </button>
-
-                  <a
-                    href={formUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 transition-all"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    Open Form
-                  </a>
-
-                  <Link
-                    href="/qr"
-                    target="_blank"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-gray-900 hover:bg-gray-700 text-white transition-colors"
-                  >
-                    <Printer className="h-3.5 w-3.5" />
-                    Print QR
-                  </Link>
-                </div>
-              </div>
+          {/* Quick Actions */}
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Actions</p>
+            <div className="grid grid-cols-2 gap-3">
+              {quickActions.map((a) => (
+                <Link key={a.href} href={a.href}
+                  className={cn("flex items-center gap-3 bg-white border-2 rounded-2xl p-4 transition-all group shadow-sm", a.accent)}>
+                  <div className={cn("rounded-xl p-2.5 flex-shrink-0 transition-colors", a.iconBg)}>
+                    <a.icon className={cn("h-4 w-4", a.iconColor)} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-gray-900 text-sm leading-tight">{a.label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 leading-tight">{a.desc}</p>
+                  </div>
+                </Link>
+              ))}
             </div>
-          )}
+          </div>
+
+          {/* Registration Form */}
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Member Registration Form</p>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              {!hasForm ? (
+                <div className="flex items-center gap-4 py-2">
+                  <div className="bg-gray-100 rounded-xl p-3 flex-shrink-0">
+                    <QrCode className="h-6 w-6 text-gray-300" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-600 text-sm">Form URL not configured</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Add <code className="bg-gray-100 px-1.5 py-0.5 rounded text-orange-600 text-[11px]">NEXT_PUBLIC_REGISTRATION_FORM_URL</code> in Vercel
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-5 items-center">
+                  {/* QR */}
+                  <div className="flex-shrink-0 bg-white p-2.5 rounded-xl border-2 border-gray-100">
+                    <QRCode value={formUrl} size={100} />
+                  </div>
+                  {/* Actions */}
+                  <div className="flex-1 space-y-2.5">
+                    <p className="text-sm font-semibold text-gray-800">Share with new member</p>
+                    <div className="flex flex-col gap-2">
+                      <button onClick={shareWhatsApp}
+                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-bold text-white transition-colors"
+                        style={{ background: "#25D366" }}>
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        Send via WhatsApp
+                      </button>
+                      <div className="flex gap-2">
+                        <button onClick={copyLink}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 transition-all">
+                          {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                          {copied ? "Copied!" : "Copy"}
+                        </button>
+                        <a href={formUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold border-2 border-gray-200 hover:border-gray-300 bg-white text-gray-700 transition-all">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Open
+                        </a>
+                        <Link href="/qr" target="_blank"
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-gray-900 hover:bg-gray-700 text-white transition-colors">
+                          <Printer className="h-3.5 w-3.5" />
+                          Print
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
+
+        {/* Right col — Expiring soon */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Expiring This Week</p>
+            <Link href="/renewals" className="text-xs text-orange-500 hover:text-orange-600 font-semibold">
+              View all →
+            </Link>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {expiringSoonList.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-2 text-gray-300">
+                <CalendarX className="h-10 w-10" />
+                <p className="text-sm text-gray-400 font-medium">No members expiring this week</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {expiringSoonList.map((m) => {
+                  const days = daysUntil(m.expiryDate);
+                  const isToday = days === 0;
+                  const isOverdue = days !== null && days < 0;
+                  return (
+                    <div key={m.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50/60 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <Link href={`/members/${m.id}`}
+                          className="font-semibold text-gray-900 text-sm hover:text-orange-600 transition-colors">
+                          {m.fullName}
+                        </Link>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-xs text-gray-400">{m.memberId}</p>
+                          <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                            COMPANY_COLORS[m.primaryCompany])}>
+                            {m.primaryCompany === "YOS_FITNESS" ? "YF" : "YFS"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-4">
+                        {isToday ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-lg">
+                            <AlertTriangle className="h-3 w-3" /> Today
+                          </span>
+                        ) : isOverdue ? (
+                          <span className="text-xs font-bold text-red-400">Expired</span>
+                        ) : (
+                          <span className={cn("text-xs font-bold px-2 py-1 rounded-lg",
+                            days !== null && days <= 2 ? "text-red-600 bg-red-50" : "text-amber-600 bg-amber-50")}>
+                            {days}d left
+                          </span>
+                        )}
+                        <p className="text-xs text-gray-400 mt-0.5">{m.phone}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );

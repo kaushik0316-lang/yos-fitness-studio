@@ -33,7 +33,7 @@ export default function LoginPage() {
     setError("");
     const result = await signIn("credentials", { email: data.email, password: data.password, redirect: false });
     if (result?.error) { setError("Invalid email or password. Please try again."); return; }
-    router.push("/employee-attendance");
+    router.push("/staff-tools");
     router.refresh();
   }
 
