@@ -13,6 +13,7 @@ const PUBLIC_PAGES = new Set([
   "/my-attendance",
   "/join",
   "/login",
+  "/qr",
 ]);
 
 // CRM routes that require a verified session (path-prefix match)
@@ -29,6 +30,7 @@ const PROTECTED_PREFIXES = [
   "/renewals",
   "/reports",
   "/settings",
+  "/staff-tools",
 ];
 
 export default auth((req) => {
