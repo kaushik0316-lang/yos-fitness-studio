@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { MembersClient } from "@/components/members/MembersClient";
+import { ExportMembersButton } from "@/components/members/ExportMembersButton";
 import { Company, MemberStatus } from "@prisma/client";
 import { subDays } from "date-fns";
 
@@ -73,6 +74,9 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
     <>
       <Header title="Members" subtitle={`${total} members found`} />
       <div className="flex-1 p-6">
+        <div className="flex justify-end mb-4">
+          <ExportMembersButton />
+        </div>
         <MembersClient
           members={members as any}
           total={total}

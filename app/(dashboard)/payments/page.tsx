@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { PaymentsClient } from "@/components/payments/PaymentsClient";
+import { ExportButtons } from "@/components/payments/ExportButtons";
 import { Company } from "@prisma/client";
 import { startOfDay, endOfDay, startOfMonth, endOfMonth } from "date-fns";
 import Link from "next/link";
@@ -62,11 +63,15 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
     }),
   ]);
 
+  const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  const currentMonthLabel = today.toLocaleString("en-US", { month: "long", year: "numeric" });
+
   return (
     <>
       <Header title="Payments" subtitle="All transactions across both companies" />
       <div className="flex-1 p-6">
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end items-center gap-3 mb-4">
+          <ExportButtons currentMonth={currentMonth} currentMonthLabel={currentMonthLabel} />
           <Link
             href="/payments/new"
             className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 rounded-xl text-sm font-bold text-white transition-colors shadow-md shadow-orange-200"
