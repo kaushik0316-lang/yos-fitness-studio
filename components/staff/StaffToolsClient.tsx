@@ -111,7 +111,7 @@ export function StaffToolsClient({
     {
       label: "Lapsed Members",
       value: expiredMembers.toString(),
-      sub: expiredMembers > 0 ? "need follow-up" : "all up to date",
+      sub: expiredMembers > 0 ? "expired in last 90 days" : "all up to date",
       icon: UserX,
       strip: expiredMembers > 0 ? "bg-red-400" : "bg-gray-300",
       iconBg: expiredMembers > 0 ? "bg-red-50" : "bg-gray-50",

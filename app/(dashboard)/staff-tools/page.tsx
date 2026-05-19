@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Header } from "@/components/layout/Header";
 import { StaffToolsClient } from "@/components/staff/StaffToolsClient";
 import { REGISTRATION_FORM_URL } from "@/lib/site-config";
-import { startOfDay, endOfDay, addDays, startOfMonth } from "date-fns";
+import { startOfDay, endOfDay, addDays, startOfMonth, subDays } from "date-fns";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Operations Dashboard" };
@@ -45,8 +45,14 @@ export default async function StaffToolsPage() {
     }),
     // Total active members
     prisma.member.count({ where: { status: "ACTIVE" } }),
-    // Already expired (lapsed, needs follow-up)
-    prisma.member.count({ where: { status: "EXPIRED" } }),
+    // Lapsed in the last 90 days — actionable follow-ups only
+    prisma.member.count({
+      where: {
+        status: "EXPIRED",
+        memberId: { not: { startsWith: "IMP-" } }, // exclude ghosts
+        expiryDate: { gte: subDays(today, 90) },
+      },
+    }),
   ]);
 
   // Members expiring soon (for the list)
