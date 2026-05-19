@@ -2,38 +2,41 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
-type Company = "YOS_FITNESS" | "YOS_FITNESS_STUDIO";
 type Phase = "form" | "submitting" | "success" | "error";
 
 const BLOOD_GROUPS = ["A+", "A−", "B+", "B−", "AB+", "AB−", "O+", "O−"];
-const INTENTIONS = [
+const GOALS = [
   "Weight Loss", "Muscle Gain", "General Fitness", "Strength Training",
   "Flexibility & Mobility", "Sports Performance", "Rehabilitation", "Other",
 ];
 
 export default function RegisterPage() {
-  const [company, setCompany] = useState<Company>("YOS_FITNESS");
   const [phase, setPhase] = useState<Phase>("form");
-  const [showOptional, setShowOptional] = useState(false);
   const [result, setResult] = useState<{ memberId: string; fullName: string } | null>(null);
   const [error, setError] = useState("");
 
   const [form, setForm] = useState({
-    fullName: "", phone: "", whatsapp: "", gender: "",
-    dateOfBirth: "", email: "", bloodGroup: "", weight: "", height: "",
-    healthConditions: "", intentionOfJoining: "", emergencyContact: "",
-    emergencyPhone: "", address: "",
+    fullName: "", phone: "", gender: "", dateOfBirth: "",
+    address: "", weight: "", height: "", healthConditions: "",
+    // optional
+    email: "", bloodGroup: "", emergencyContact: "", emergencyPhone: "",
+    intentionOfJoining: "",
   });
 
   function set(key: keyof typeof form, val: string) {
     setForm((f) => ({ ...f, [key]: val }));
   }
 
+  const requiredFilled =
+    form.fullName.trim() && form.phone.trim() && form.gender &&
+    form.dateOfBirth && form.address.trim() &&
+    form.weight && form.height && form.healthConditions.trim();
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.fullName.trim() || !form.phone.trim()) return;
+    if (!requiredFilled) return;
     setPhase("submitting");
     setError("");
 
@@ -41,7 +44,11 @@ export default function RegisterPage() {
       const res = await fetch("/api/register-member", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, primaryCompany: company }),
+        body: JSON.stringify({
+          ...form,
+          whatsapp: form.phone, // phone is WhatsApp
+          primaryCompany: "YOS_FITNESS", // staff assigns correct company later
+        }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Something went wrong."); setPhase("error"); return; }
@@ -56,64 +63,51 @@ export default function RegisterPage() {
   // ── Success ────────────────────────────────────────────────────────────────
   if (phase === "success" && result) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 bg-gray-50">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-16 bg-gray-50">
         <div className="w-full max-w-sm text-center">
-          <div className="flex justify-center mb-5">
+          <div className="flex justify-center mb-6">
             <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
               <CheckCircle2 className="h-10 w-10 text-green-500" />
             </div>
           </div>
-          <h2 className="text-2xl font-extrabold text-gray-900">You're registered!</h2>
+          <h2 className="text-2xl font-extrabold text-gray-900">You're all set!</h2>
           <p className="text-gray-500 text-sm mt-2 leading-relaxed">
-            Welcome to {company === "YOS_FITNESS" ? "Yos Fitness" : "Yos Fitness Studio"}, {result.fullName.split(" ")[0]}!
+            Thank you for registering, {result.fullName.split(" ")[0]}.<br />
+            Please show this to the front desk.
           </p>
-          <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Your Member ID</p>
-            <p className="text-3xl font-extrabold text-orange-500 tracking-wider">{result.memberId}</p>
-            <p className="text-xs text-gray-400 mt-2">Save this — staff will use it to set up your membership</p>
+          <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Your Member ID</p>
+            <p className="text-4xl font-extrabold text-orange-500 tracking-wider">{result.memberId}</p>
+            <p className="text-xs text-gray-400 mt-3 leading-relaxed">
+              Share this with the front desk to complete your membership and payment.
+            </p>
           </div>
-          <p className="text-xs text-gray-400 mt-6 leading-relaxed">
-            Please visit the front desk with this ID to complete your membership and make your first payment.
-          </p>
         </div>
       </div>
     );
   }
 
   // ── Form ───────────────────────────────────────────────────────────────────
-  const inputClass = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-orange-400 transition-colors bg-white";
-  const labelClass = "block text-xs font-semibold text-gray-600 mb-1.5";
+  const inp = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-orange-400 transition-colors bg-white";
+  const lbl = "block text-xs font-semibold text-gray-600 mb-1.5";
+  const req = <span className="text-orange-500 ml-0.5">*</span>;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero */}
-      <div className="bg-gray-950 px-6 pt-10 pb-8">
+
+      {/* Header */}
+      <div className="bg-gray-950 px-6 pt-10 pb-8 text-center">
         <div className="flex justify-center mb-5">
           <Image src="/Logo.png" alt="Yos Fitness Studio" width={120} height={32}
             className="h-8 w-auto object-contain" priority />
         </div>
-        <div className="text-center">
-          <h1 className="text-2xl font-extrabold text-white leading-tight">Join Us Today</h1>
-          <p className="text-gray-400 text-sm mt-1.5">Fill in your details and we'll get you started</p>
-        </div>
-
-        {/* Company toggle */}
-        <div className="flex mt-6 rounded-2xl overflow-hidden border border-white/10">
-          <button type="button"
-            onClick={() => setCompany("YOS_FITNESS")}
-            className={`flex-1 py-3 text-sm font-bold transition-colors ${company === "YOS_FITNESS" ? "bg-orange-500 text-white" : "bg-white/5 text-gray-400"}`}>
-            Yos Fitness
-          </button>
-          <button type="button"
-            onClick={() => setCompany("YOS_FITNESS_STUDIO")}
-            className={`flex-1 py-3 text-sm font-bold transition-colors ${company === "YOS_FITNESS_STUDIO" ? "bg-indigo-500 text-white" : "bg-white/5 text-gray-400"}`}>
-            Yos Studio
-          </button>
-        </div>
+        <h1 className="text-2xl font-extrabold text-white">Member Registration</h1>
+        <p className="text-gray-400 text-sm mt-1.5 leading-relaxed">
+          Fill in your details below to get started
+        </p>
       </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="px-5 py-6 space-y-5 max-w-lg mx-auto">
+      <form onSubmit={handleSubmit} className="px-5 py-6 space-y-4 max-w-lg mx-auto pb-12">
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
@@ -121,32 +115,28 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* Required fields */}
+        {/* ── Required ── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Personal Details</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Required Information</p>
 
           <div>
-            <label className={labelClass}>Full Name <span className="text-orange-500">*</span></label>
-            <input className={inputClass} placeholder="e.g. Priya Sharma"
+            <label className={lbl}>Full Name {req}</label>
+            <input className={inp} placeholder="As per ID proof"
               value={form.fullName} onChange={(e) => set("fullName", e.target.value)} required />
           </div>
 
           <div>
-            <label className={labelClass}>Phone Number <span className="text-orange-500">*</span></label>
-            <input className={inputClass} type="tel" placeholder="10-digit mobile number"
+            <label className={lbl}>WhatsApp Number {req}</label>
+            <input className={inp} type="tel" inputMode="numeric" placeholder="10-digit number"
               value={form.phone} onChange={(e) => set("phone", e.target.value)} required />
-          </div>
-
-          <div>
-            <label className={labelClass}>WhatsApp Number <span className="text-gray-300 font-normal">(if different)</span></label>
-            <input className={inputClass} type="tel" placeholder="Leave blank if same as phone"
-              value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} />
+            <p className="text-[11px] text-gray-400 mt-1">We'll use this to send membership updates</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>Gender</label>
-              <select className={inputClass} value={form.gender} onChange={(e) => set("gender", e.target.value)}>
+              <label className={lbl}>Gender {req}</label>
+              <select className={inp} value={form.gender}
+                onChange={(e) => set("gender", e.target.value)} required>
                 <option value="">Select</option>
                 <option value="MALE">Male</option>
                 <option value="FEMALE">Female</option>
@@ -154,108 +144,93 @@ export default function RegisterPage() {
               </select>
             </div>
             <div>
-              <label className={labelClass}>Date of Birth</label>
-              <input className={inputClass} type="date"
-                value={form.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} />
+              <label className={lbl}>Date of Birth {req}</label>
+              <input className={inp} type="date"
+                value={form.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} required />
             </div>
           </div>
 
           <div>
-            <label className={labelClass}>What brings you here?</label>
-            <select className={inputClass} value={form.intentionOfJoining} onChange={(e) => set("intentionOfJoining", e.target.value)}>
-              <option value="">Select a goal</option>
-              {INTENTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
-            </select>
+            <label className={lbl}>Address {req}</label>
+            <input className={inp} placeholder="Street, area, city"
+              value={form.address} onChange={(e) => set("address", e.target.value)} required />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={lbl}>Weight (kg) {req}</label>
+              <input className={inp} type="number" min="20" max="300" placeholder="e.g. 70"
+                value={form.weight} onChange={(e) => set("weight", e.target.value)} required />
+            </div>
+            <div>
+              <label className={lbl}>Height (cm) {req}</label>
+              <input className={inp} type="number" min="100" max="250" placeholder="e.g. 170"
+                value={form.height} onChange={(e) => set("height", e.target.value)} required />
+            </div>
+          </div>
+
+          <div>
+            <label className={lbl}>Health Conditions / Injuries {req}</label>
+            <textarea className={`${inp} resize-none`} rows={3}
+              placeholder="List any medical conditions, injuries, or medications. Type 'None' if not applicable."
+              value={form.healthConditions}
+              onChange={(e) => set("healthConditions", e.target.value)} required />
           </div>
         </div>
 
-        {/* Optional section toggle */}
-        <button type="button"
-          onClick={() => setShowOptional((v) => !v)}
-          className="w-full flex items-center justify-between px-5 py-3.5 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
-          <span>Additional Details <span className="text-gray-400 font-normal">(optional)</span></span>
-          {showOptional ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
-        </button>
-
-        {showOptional && (
-          <div className="space-y-5">
-
-            {/* Contact & Personal */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Contact & Address</p>
-
-              <div>
-                <label className={labelClass}>Email</label>
-                <input className={inputClass} type="email" placeholder="your@email.com"
-                  value={form.email} onChange={(e) => set("email", e.target.value)} />
-              </div>
-
-              <div>
-                <label className={labelClass}>Address</label>
-                <input className={inputClass} placeholder="Street, area"
-                  value={form.address} onChange={(e) => set("address", e.target.value)} />
-              </div>
-            </div>
-
-            {/* Health */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Health Info</p>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className={labelClass}>Blood Group</label>
-                  <select className={inputClass} value={form.bloodGroup} onChange={(e) => set("bloodGroup", e.target.value)}>
-                    <option value="">—</option>
-                    {BLOOD_GROUPS.map((b) => <option key={b} value={b}>{b}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Weight (kg)</label>
-                  <input className={inputClass} type="number" placeholder="70"
-                    value={form.weight} onChange={(e) => set("weight", e.target.value)} />
-                </div>
-                <div>
-                  <label className={labelClass}>Height (cm)</label>
-                  <input className={inputClass} type="number" placeholder="170"
-                    value={form.height} onChange={(e) => set("height", e.target.value)} />
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClass}>Health Conditions / Injuries</label>
-                <textarea className={`${inputClass} resize-none`} rows={2}
-                  placeholder="e.g. Lower back pain, diabetes, knee injury..."
-                  value={form.healthConditions} onChange={(e) => set("healthConditions", e.target.value)} />
-              </div>
-            </div>
-
-            {/* Emergency Contact */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Emergency Contact</p>
-              <div>
-                <label className={labelClass}>Contact Name</label>
-                <input className={inputClass} placeholder="Parent / Spouse / Friend"
-                  value={form.emergencyContact} onChange={(e) => set("emergencyContact", e.target.value)} />
-              </div>
-              <div>
-                <label className={labelClass}>Contact Phone</label>
-                <input className={inputClass} type="tel" placeholder="10-digit number"
-                  value={form.emergencyPhone} onChange={(e) => set("emergencyPhone", e.target.value)} />
-              </div>
-            </div>
-
+        {/* ── Optional ── */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Optional</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">Fill what you're comfortable sharing</p>
           </div>
-        )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={lbl}>Email</label>
+              <input className={inp} type="email" placeholder="your@email.com"
+                value={form.email} onChange={(e) => set("email", e.target.value)} />
+            </div>
+            <div>
+              <label className={lbl}>Blood Group</label>
+              <select className={inp} value={form.bloodGroup} onChange={(e) => set("bloodGroup", e.target.value)}>
+                <option value="">—</option>
+                {BLOOD_GROUPS.map((b) => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className={lbl}>What is your fitness goal?</label>
+            <select className={inp} value={form.intentionOfJoining}
+              onChange={(e) => set("intentionOfJoining", e.target.value)}>
+              <option value="">Select a goal</option>
+              {GOALS.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className={lbl}>Emergency Contact Name</label>
+            <input className={inp} placeholder="Parent / Spouse / Friend"
+              value={form.emergencyContact} onChange={(e) => set("emergencyContact", e.target.value)} />
+          </div>
+
+          <div>
+            <label className={lbl}>Emergency Contact Phone</label>
+            <input className={inp} type="tel" inputMode="numeric" placeholder="10-digit number"
+              value={form.emergencyPhone} onChange={(e) => set("emergencyPhone", e.target.value)} />
+          </div>
+        </div>
 
         {/* Submit */}
-        <button type="submit" disabled={phase === "submitting" || !form.fullName.trim() || !form.phone.trim()}
-          className="w-full py-4 rounded-2xl font-bold text-white text-base disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
-          style={{ background: company === "YOS_FITNESS" ? "#f97316" : "#6366f1" }}>
-          {phase === "submitting" ? <><Spinner /> Submitting...</> : "Submit Registration"}
+        <button type="submit"
+          disabled={!requiredFilled || phase === "submitting"}
+          className="w-full py-4 rounded-2xl font-bold text-white text-base disabled:opacity-40 transition-opacity flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-700">
+          {phase === "submitting" ? <><Spinner /> Submitting...</> : "Submit Registration →"}
         </button>
 
-        <p className="text-center text-xs text-gray-400 pb-4">
-          Your information is private and used only by Yos Fitness Studio
+        <p className="text-center text-xs text-gray-400 pb-2">
+          Your information is private and only shared with Yos Fitness Studio staff
         </p>
 
       </form>
