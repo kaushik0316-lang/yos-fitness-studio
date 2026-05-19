@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     select: { memberId: true },
     distinct: ["memberId"],
   });
-  const paidIds = new Set(membersWithPayments.map((p) => p.memberId));
+  const paidIds = membersWithPayments.map((p) => p.memberId);
 
   // Update all non-ghost ACTIVE members with no payments → PROSPECT
   const result = await prisma.member.updateMany({
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       memberId: { not: { startsWith: "IMP-" } },
       status: "ACTIVE",
       expiryDate: null,
-      id: { notIn: [...paidIds] },
+      id: { notIn: paidIds },
     },
     data: { status: "PROSPECT" },
   });
