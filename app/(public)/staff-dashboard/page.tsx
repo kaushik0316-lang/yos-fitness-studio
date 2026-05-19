@@ -26,12 +26,8 @@ function fmt(iso: string) {
   });
 }
 
-function toTitle(str: string) {
-  return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 function roleLabel(role: string) {
-  return role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return role.replace(/_/g, " ").toUpperCase();
 }
 
 function todayLabel() {
@@ -238,7 +234,7 @@ export default function StaffDashboardPage() {
           <div className="absolute right-4 top-4 text-8xl opacity-10 select-none font-black">YOS</div>
           <p className="text-orange-100 text-xs font-semibold uppercase tracking-widest">{todayLabel()}</p>
           <h2 className="text-2xl font-extrabold text-white mt-1 leading-tight">
-            {toTitle(employee?.fullName ?? "")} 👋
+            {(employee?.fullName ?? "").toUpperCase()} 👋
           </h2>
           <div className="flex items-center gap-2 mt-2">
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-orange-200"

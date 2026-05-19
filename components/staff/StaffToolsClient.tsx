@@ -134,9 +134,9 @@ export function StaffToolsClient({
       <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-5 text-white shadow-lg shadow-orange-200 flex items-center justify-between">
         <div>
           <p className="text-orange-100 text-sm font-medium">{greeting},</p>
-          <h2 className="text-xl font-extrabold mt-0.5">{userName} 👋</h2>
-          <p className="text-orange-100 text-xs mt-1 capitalize">
-            {userRole.replace("_", " ").toLowerCase()} · Yos Fitness Studio
+          <h2 className="text-xl font-extrabold mt-0.5">{userName.toUpperCase()} 👋</h2>
+          <p className="text-orange-100 text-xs mt-1">
+            {userRole.replace(/_/g, " ")} · YOS FITNESS STUDIO
           </p>
         </div>
         <div className="text-5xl opacity-20 select-none">🏋️</div>
