@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw } from "lucide-react";
+import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ImportResult = {
@@ -261,6 +261,7 @@ function ReceiptsImport() {
       <RematchPanel />
       <FixGhostsPanel />
       <BackfillPanel />
+      <SyncExpiryPanel />
     </div>
   );
 }
@@ -485,6 +486,63 @@ function BackfillPanel() {
           <StatPill icon={CheckCircle}   label="Dates updated"   value={result.datesUpdated}      color="text-green-600 bg-green-50" />
           <StatPill icon={CheckCircle}   label="Set ACTIVE"      value={result.membersSetActive}  color="text-blue-600 bg-blue-50" />
           <StatPill icon={AlertTriangle} label="Set EXPIRED"     value={result.membersSetExpired} color="text-amber-600 bg-amber-50" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Sync member expiry from existing payments (no file needed) ─────────── */
+
+type SyncResult = { membersProcessed: number; setActive: number; setExpired: number; errors: number };
+
+function SyncExpiryPanel() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult]   = useState<SyncResult | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+
+  async function run() {
+    setLoading(true); setResult(null); setError(null);
+    try {
+      const res  = await fetch("/api/import/sync-expiry", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setResult(data);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-sky-200 p-5 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <Zap className="h-4 w-4 text-sky-500" />
+            Sync Member Expiry Dates
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            No file needed — reads expiry dates already in your payment records and writes them
+            back to each member profile. Sets status to <strong>ACTIVE</strong> or <strong>EXPIRED</strong> automatically.
+          </p>
+        </div>
+        <button
+          onClick={run} disabled={loading}
+          className={cn(
+            "flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+            loading ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-sky-500 hover:bg-sky-600 text-white shadow-md shadow-sky-200"
+          )}
+        >
+          <Zap className="h-3.5 w-3.5" />
+          {loading ? "Syncing…" : "Sync Now"}
+        </button>
+      </div>
+      {error && <ErrorBanner message={error} />}
+      {result && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <StatPill icon={CheckCircle}   label="Processed"   value={result.membersProcessed} color="text-sky-600 bg-sky-50" />
+          <StatPill icon={CheckCircle}   label="Set ACTIVE"  value={result.setActive}        color="text-green-600 bg-green-50" />
+          <StatPill icon={AlertTriangle} label="Set EXPIRED" value={result.setExpired}       color="text-amber-600 bg-amber-50" />
         </div>
       )}
     </div>
