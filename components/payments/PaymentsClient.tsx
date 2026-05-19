@@ -12,6 +12,7 @@ type Payment = {
   id: string; date: Date; amount: any; discount: any; pendingAmount: any;
   paymentMode: string; company: Company; transactionRef: string | null; notes: string | null;
   receiptNumber: number | null; paymentType: string | null;
+  startDate: Date | null; expiryDate: Date | null;
   member: { id: string; memberId: string; fullName: string; phone: string };
   package: { name: string } | null;
   collectedBy: { name: string };
@@ -122,7 +123,7 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                {["Receipt #", "Date", "Member", "Amount", "Mode", "Package", "Company", "Sold By"].map((h) => (
+                {["Receipt #", "Date", "Member", "Amount", "Mode", "Valid Until", "Company", "Sold By"].map((h) => (
                   <th key={h} className="text-left px-5 py-3.5 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">
                     {h}
                   </th>
@@ -169,7 +170,14 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
                         {MODE_LABELS[p.paymentMode] ?? p.paymentMode}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-sm text-gray-600">{p.package?.name ?? <span className="text-gray-300">—</span>}</td>
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      {p.expiryDate ? (
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">{formatDate(p.expiryDate)}</p>
+                          {p.startDate && <p className="text-[11px] text-gray-400 mt-0.5">from {formatDate(p.startDate)}</p>}
+                        </div>
+                      ) : <span className="text-gray-300 text-sm">—</span>}
+                    </td>
                     <td className="px-5 py-4">
                       <span className={cn("px-2.5 py-1 rounded-lg text-xs font-semibold", COMPANY_COLORS[p.company])}>
                         {p.company === "YOS_FITNESS" ? "Yos Fitness" : "Yos Studio"}
@@ -191,15 +199,22 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
           <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-gray-50/50">
             <p className="text-xs text-gray-400">{total} total payments</p>
             <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => updateQuery("page", String(p))}
-                  className={cn("w-8 h-8 rounded-xl text-xs font-semibold transition-colors", p === page ? "bg-orange-500 text-white shadow-md shadow-orange-200" : "hover:bg-gray-200 text-gray-500")}
-                >
-                  {p}
-                </button>
-              ))}
+              <button onClick={() => updateQuery("page", String(page - 1))} disabled={page <= 1}
+                className="w-8 h-8 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed">‹</button>
+              {(() => {
+                const win = 2, start = Math.max(1, page - win), end = Math.min(totalPages, page + win);
+                const pages: (number | "…")[] = [];
+                if (start > 1) { pages.push(1); if (start > 2) pages.push("…"); }
+                for (let i = start; i <= end; i++) pages.push(i);
+                if (end < totalPages) { if (end < totalPages - 1) pages.push("…"); pages.push(totalPages); }
+                return pages.map((p, i) => p === "…"
+                  ? <span key={`e${i}`} className="w-8 text-center text-xs text-gray-400">…</span>
+                  : <button key={p} onClick={() => updateQuery("page", String(p))}
+                      className={cn("w-8 h-8 rounded-xl text-xs font-semibold transition-colors", p === page ? "bg-orange-500 text-white shadow-md shadow-orange-200" : "hover:bg-gray-200 text-gray-500")}>{p}</button>
+                );
+              })()}
+              <button onClick={() => updateQuery("page", String(page + 1))} disabled={page >= totalPages}
+                className="w-8 h-8 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed">›</button>
             </div>
           </div>
         )}

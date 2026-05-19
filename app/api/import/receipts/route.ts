@@ -4,8 +4,24 @@ import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 
 function excelDate(serial: unknown): Date | null {
-  if (typeof serial !== "number" || serial < 1) return null;
-  return new Date(Math.round((serial - 25569) * 86400 * 1000));
+  // Numeric Excel serial (most cells)
+  if (typeof serial === "number" && serial > 1) {
+    return new Date(Math.round((serial - 25569) * 86400 * 1000));
+  }
+  // Text date — common Indian formats: DD/MM/YYYY, DD-MM-YYYY, D/M/YY
+  if (typeof serial === "string" && serial.trim()) {
+    const s = serial.trim();
+    const m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+    if (m) {
+      const day = parseInt(m[1], 10);
+      const mon = parseInt(m[2], 10) - 1;
+      let yr  = parseInt(m[3], 10);
+      if (yr < 100) yr += yr < 50 ? 2000 : 1900;
+      const d = new Date(yr, mon, day);
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+  return null;
 }
 
 function normalizeMode(raw: unknown): string {

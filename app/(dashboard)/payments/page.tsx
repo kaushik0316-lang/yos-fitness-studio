@@ -36,6 +36,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
         collectedBy: { select: { name: true } },
         soldBy: { select: { fullName: true, employeeId: true } },
       },
+      // startDate and expiryDate are scalar fields — always included automatically
       orderBy: { date: "desc" },
       skip,
       take: pageSize,

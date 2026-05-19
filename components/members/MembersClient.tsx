@@ -165,7 +165,7 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                {["Member", "Status", "Company", "Package", "Expiry", "Last Visit", "Trainer", ""].map((h) => (
+                {["Member", "Status", "Company", "Package", "Last Visit", "Trainer", ""].map((h) => (
                   <th key={h} className="text-left px-5 py-3.5 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">
                     {h}
                   </th>
@@ -175,7 +175,7 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
             <tbody>
               {members.length === 0 ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={7}>
                     <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-300">
                       <Users className="h-12 w-12" />
                       <p className="text-sm text-gray-400 font-medium">No members found</p>
@@ -227,25 +227,6 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
                       {/* Package */}
                       <td className="px-5 py-4 text-sm text-gray-700">
                         {m.currentPackage?.name ?? <span className="text-gray-300">—</span>}
-                      </td>
-
-                      {/* Expiry */}
-                      <td className="px-5 py-4">
-                        {m.expiryDate ? (
-                          <div>
-                            <p className={cn("text-sm font-semibold", isExpiringSoon ? "text-red-600" : "text-gray-800")}>
-                              {formatDate(m.expiryDate)}
-                            </p>
-                            {daysLeft !== null && daysLeft >= 0 && (
-                              <p className={cn("text-xs mt-0.5", isExpiringSoon ? "text-red-500" : "text-gray-400")}>
-                                {daysLeft === 0 ? "Expires today!" : `${daysLeft}d left`}
-                              </p>
-                            )}
-                            {daysLeft !== null && daysLeft < 0 && (
-                              <p className="text-xs text-red-500 mt-0.5">{Math.abs(daysLeft)}d ago</p>
-                            )}
-                          </div>
-                        ) : <span className="text-gray-300">—</span>}
                       </td>
 
                       {/* Last Visit */}

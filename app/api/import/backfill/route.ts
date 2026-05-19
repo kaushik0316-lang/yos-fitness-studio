@@ -4,8 +4,20 @@ import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 
 function excelDate(serial: unknown): Date | null {
-  if (typeof serial !== "number" || serial < 1) return null;
-  return new Date(Math.round((serial - 25569) * 86400 * 1000));
+  if (typeof serial === "number" && serial > 1) {
+    return new Date(Math.round((serial - 25569) * 86400 * 1000));
+  }
+  if (typeof serial === "string" && serial.trim()) {
+    const m = serial.trim().match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+    if (m) {
+      const day = parseInt(m[1], 10), mon = parseInt(m[2], 10) - 1;
+      let yr = parseInt(m[3], 10);
+      if (yr < 100) yr += yr < 50 ? 2000 : 1900;
+      const d = new Date(yr, mon, day);
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+  return null;
 }
 
 export async function POST(req: NextRequest) {
@@ -41,11 +53,17 @@ export async function POST(req: NextRequest) {
   let datesUpdated = 0, notFound = 0, noDates = 0;
 
   // Process in batches of 100 updates
-  const updates: { id: string; startDate: Date; expiryDate: Date; memberId: string }[] = [];
+  const updates: { id: string; startDate: Date; expiryDate: Date; date: Date | null; memberId: string }[] = [];
+
+  // Cutoff: payment.date values equal to the import timestamp (defaulted because Excel
+  // date was text). Any date within 2 hours of "now" at import time is suspect — we
+  // replace those with the actual receipt date from column 0.
+  const twoHoursMs = 2 * 60 * 60 * 1000;
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i] as any[];
-    const receiptNo = typeof row[1] === "number" ? row[1] : null;
+    const receiptNo   = typeof row[1] === "number" ? row[1] : null;
+    const dateSerial  = row[0];   // DATE column
     const startSerial = row[9];   // START column
     const endSerial   = row[10];  // END column
 
@@ -59,15 +77,17 @@ export async function POST(req: NextRequest) {
 
     if (!startDate || !expiryDate) { noDates++; continue; }
 
-    updates.push({ id: payment.id, startDate, expiryDate, memberId: payment.memberId });
+    // Attempt to fix the payment date if it was defaulted to import time
+    const receiptDate = excelDate(dateSerial);
+
+    updates.push({ id: payment.id, startDate, expiryDate, date: receiptDate, memberId: payment.memberId });
   }
 
-  // Bulk update payments with start/expiry dates
+  // Bulk update payments with start/expiry dates (and fix date if available)
   for (const u of updates) {
-    await prisma.payment.update({
-      where: { id: u.id },
-      data: { startDate: u.startDate, expiryDate: u.expiryDate },
-    });
+    const data: any = { startDate: u.startDate, expiryDate: u.expiryDate };
+    if (u.date) data.date = u.date; // overwrite defaulted date with real receipt date
+    await prisma.payment.update({ where: { id: u.id }, data });
     datesUpdated++;
   }
 
