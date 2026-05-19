@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 type ImportResult = {
   imported: number;
   skipped: number;
-  membersCreated?: number;
+  nameMatched?: number;
+  ghostCreated?: number;
   errors: number;
-  total: number;
   warnings: string[];
 };
 
@@ -169,9 +169,9 @@ function ReceiptsImport() {
     <div className="space-y-4">
       <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm text-blue-700">
         <strong>Receipt import</strong> — creates payment records from your Excel file.
-        Members are matched by Application Number first, then Mobile. Receipts with no matching member
-        are skipped. Duplicate receipt numbers are skipped.{" "}
-        <strong>Import Members first</strong> so lookups succeed.
+        Members are matched by Application Number → Mobile → fuzzy name matching.
+        If still no match, a new member is auto-created so no receipt is ever lost.
+        Duplicate receipt numbers are skipped.
       </div>
 
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
@@ -257,8 +257,11 @@ function ResultCard({ result, type }: { result: ImportResult; type: "members" | 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatPill icon={CheckCircle} label="Imported" value={result.imported} color="text-green-600 bg-green-50" />
         <StatPill icon={AlertTriangle} label="Skipped" value={result.skipped} color="text-amber-600 bg-amber-50" />
-        {type === "receipts" && result.membersCreated !== undefined && result.membersCreated > 0 && (
-          <StatPill icon={CheckCircle} label="Members created" value={result.membersCreated} color="text-blue-600 bg-blue-50" />
+        {type === "receipts" && !!result.nameMatched && (
+          <StatPill icon={CheckCircle} label="Name matched" value={result.nameMatched} color="text-violet-600 bg-violet-50" />
+        )}
+        {type === "receipts" && !!result.ghostCreated && (
+          <StatPill icon={AlertTriangle} label="New members" value={result.ghostCreated} color="text-blue-600 bg-blue-50" />
         )}
         <StatPill icon={XCircle} label="Errors" value={result.errors} color="text-red-600 bg-red-50" />
       </div>

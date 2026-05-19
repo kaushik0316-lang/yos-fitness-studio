@@ -29,7 +29,71 @@ function normalizeType(raw: unknown): string {
   return "ADMISSION";
 }
 
-// Generate a unique member ID not already in the DB
+// ── Name matching helpers ─────────────────────────────────────────────────────
+// Extract meaningful words: strip dots/slashes, keep words ≥ 3 chars
+function sigWords(name: string): string[] {
+  return name
+    .toUpperCase()
+    .replace(/[.\-\/,]/g, " ")
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 3);
+}
+
+// Build inverted index: word → Set of member DB ids
+function buildNameIndex(members: { id: string; fullName: string }[]): Record<string, string[]> {
+  const idx: Record<string, string[]> = {};
+  for (const m of members) {
+    for (const w of sigWords(m.fullName)) {
+      if (!idx[w]) idx[w] = [];
+      idx[w].push(m.id);
+    }
+  }
+  return idx;
+}
+
+// Find best member match by name.
+// Returns member DB id if exactly one candidate has the highest overlap (≥ 1 word),
+// and that candidate is not tied with another. Returns null if ambiguous or no match.
+function findByName(
+  receiptName: string,
+  nameIndex: Record<string, string[]>,
+  memberWordsMap: Record<string, string[]>   // memberId → sigWords
+): string | null {
+  const rWords = sigWords(receiptName);
+  if (rWords.length === 0) return null;
+
+  // Score each member
+  const scores: Record<string, number> = {};
+  for (const w of rWords) {
+    for (const mid of nameIndex[w] ?? []) {
+      scores[mid] = (scores[mid] ?? 0) + 1;
+    }
+  }
+
+  if (Object.keys(scores).length === 0) return null;
+
+  const topScore = Math.max(...Object.values(scores));
+  const topCandidates = Object.entries(scores).filter(([, s]) => s === topScore);
+
+  // Require at least 1 word match, and the match must cover ≥ 50% of the
+  // receipt name words OR ≥ 50% of the member name words (handles subsets)
+  if (topScore < 1) return null;
+
+  const qualified = topCandidates.filter(([mid]) => {
+    const mWords = memberWordsMap[mid] ?? [];
+    const coverageByReceipt = topScore / rWords.length;          // how much of receipt matched
+    const coverageByMember  = topScore / Math.max(mWords.length, 1); // how much of member matched
+    return coverageByReceipt >= 0.5 || coverageByMember >= 0.5;
+  });
+
+  // Only return a match when there's exactly one confident candidate
+  if (qualified.length === 1) return qualified[0][0];
+
+  return null; // ambiguous
+}
+
+// ── Ghost member creation ─────────────────────────────────────────────────────
 async function createGhostMember(
   name: string,
   phone: string,
@@ -38,14 +102,10 @@ async function createGhostMember(
   byMemberId: Record<string, string>,
   ghostCounter: { n: number }
 ): Promise<string> {
-  // Re-check by phone (may have been created earlier in this run)
   if (phone && phone !== "0000000000" && byPhone[phone]) return byPhone[phone];
 
-  // Generate a unique ghost memberId
   let memberId: string;
-  do {
-    memberId = `IMP-${ghostCounter.n++}`;
-  } while (byMemberId[memberId]);
+  do { memberId = `IMP-${ghostCounter.n++}`; } while (byMemberId[memberId]);
 
   const member = await prisma.member.create({
     data: {
@@ -63,6 +123,8 @@ async function createGhostMember(
   if (phone && phone !== "0000000000") byPhone[phone] = member.id;
   return member.id;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -85,9 +147,9 @@ export async function POST(req: NextRequest) {
     header: 1, defval: "", raw: true,
   });
 
-  // ── Build lookup maps ──────────────────────────────────────────────────────
+  // ── Load all members + build indexes ────────────────────────────────────────
   const [allMembers, existingReceipts] = await Promise.all([
-    prisma.member.findMany({ select: { id: true, memberId: true, phone: true } }),
+    prisma.member.findMany({ select: { id: true, memberId: true, phone: true, fullName: true } }),
     prisma.payment.findMany({
       where: { company: company as any, receiptNumber: { not: null } },
       select: { receiptNumber: true },
@@ -95,35 +157,37 @@ export async function POST(req: NextRequest) {
   ]);
 
   const byMemberId: Record<string, string> = {};
-  const byPhone: Record<string, string> = {};
+  const byPhone: Record<string, string>    = {};
+  const memberWordsMap: Record<string, string[]> = {};
+
   for (const m of allMembers) {
     byMemberId[m.memberId] = m.id;
     if (m.phone) byPhone[m.phone] = m.id;
+    memberWordsMap[m.id] = sigWords(m.fullName);
   }
 
+  const nameIndex = buildNameIndex(allMembers);
   const prefix = company === "YOS_FITNESS" ? "YF" : "YFS";
   const existingReceiptNos = new Set(existingReceipts.map((r) => r.receiptNumber));
   const seenReceiptNos = new Set<number>();
-
-  // Counter for auto-created ghost member IDs
   const ghostCounter = { n: 1 };
 
-  let imported = 0, skipped = 0, errors = 0, created = 0;
+  let imported = 0, skipped = 0, errors = 0, ghostCreated = 0, nameMatched = 0;
   const warnings: string[] = [];
   const toCreate: any[] = [];
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i] as any[];
 
-    const rawDate   = row[0];
-    const receiptNo = typeof row[1] === "number" ? row[1] : null;
-    const name      = String(row[2] ?? "").trim().toUpperCase();
-    const rawMobile = String(row[3] ?? "").replace(/\D/g, "");
-    const mobile    = rawMobile.length >= 10 ? rawMobile.slice(-10) : rawMobile;
-    const applNo    = row[4];
-    const typeRaw   = row[5];
-    const modeRaw   = row[6];
-    const rawAmount = row[11];
+    const rawDate    = row[0];
+    const receiptNo  = typeof row[1] === "number" ? row[1] : null;
+    const name       = String(row[2] ?? "").trim().toUpperCase();
+    const rawMobile  = String(row[3] ?? "").replace(/\D/g, "");
+    const mobile     = rawMobile.length >= 10 ? rawMobile.slice(-10) : rawMobile;
+    const applNo     = row[4];
+    const typeRaw    = row[5];
+    const modeRaw    = row[6];
+    const rawAmount  = row[11];
     const rawBalance = row[12];
 
     if (!name || !rawAmount) continue;
@@ -144,30 +208,44 @@ export async function POST(req: NextRequest) {
     const balance = parseFloat(String(rawBalance)) || 0;
     if (amount <= 0) { skipped++; continue; }
 
-    // ── Member lookup ────────────────────────────────────────────────────────
+    // ── 1. By application number ─────────────────────────────────────────────
     let memberId: string | null = null;
-
     if (applNo) memberId = byMemberId[`${prefix}-${applNo}`] ?? null;
+
+    // ── 2. By phone ──────────────────────────────────────────────────────────
     if (!memberId && mobile) memberId = byPhone[mobile] ?? null;
 
-    // Not found → create a ghost member so the receipt is never lost
+    // ── 3. By fuzzy name matching ────────────────────────────────────────────
+    if (!memberId) {
+      const nameMatch = findByName(name, nameIndex, memberWordsMap);
+      if (nameMatch) {
+        memberId = nameMatch;
+        nameMatched++;
+      }
+    }
+
+    // ── 4. Last resort: create a ghost member ────────────────────────────────
     if (!memberId) {
       try {
         memberId = await createGhostMember(name, mobile, company, byPhone, byMemberId, ghostCounter);
-        created++;
-        warnings.push(`Row ${i + 1}: Receipt #${receiptNo} "${name}" — no match found, created new member ${memberId}`);
+        // Update name index so later rows can match this ghost
+        const gWords = sigWords(name);
+        memberWordsMap[memberId] = gWords;
+        for (const w of gWords) {
+          if (!nameIndex[w]) nameIndex[w] = [];
+          nameIndex[w].push(memberId);
+        }
+        ghostCreated++;
       } catch (e: any) {
         errors++;
-        warnings.push(`Row ${i + 1}: Receipt #${receiptNo} "${name}" — could not create member: ${e.message}`);
+        warnings.push(`Row ${i + 1}: "${name}" — could not create member: ${e.message}`);
         continue;
       }
     }
 
-    const date = excelDate(rawDate) ?? new Date();
-
     toCreate.push({
       memberId,
-      date,
+      date: excelDate(rawDate) ?? new Date(),
       amount,
       pendingAmount: balance,
       discount: 0,
@@ -180,7 +258,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Insert in batches of 500
+  // ── Batch insert ─────────────────────────────────────────────────────────────
   for (let i = 0; i < toCreate.length; i += 500) {
     try {
       const batch = toCreate.slice(i, i + 500);
@@ -195,9 +273,9 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     imported,
     skipped,
-    membersCreated: created,
+    nameMatched,
+    ghostCreated,
     errors,
-    total: toCreate.length,
     warnings: warnings.slice(0, 100),
   });
 }
