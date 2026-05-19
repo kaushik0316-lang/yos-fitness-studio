@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap, UserCheck, Building2 } from "lucide-react";
+import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap, UserCheck, Building2, CalendarX } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ImportResult = {
@@ -264,6 +264,7 @@ function ReceiptsImport() {
       <SyncExpiryPanel />
       <FixNoPaymentPanel />
       <FixCompanyPanel />
+      <FixDatesPanel />
     </div>
   );
 }
@@ -657,6 +658,63 @@ function FixCompanyPanel() {
           <StatPill icon={CheckCircle} label="Yos Fitness"  value={result.updatedFitness} color="text-orange-600 bg-orange-50" />
           <StatPill icon={CheckCircle} label="Yos Studio"   value={result.updatedStudio}  color="text-indigo-600 bg-indigo-50" />
           <StatPill icon={CheckCircle} label="Total updated" value={result.total}          color="text-green-600 bg-green-50" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Fix corrupted dates (year 3036, 3015, 2105 etc.) ──────────────────── */
+
+function FixDatesPanel() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult]   = useState<{ paymentsFixed: number; membersFixed: number; errors: number; total: number } | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+
+  async function run() {
+    if (!confirm("This will correct payment dates with impossible years (e.g. 3036 → 2026, 3015 → 2015, 2105 → 2025). Continue?")) return;
+    setLoading(true); setError(null);
+    try {
+      const res  = await fetch("/api/import/fix-dates", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setResult(data);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-red-200 p-5 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <CalendarX className="h-4 w-4 text-red-500" />
+            Fix Corrupted Dates
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Some receipts have impossible years (3036, 3015, 2105) from data entry errors in the
+            original Excel. This corrects them to the nearest logical year — 3036 → 2026,
+            3015 → 2015, 2105 → 2025 — on both payment records and member expiry dates.
+          </p>
+        </div>
+        <button
+          onClick={run} disabled={loading}
+          className={cn(
+            "flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+            loading ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-200"
+          )}
+        >
+          <CalendarX className="h-3.5 w-3.5" />
+          {loading ? "Fixing…" : "Fix Dates"}
+        </button>
+      </div>
+      {error && <ErrorBanner message={error} />}
+      {result && (
+        <div className="grid grid-cols-3 gap-3">
+          <StatPill icon={CheckCircle}   label="Payments fixed" value={result.paymentsFixed} color="text-green-600 bg-green-50" />
+          <StatPill icon={CheckCircle}   label="Members fixed"  value={result.membersFixed}  color="text-blue-600 bg-blue-50" />
+          <StatPill icon={AlertTriangle} label="Errors"         value={result.errors}         color="text-red-600 bg-red-50" />
         </div>
       )}
     </div>
