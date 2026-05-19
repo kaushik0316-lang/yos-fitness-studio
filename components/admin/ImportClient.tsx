@@ -276,7 +276,7 @@ function ReceiptsImport() {
 
 function FixReceiptDatesPanel() {
   const [loading, setLoading] = useState(false);
-  const [result, setResult]   = useState<{ fixed: number; setActive: number; setExpired: number } | null>(null);
+  const [result, setResult]   = useState<{ fixed: number; ghostJoinFixed: number; setActive: number; setExpired: number } | null>(null);
   const [error, setError]     = useState<string | null>(null);
 
   async function run() {
@@ -320,10 +320,11 @@ function FixReceiptDatesPanel() {
       </div>
       {error && <ErrorBanner message={error} />}
       {result && (
-        <div className="grid grid-cols-3 gap-3">
-          <StatPill icon={CheckCircle}   label="Dates fixed"  value={result.fixed}      color="text-orange-600 bg-orange-50" />
-          <StatPill icon={CheckCircle}   label="Set ACTIVE"   value={result.setActive}  color="text-green-600 bg-green-50" />
-          <StatPill icon={AlertTriangle} label="Set EXPIRED"  value={result.setExpired} color="text-amber-600 bg-amber-50" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatPill icon={CheckCircle}   label="Dates fixed"    value={result.fixed}           color="text-orange-600 bg-orange-50" />
+          <StatPill icon={CheckCircle}   label="Ghosts sorted"  value={result.ghostJoinFixed}  color="text-slate-600 bg-slate-50" />
+          <StatPill icon={CheckCircle}   label="Set ACTIVE"     value={result.setActive}       color="text-green-600 bg-green-50" />
+          <StatPill icon={AlertTriangle} label="Set EXPIRED"    value={result.setExpired}      color="text-amber-600 bg-amber-50" />
         </div>
       )}
     </div>

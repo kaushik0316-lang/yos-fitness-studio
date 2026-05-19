@@ -37,6 +37,12 @@ export async function POST(req: NextRequest) {
     fixed += Math.min(50, toFix.length - i);
   }
 
+  // Push ghost members to bottom of any date-sorted list by setting joinDate far in the past
+  const ghostJoinFix = await prisma.member.updateMany({
+    where: { memberId: { startsWith: "IMP-" } },
+    data: { joinDate: new Date("1970-01-01") },
+  });
+
   // Re-sync member status + expiryDate now that dates are corrected
   const today = new Date();
   const ghosts = await prisma.member.findMany({
@@ -71,5 +77,5 @@ export async function POST(req: NextRequest) {
     await Promise.all(syncOps.slice(i, i + 50));
   }
 
-  return NextResponse.json({ fixed, setActive, setExpired });
+  return NextResponse.json({ fixed, ghostJoinFixed: ghostJoinFix.count, setActive, setExpired });
 }
