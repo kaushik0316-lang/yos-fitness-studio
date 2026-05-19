@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap, UserCheck, Building2, CalendarX } from "lucide-react";
+import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap, UserCheck, Building2, CalendarX, GitMerge } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ImportResult = {
@@ -258,6 +258,7 @@ function ReceiptsImport() {
       {error && <ErrorBanner message={error} />}
       {result && <ResultCard result={result} type="receipts" />}
 
+      <FuzzyMergePanel />
       <RematchPanel />
       <FixGhostsPanel />
       <BackfillPanel />
@@ -265,6 +266,111 @@ function ReceiptsImport() {
       <FixNoPaymentPanel />
       <FixCompanyPanel />
       <FixDatesPanel />
+    </div>
+  );
+}
+
+/* ─── Fuzzy name merge for ghost members ─────────────────────────────────── */
+
+type MergeResult = {
+  merged: number;
+  ambiguous: number;
+  noMatch: number;
+  statusFixed: number;
+  remainingGhosts: number;
+  log: string[];
+};
+
+function FuzzyMergePanel() {
+  const [loading, setLoading]   = useState(false);
+  const [result, setResult]     = useState<MergeResult | null>(null);
+  const [error, setError]       = useState<string | null>(null);
+  const [showLog, setShowLog]   = useState(false);
+
+  async function run() {
+    if (!confirm(
+      "This will fuzzy-match IMP-* ghost members to real members using name similarity " +
+      "(initials, Levenshtein distance, word overlap), reassign their payments, and delete the ghosts. " +
+      "Ambiguous or uncertain matches are left untouched. Continue?"
+    )) return;
+    setLoading(true); setResult(null); setError(null);
+    try {
+      const res  = await fetch("/api/import/merge-ghosts", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Merge failed");
+      setResult(data);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-teal-200 p-5 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <GitMerge className="h-4 w-4 text-teal-600" />
+            Smart Ghost Merge (Fuzzy Names)
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Matches <code className="bg-gray-100 px-1 rounded text-teal-700 text-[11px]">IMP-*</code> ghost
+            members to real members using initials (<em>DHIVYA.V → DHIVYA VASANTH</em>),
+            spelling variants (<em>KARTHIK → KARTHICK</em>), and word overlap.
+            Only confident, unambiguous matches are merged. Member status is re-synced after.
+          </p>
+        </div>
+        <button
+          onClick={run}
+          disabled={loading}
+          className={cn(
+            "flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+            loading
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-teal-600 hover:bg-teal-700 text-white shadow-md shadow-teal-200"
+          )}
+        >
+          <GitMerge className="h-3.5 w-3.5" />
+          {loading ? "Merging…" : "Run Merge"}
+        </button>
+      </div>
+
+      {error && <ErrorBanner message={error} />}
+
+      {result && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <StatPill icon={GitMerge}      label="Merged"     value={result.merged}          color="text-teal-700 bg-teal-50" />
+            <StatPill icon={CheckCircle}   label="Status synced" value={result.statusFixed}  color="text-green-600 bg-green-50" />
+            <StatPill icon={AlertTriangle} label="Ambiguous"  value={result.ambiguous}        color="text-amber-600 bg-amber-50" />
+            <StatPill icon={XCircle}       label="No match"   value={result.noMatch}          color="text-gray-500 bg-gray-50" />
+            <StatPill icon={Users}         label="Ghosts left" value={result.remainingGhosts} color="text-slate-600 bg-slate-50" />
+          </div>
+
+          {result.log.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowLog((v) => !v)}
+                className="flex items-center gap-1.5 text-xs font-semibold text-teal-700 hover:text-teal-900"
+              >
+                {showLog ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {result.log.length} merge decisions
+              </button>
+              {showLog && (
+                <div className="mt-2 bg-teal-50 border border-teal-100 rounded-lg p-3 max-h-60 overflow-y-auto">
+                  {result.log.map((line, i) => (
+                    <p key={i} className="text-[11px] text-teal-900 font-mono leading-relaxed">{line}</p>
+                  ))}
+                  {result.log.length === 200 && (
+                    <p className="text-[11px] text-teal-600 mt-1 italic">Showing first 200 entries…</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
