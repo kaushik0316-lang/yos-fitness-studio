@@ -26,8 +26,8 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
 
   const where: any = {};
 
-  // Hide IMP-* ghost members by default unless explicitly requested
-  if (searchParams.showGhosts !== "true") {
+  // Hide IMP-* ghost members only when explicitly opted out
+  if (searchParams.showGhosts === "false") {
     where.memberId = { not: { startsWith: "IMP-" } };
   }
 
