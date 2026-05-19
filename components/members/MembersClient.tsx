@@ -119,6 +119,20 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
             <option value="YOS_FITNESS_STUDIO">Yos Studio</option>
           </select>
 
+          {/* Ghost member toggle */}
+          <button
+            onClick={() => updateQuery("showGhosts", searchParams.get("showGhosts") === "true" ? "" : "true")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-2.5 border-2 rounded-xl text-sm font-medium transition-colors",
+              searchParams.get("showGhosts") === "true"
+                ? "border-amber-400 bg-amber-50 text-amber-700"
+                : "border-gray-200 text-gray-500 hover:bg-gray-50"
+            )}
+          >
+            <Users className="h-3.5 w-3.5" />
+            {searchParams.get("showGhosts") === "true" ? "Hide Ghosts" : "Show Ghosts"}
+          </button>
+
           <div className="flex items-center gap-2 ml-auto">
             <button
               onClick={exportCSV}

@@ -14,6 +14,7 @@ type SearchParams = {
   status?: string;
   company?: string;
   inactive?: string;
+  showGhosts?: string;
   page?: string;
 };
 
@@ -24,6 +25,11 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
   const skip = (page - 1) * pageSize;
 
   const where: any = {};
+
+  // Hide IMP-* ghost members by default unless explicitly requested
+  if (searchParams.showGhosts !== "true") {
+    where.memberId = { not: { startsWith: "IMP-" } };
+  }
 
   if (searchParams.search) {
     const s = searchParams.search.trim();
@@ -58,7 +64,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
         trainer: { select: { id: true, fullName: true } },
         _count: { select: { attendances: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }],
       skip,
       take: pageSize,
     }),
