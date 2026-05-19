@@ -74,13 +74,21 @@ export async function POST(req: NextRequest) {
   // ── Sync member status based on latest expiryDate ──────────────────────────
   const today = new Date();
 
+  // Collect ghost member UUIDs so we can exclude them without a relation filter
+  // (Prisma groupBy does not support relation-based where filters)
+  const ghostMembers = await prisma.member.findMany({
+    where: { memberId: { startsWith: "IMP-" } },
+    select: { id: true },
+  });
+  const ghostIds = ghostMembers.map((g) => g.id);
+
   // Get each real member's latest payment expiryDate
   const memberLatestExpiry = await prisma.payment.groupBy({
     by: ["memberId"],
     where: {
       company: company as any,
       expiryDate: { not: null },
-      member: { NOT: { memberId: { startsWith: "IMP-" } } },
+      ...(ghostIds.length > 0 ? { memberId: { notIn: ghostIds } } : {}),
     },
     _max: { expiryDate: true },
   });
