@@ -26,6 +26,7 @@ type Props = {
   todayStats: Stats; monthStats: Stats; packages: any[];
   members: { id: string; memberId: string; fullName: string; primaryCompany: Company }[];
   userRole: UserRole; userId: string;
+  dateFilter?: string;
 };
 
 const MODE_STYLES: Record<string, string> = {
@@ -42,7 +43,7 @@ const MODE_LABELS: Record<string, string> = {
   BANK_TRANSFER: "🏦 Bank", CHEQUE: "📄 Cheque", FREE: "🎁 Free",
 };
 
-export function PaymentsClient({ payments, total, page, pageSize, todayStats, monthStats, packages, members, userRole, userId }: Props) {
+export function PaymentsClient({ payments, total, page, pageSize, todayStats, monthStats, packages, members, userRole, userId, dateFilter }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -113,6 +114,18 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
           <option value="BANK_TRANSFER">Bank Transfer</option>
           <option value="FREE">Free</option>
         </select>
+
+        {/* Active date filter chip */}
+        {dateFilter && (
+          <span className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-orange-50 text-orange-700 border-2 border-orange-200">
+            {dateFilter === "today" ? "📅 Today only" : "📅 This month"}
+            <button
+              onClick={() => updateQuery("dateFilter", "")}
+              className="ml-0.5 hover:text-orange-900"
+              title="Clear date filter"
+            >✕</button>
+          </span>
+        )}
 
         <div className="ml-auto" />
       </div>

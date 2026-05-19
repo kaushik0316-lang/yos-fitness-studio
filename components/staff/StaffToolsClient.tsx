@@ -6,7 +6,7 @@ import QRCode from "react-qr-code";
 import {
   Receipt, Copy, Check, Printer, ExternalLink, QrCode,
   MessageCircle, Users, RotateCcw, CreditCard, AlertTriangle,
-  IndianRupee, CalendarX, UserX, ClipboardList, FileUp,
+  IndianRupee, CalendarX, UserX, ClipboardList, FileUp, ArrowRight,
 } from "lucide-react";
 import { formatCurrency, cn, COMPANY_COLORS } from "@/lib/utils";
 import type { Company } from "@prisma/client";
@@ -77,45 +77,60 @@ export function StaffToolsClient({
       value: formatCurrency(todayPaymentTotal),
       sub: `${todayPaymentCount} receipt${todayPaymentCount !== 1 ? "s" : ""}`,
       icon: IndianRupee,
+      href: "/payments?dateFilter=today",
       strip: "bg-orange-500",
+      hoverStrip: "group-hover:bg-orange-400",
       iconBg: "bg-orange-50",
       iconColor: "text-orange-600",
+      valueColor: "group-hover:text-orange-600",
     },
     {
       label: `${monthName}'s Revenue`,
       value: formatCurrency(monthPaymentTotal),
       sub: `${monthPaymentCount} receipt${monthPaymentCount !== 1 ? "s" : ""} this month`,
       icon: IndianRupee,
+      href: "/payments?dateFilter=month",
       strip: "bg-green-500",
+      hoverStrip: "group-hover:bg-green-400",
       iconBg: "bg-green-50",
       iconColor: "text-green-600",
+      valueColor: "group-hover:text-green-600",
     },
     {
       label: "Active Members",
       value: activeMembers.toString(),
       sub: "currently active",
       icon: Users,
+      href: "/members?status=ACTIVE",
       strip: "bg-blue-500",
+      hoverStrip: "group-hover:bg-blue-400",
       iconBg: "bg-blue-50",
       iconColor: "text-blue-600",
+      valueColor: "group-hover:text-blue-600",
     },
     {
       label: "Expiring This Week",
       value: expiringThisWeek.toString(),
       sub: expiringToday > 0 ? `${expiringToday} expire today` : "in next 7 days",
       icon: CalendarX,
+      href: "/renewals",
       strip: expiringToday > 0 ? "bg-red-500" : "bg-amber-500",
+      hoverStrip: expiringToday > 0 ? "group-hover:bg-red-400" : "group-hover:bg-amber-400",
       iconBg: expiringToday > 0 ? "bg-red-50" : "bg-amber-50",
       iconColor: expiringToday > 0 ? "text-red-600" : "text-amber-600",
+      valueColor: expiringToday > 0 ? "group-hover:text-red-600" : "group-hover:text-amber-600",
     },
     {
       label: "Lapsed Members",
       value: expiredMembers.toString(),
       sub: expiredMembers > 0 ? "expired in last 90 days" : "all up to date",
       icon: UserX,
+      href: "/members?status=EXPIRED",
       strip: expiredMembers > 0 ? "bg-red-400" : "bg-gray-300",
+      hoverStrip: expiredMembers > 0 ? "group-hover:bg-red-300" : "group-hover:bg-gray-200",
       iconBg: expiredMembers > 0 ? "bg-red-50" : "bg-gray-50",
       iconColor: expiredMembers > 0 ? "text-red-500" : "text-gray-400",
+      valueColor: expiredMembers > 0 ? "group-hover:text-red-500" : "group-hover:text-gray-500",
     },
   ];
 
@@ -146,19 +161,30 @@ export function StaffToolsClient({
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {statCards.map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 relative overflow-hidden">
-            <div className={`absolute inset-x-0 top-0 h-[3px] ${s.strip}`} />
+          <Link
+            key={s.label}
+            href={s.href}
+            className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-gray-200 hover:-translate-y-0.5 p-5 relative overflow-hidden transition-all duration-200 cursor-pointer"
+          >
+            {/* Top colour strip — thickens on hover */}
+            <div className={cn("absolute inset-x-0 top-0 h-[3px] transition-all duration-200 group-hover:h-[4px]", s.strip)} />
+
             <div className="flex items-start justify-between mt-1">
-              <div>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-tight">{s.label}</p>
-                <p className="text-2xl font-extrabold text-gray-900 mt-1.5">{s.value}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{s.sub}</p>
+              <div className="flex-1 min-w-0 pr-2">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-tight">{s.label}</p>
+                <p className={cn("text-2xl font-extrabold text-gray-900 mt-1.5 transition-colors duration-200", s.valueColor)}>
+                  {s.value}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5 leading-tight">{s.sub}</p>
               </div>
-              <div className={`${s.iconBg} rounded-xl p-2.5 flex-shrink-0`}>
-                <s.icon className={`h-4 w-4 ${s.iconColor}`} />
+              <div className="flex flex-col items-end gap-3 flex-shrink-0">
+                <div className={cn("rounded-xl p-2.5 transition-colors duration-200", s.iconBg)}>
+                  <s.icon className={cn("h-4 w-4", s.iconColor)} />
+                </div>
+                <ArrowRight className="h-3 w-3 text-gray-300 group-hover:text-gray-500 group-hover:translate-x-0.5 transition-all duration-200" />
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 

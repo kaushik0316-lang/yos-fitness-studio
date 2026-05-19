@@ -10,7 +10,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Payments" };
 
-type SearchParams = { company?: string; mode?: string; page?: string };
+type SearchParams = { company?: string; mode?: string; page?: string; dateFilter?: string };
 
 export default async function PaymentsPage({ searchParams }: { searchParams: SearchParams }) {
   const session = await auth();
@@ -25,6 +25,11 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   }
   if (searchParams.mode && searchParams.mode !== "ALL") {
     where.paymentMode = searchParams.mode;
+  }
+  if (searchParams.dateFilter === "today") {
+    where.date = { gte: startOfDay(today), lte: endOfDay(today) };
+  } else if (searchParams.dateFilter === "month") {
+    where.date = { gte: startOfMonth(today), lte: endOfMonth(today) };
   }
 
   const [payments, total, todayStats, monthStats, packages, members] = await Promise.all([
@@ -89,6 +94,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
           members={members as any}
           userRole={session!.user.role}
           userId={session!.user.id}
+          dateFilter={searchParams.dateFilter}
         />
         </div>
     </>
