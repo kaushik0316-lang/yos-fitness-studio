@@ -112,17 +112,7 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
           <option value="FREE">Free</option>
         </select>
 
-        <div className="ml-auto">
-          {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "ACCOUNTANT") && (
-            <button
-              onClick={() => setShowRecord(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 rounded-xl text-sm font-bold text-white transition-colors shadow-md shadow-orange-200"
-            >
-              <Plus className="h-4 w-4" />
-              Record Payment
-            </button>
-          )}
-        </div>
+        <div className="ml-auto" />
       </div>
 
       {/* ── Table ── */}
