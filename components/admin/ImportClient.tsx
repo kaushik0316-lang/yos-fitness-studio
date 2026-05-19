@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ImportResult = {
@@ -11,6 +11,14 @@ type ImportResult = {
   ghostCreated?: number;
   errors: number;
   warnings: string[];
+};
+
+type RematchResult = {
+  ghostsFound: number;
+  rematched: number;
+  deleted: number;
+  unresolved: number;
+  unresolvedNames: string[];
 };
 
 type Tab = "members" | "receipts";
@@ -241,6 +249,94 @@ function ReceiptsImport() {
 
       {error && <ErrorBanner message={error} />}
       {result && <ResultCard result={result} type="receipts" />}
+
+      <RematchPanel />
+    </div>
+  );
+}
+
+/* ─── Ghost member re-matcher ────────────────────────────────────────────── */
+
+function RematchPanel() {
+  const [loading, setLoading]   = useState(false);
+  const [result, setResult]     = useState<RematchResult | null>(null);
+  const [error, setError]       = useState<string | null>(null);
+  const [showNames, setShowNames] = useState(false);
+
+  async function handleRematch() {
+    if (!confirm("This will re-link all IMP-* ghost receipts to real members using name matching, then delete the ghost member records. Continue?")) return;
+    setLoading(true); setResult(null); setError(null);
+    try {
+      const res = await fetch("/api/import/rematch", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Rematch failed");
+      setResult(data);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-violet-200 p-5 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <Wand2 className="h-4 w-4 text-violet-500" />
+            Fix Ghost Members
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Re-links receipts that were imported before name-matching existed.
+            Matches <code className="bg-gray-100 px-1 rounded text-violet-700 text-[11px]">IMP-*</code> ghost
+            members to real members by name, then removes the ghost records.
+          </p>
+        </div>
+        <button
+          onClick={handleRematch}
+          disabled={loading}
+          className={cn(
+            "flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+            loading
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-violet-500 hover:bg-violet-600 text-white shadow-md shadow-violet-200"
+          )}
+        >
+          <Wand2 className="h-3.5 w-3.5" />
+          {loading ? "Rematching…" : "Run Re-match"}
+        </button>
+      </div>
+
+      {error && <ErrorBanner message={error} />}
+
+      {result && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <StatPill icon={CheckCircle} label="Rematched"  value={result.rematched}   color="text-green-600 bg-green-50" />
+            <StatPill icon={XCircle}     label="Deleted"    value={result.deleted}     color="text-violet-600 bg-violet-50" />
+            <StatPill icon={AlertTriangle} label="Unresolved" value={result.unresolved} color="text-amber-600 bg-amber-50" />
+            <StatPill icon={Users}       label="Ghosts found" value={result.ghostsFound} color="text-gray-600 bg-gray-50" />
+          </div>
+          {result.unresolvedNames.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowNames((v) => !v)}
+                className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 hover:text-amber-900"
+              >
+                {showNames ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {result.unresolvedNames.length} still unresolved
+              </button>
+              {showNames && (
+                <div className="mt-2 bg-amber-50 border border-amber-100 rounded-lg p-3 max-h-48 overflow-y-auto">
+                  {result.unresolvedNames.map((n, i) => (
+                    <p key={i} className="text-[11px] text-amber-800 font-mono leading-relaxed">{n}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
