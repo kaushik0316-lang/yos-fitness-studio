@@ -165,7 +165,7 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                {["Member", "Status", "Company", "Package", "Last Visit", "Trainer", ""].map((h) => (
+                {["Member", "Status", "Package", "Last Visit", "Trainer", ""].map((h) => (
                   <th key={h} className="text-left px-5 py-3.5 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">
                     {h}
                   </th>
@@ -175,7 +175,7 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
             <tbody>
               {members.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={6}>
                     <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-300">
                       <Users className="h-12 w-12" />
                       <p className="text-sm text-gray-400 font-medium">No members found</p>
@@ -204,7 +204,12 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
                           </div>
                           <div>
                             <p className="font-semibold text-gray-900">{m.fullName}</p>
-                            <p className="text-xs text-gray-400 mt-0.5">{m.memberId} · {m.phone}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                              <p className="text-xs text-gray-400">{m.memberId} · {m.phone}</p>
+                              <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-bold", COMPANY_COLORS[m.primaryCompany])}>
+                                {m.primaryCompany === "YOS_FITNESS" ? "YF" : "YFS"}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -214,13 +219,6 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
                         <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold", sc.class)}>
                           <sc.icon className="h-3 w-3" />
                           {sc.label}
-                        </span>
-                      </td>
-
-                      {/* Company */}
-                      <td className="px-5 py-4">
-                        <span className={cn("px-2.5 py-1 rounded-lg text-xs font-semibold", COMPANY_COLORS[m.primaryCompany])}>
-                          {m.primaryCompany === "YOS_FITNESS" ? "Yos Fitness" : "Yos Studio"}
                         </span>
                       </td>
 
