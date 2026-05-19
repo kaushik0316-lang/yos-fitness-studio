@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap, UserCheck, Building2, CalendarX, GitMerge, Type } from "lucide-react";
+import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap, UserCheck, Building2, CalendarX, GitMerge, Type, ReceiptText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ImportResult = {
@@ -258,6 +258,7 @@ function ReceiptsImport() {
       {error && <ErrorBanner message={error} />}
       {result && <ResultCard result={result} type="receipts" />}
 
+      <FixReceiptDatesPanel />
       <FixNamesPanel />
       <FuzzyMergePanel />
       <RematchPanel />
@@ -267,6 +268,64 @@ function ReceiptsImport() {
       <FixNoPaymentPanel />
       <FixCompanyPanel />
       <FixDatesPanel />
+    </div>
+  );
+}
+
+/* ─── Fix receipt dates defaulted to import timestamp ───────────────────── */
+
+function FixReceiptDatesPanel() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult]   = useState<{ fixed: number; setActive: number; setExpired: number } | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+
+  async function run() {
+    setLoading(true); setResult(null); setError(null);
+    try {
+      const res  = await fetch("/api/import/fix-receipt-dates", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setResult(data);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-orange-200 p-5 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <ReceiptText className="h-4 w-4 text-orange-500" />
+            Fix Receipt Dates
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            When an Excel date cell was text, the receipt <code className="bg-gray-100 px-1 rounded text-[11px]">date</code> defaulted to
+            the import timestamp instead of the actual payment day. This finds every payment
+            where <code className="bg-gray-100 px-1 rounded text-[11px]">date</code> is 30+ days <em>after</em>{" "}
+            <code className="bg-gray-100 px-1 rounded text-[11px]">startDate</code> and sets it to{" "}
+            <code className="bg-gray-100 px-1 rounded text-[11px]">startDate</code>. Member status is re-synced after.
+          </p>
+        </div>
+        <button
+          onClick={run} disabled={loading}
+          className={cn(
+            "flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+            loading ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-200"
+          )}
+        >
+          <ReceiptText className="h-3.5 w-3.5" />
+          {loading ? "Fixing…" : "Fix Dates"}
+        </button>
+      </div>
+      {error && <ErrorBanner message={error} />}
+      {result && (
+        <div className="grid grid-cols-3 gap-3">
+          <StatPill icon={CheckCircle}   label="Dates fixed"  value={result.fixed}      color="text-orange-600 bg-orange-50" />
+          <StatPill icon={CheckCircle}   label="Set ACTIVE"   value={result.setActive}  color="text-green-600 bg-green-50" />
+          <StatPill icon={AlertTriangle} label="Set EXPIRED"  value={result.setExpired} color="text-amber-600 bg-amber-50" />
+        </div>
+      )}
     </div>
   );
 }
