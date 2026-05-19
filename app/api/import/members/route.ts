@@ -44,11 +44,11 @@ export async function POST(req: NextRequest) {
     raw: true,
   });
 
-  // Pre-load existing phones and memberIds
-  const [existingPhones, existingIds] = await Promise.all([
-    prisma.member.findMany({ select: { phone: true } }).then((r) => new Set(r.map((m) => m.phone))),
-    prisma.member.findMany({ select: { memberId: true } }).then((r) => new Set(r.map((m) => m.memberId))),
-  ]);
+  // Only deduplicate by memberId (application number). Phone is not unique —
+  // family members share numbers, so we never skip on phone alone.
+  const existingIds = await prisma.member
+    .findMany({ select: { memberId: true } })
+    .then((r) => new Set(r.map((m) => m.memberId)));
 
   let imported = 0, skipped = 0, errors = 0;
   const warnings: string[] = [];
@@ -79,11 +79,6 @@ export async function POST(req: NextRequest) {
       skipped++;
       continue;
     }
-    if (phone !== "0000000000" && existingPhones.has(phone)) {
-      warnings.push(`Row ${i + 1}: "${name}" — phone ${phone} already exists, skipped`);
-      skipped++;
-      continue;
-    }
 
     const gender = normalizeGender(genderRaw);
     const dob    = excelDate(row[3]);
@@ -94,9 +89,8 @@ export async function POST(req: NextRequest) {
     const height = typeof row[14] === "number" && row[14] > 0 ? row[14] : null;
     const purpose = String(row[15] ?? "").trim().toUpperCase() || null;
 
-    // Track so within-batch duplicates are caught
+    // Track within-batch to catch duplicates in the file itself
     existingIds.add(memberId);
-    if (phone !== "0000000000") existingPhones.add(phone);
 
     toCreate.push({
       memberId,
