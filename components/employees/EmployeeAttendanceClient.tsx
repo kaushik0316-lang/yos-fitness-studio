@@ -12,7 +12,7 @@ import { StaffTab } from "./StaffTab";
 import { ManualAttendanceDialog } from "./ManualAttendanceDialog";
 import type { UserRole } from "@prisma/client";
 
-type Shift = { shiftIndex: number; checkInTime: string; checkOutTime: string | null; deviceId: string | null };
+type Shift = { id: string; shiftIndex: number; checkInTime: string; checkOutTime: string | null; deviceId: string | null };
 type DayRecord = { status: string; shifts: Shift[] };
 
 type Employee = {
@@ -244,6 +244,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
             displayDate={editDay.displayDate}
             currentStatus={(attendanceMap[detailEmp.id]?.[editDay.dateStr]?.status as any) ?? null}
             existingShifts={attendanceMap[detailEmp.id]?.[editDay.dateStr]?.shifts ?? []}
+            isAdmin={userRole === "ADMIN"}
             onClose={() => { setEditDay(null); router.refresh(); }}
           />
         )}

@@ -35,6 +35,7 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
     attendanceMap[a.employeeId][format(a.date, "yyyy-MM-dd")] = {
       status: a.status,
       shifts: a.shifts.map((s) => ({
+        id: s.id,
         shiftIndex: s.shiftIndex,
         checkInTime: s.checkInTime.toISOString(),
         checkOutTime: s.checkOutTime?.toISOString() ?? null,

@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Save, Clock } from "lucide-react";
+import { Loader2, Save, Clock, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { manualMarkAttendanceWithTime } from "@/lib/actions/attendance";
+import { manualMarkAttendanceWithTime, deleteAttendanceShift } from "@/lib/actions/attendance";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 type AttendanceStatus = "PRESENT" | "ABSENT" | "HALF_DAY" | "WEEKLY_OFF" | "LEAVE" | "PAID_LEAVE";
 
-type Shift = { shiftIndex: number; checkInTime: string; checkOutTime: string | null; deviceId?: string | null };
+type Shift = { id: string; shiftIndex: number; checkInTime: string; checkOutTime: string | null; deviceId?: string | null };
 
 type Props = {
   employeeId: string;
@@ -19,6 +19,7 @@ type Props = {
   displayDate: string; // e.g. "Mon, 18 May"
   currentStatus: AttendanceStatus | null;
   existingShifts: Shift[];
+  isAdmin?: boolean;
   onClose: () => void;
 };
 
@@ -50,9 +51,10 @@ function isoToISTInput(iso: string | null): string {
 
 export function ManualAttendanceDialog({
   employeeId, employeeName, date, displayDate,
-  currentStatus, existingShifts, onClose,
+  currentStatus, existingShifts, isAdmin, onClose,
 }: Props) {
   const [loading, setLoading] = useState(false);
+  const [deletingShiftId, setDeletingShiftId] = useState<string | null>(null);
   const [status, setStatus] = useState<AttendanceStatus>(currentStatus ?? "PRESENT");
 
   // Which shift the admin is editing; null = "new shift"
@@ -100,6 +102,20 @@ export function ManualAttendanceDialog({
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDeleteShift(shiftId: string, shiftIndex: number) {
+    if (!confirm(`Delete Shift ${shiftIndex}? This cannot be undone.`)) return;
+    setDeletingShiftId(shiftId);
+    try {
+      await deleteAttendanceShift(shiftId);
+      toast({ title: "Shift deleted", description: `Shift ${shiftIndex} removed.` });
+      onClose();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setDeletingShiftId(null);
     }
   }
 
@@ -161,19 +177,33 @@ export function ManualAttendanceDialog({
                 <p className="text-[10px] text-gray-400 mb-1.5">Edit times for:</p>
                 <div className="flex flex-wrap gap-1.5">
                   {existingShifts.map((s) => (
-                    <button
-                      key={s.shiftIndex}
-                      type="button"
-                      onClick={() => selectShift(s.shiftIndex)}
-                      className={cn(
-                        "px-2.5 py-1 rounded-md text-xs font-semibold border transition-all",
-                        editingShiftIndex === s.shiftIndex
-                          ? "bg-orange-500 text-white border-orange-500"
-                          : "bg-white text-gray-600 border-gray-300 hover:border-orange-400"
+                    <div key={s.shiftIndex} className="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => selectShift(s.shiftIndex)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-l-md text-xs font-semibold border transition-all",
+                          editingShiftIndex === s.shiftIndex
+                            ? "bg-orange-500 text-white border-orange-500"
+                            : "bg-white text-gray-600 border-gray-300 hover:border-orange-400"
+                        )}
+                      >
+                        Shift {s.shiftIndex}
+                      </button>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteShift(s.id, s.shiftIndex)}
+                          disabled={deletingShiftId === s.id}
+                          title={`Delete Shift ${s.shiftIndex}`}
+                          className="px-1.5 py-1 rounded-r-md text-xs border border-l-0 border-gray-300 bg-white text-red-400 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all disabled:opacity-40"
+                        >
+                          {deletingShiftId === s.id
+                            ? <Loader2 className="h-3 w-3 animate-spin" />
+                            : <Trash2 className="h-3 w-3" />}
+                        </button>
                       )}
-                    >
-                      Shift {s.shiftIndex}
-                    </button>
+                    </div>
                   ))}
                   <button
                     type="button"

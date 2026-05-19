@@ -147,3 +147,16 @@ export async function manualMarkAttendanceWithTime(input: {
   revalidatePath("/payroll");
   return { success: true };
 }
+
+// ── Delete a single attendance shift ────────────────────────────────────────
+export async function deleteAttendanceShift(shiftId: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
+  if (session.user.role !== "ADMIN") throw new Error("Only admins can delete shifts.");
+
+  await prisma.attendanceShift.delete({ where: { id: shiftId } });
+
+  revalidatePath("/employee-attendance");
+  revalidatePath("/payroll");
+  return { success: true };
+}
