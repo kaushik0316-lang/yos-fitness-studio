@@ -50,7 +50,42 @@ export default function StaffDashboardPage() {
   const [pin, setPin]               = useState("");
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
-  useEffect(() => { setTimeout(() => inputs.current[0]?.focus(), 100); }, []);
+  useEffect(() => {
+    const stored = sessionStorage.getItem("staff_pin");
+    if (stored) {
+      // Already authenticated — restore session silently
+      setDigits(stored.split(""));
+      setPhase("loading");
+      fetch("/api/staff/ping", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: stored }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.employee) {
+            setEmployee(data.employee);
+            setAttendance(data.todayAttendance);
+            setPin(stored);
+            setPhase("dashboard");
+          } else {
+            // Stored PIN no longer valid — clear and show input
+            sessionStorage.removeItem("staff_pin");
+            setDigits(Array(TOTAL_BOXES).fill(""));
+            setPhase("input");
+            setTimeout(() => inputs.current[0]?.focus(), 100);
+          }
+        })
+        .catch(() => {
+          sessionStorage.removeItem("staff_pin");
+          setDigits(Array(TOTAL_BOXES).fill(""));
+          setPhase("input");
+          setTimeout(() => inputs.current[0]?.focus(), 100);
+        });
+    } else {
+      setTimeout(() => inputs.current[0]?.focus(), 100);
+    }
+  }, []);
 
   function handleChange(i: number, e: ChangeEvent<HTMLInputElement>) {
     const val = e.target.value.replace(/\D/g, "").slice(-1);
