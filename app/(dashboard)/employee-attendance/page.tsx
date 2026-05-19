@@ -18,7 +18,10 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
   const monthStart = startOfMonth(new Date(year, month - 1, 1));
   const monthEnd   = endOfMonth(monthStart);
 
-  const [activeEmployees, allEmployees, attendances] = await Promise.all([
+  const thisMonthStart = startOfMonth(today);
+  const thisMonthEnd   = endOfMonth(today);
+
+  const [activeEmployees, allEmployees, attendances, salesByEmployee] = await Promise.all([
     prisma.employee.findMany({ where: { isActive: true }, orderBy: { fullName: "asc" } }),
     prisma.employee.findMany({ orderBy: [{ isActive: "desc" }, { fullName: "asc" }] }),
     prisma.employeeAttendance.findMany({
@@ -26,7 +29,19 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
       include: { shifts: { orderBy: { shiftIndex: "asc" } } },
       orderBy: { date: "asc" },
     }),
+    // Sales count this calendar month per employee
+    prisma.payment.groupBy({
+      by: ["soldById"],
+      where: { soldById: { not: null }, date: { gte: thisMonthStart, lte: thisMonthEnd } },
+      _count: { id: true },
+    }),
   ]);
+
+  // Map employeeId → sales count this month
+  const salesMap: Record<string, number> = {};
+  for (const s of salesByEmployee) {
+    if (s.soldById) salesMap[s.soldById] = s._count.id;
+  }
 
   // Build lookup: employeeId → { "2026-05-01": { status, shifts[] } }
   const attendanceMap: Record<string, Record<string, { status: string; shifts: any[] }>> = {};
@@ -52,6 +67,7 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
           employees={activeEmployees as any}
           allEmployees={allEmployees as any}
           attendanceMap={attendanceMap}
+          salesMap={salesMap}
           month={month}
           year={year}
           userId={session!.user.id}

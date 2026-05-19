@@ -41,7 +41,7 @@ const ROLE_COLORS: Record<string, string> = {
   ADMIN: "bg-red-100 text-red-700",
 };
 
-export function StaffTab({ employees }: { employees: Employee[] }) {
+export function StaffTab({ employees, salesMap = {} }: { employees: Employee[]; salesMap?: Record<string, number> }) {
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
@@ -101,6 +101,7 @@ export function StaffTab({ employees }: { employees: Employee[] }) {
               <StaffRow
                 key={emp.id}
                 emp={emp}
+                salesThisMonth={salesMap[emp.id] ?? 0}
                 pinRevealed={revealedPins.has(emp.id)}
                 onTogglePin={() => togglePin(emp.id)}
                 onEdit={() => setEditEmployee(emp)}
@@ -124,6 +125,7 @@ export function StaffTab({ employees }: { employees: Employee[] }) {
               <StaffRow
                 key={emp.id}
                 emp={emp}
+                salesThisMonth={salesMap[emp.id] ?? 0}
                 pinRevealed={revealedPins.has(emp.id)}
                 onTogglePin={() => togglePin(emp.id)}
                 onEdit={() => setEditEmployee(emp)}
@@ -142,9 +144,10 @@ export function StaffTab({ employees }: { employees: Employee[] }) {
 }
 
 function StaffRow({
-  emp, pinRevealed, onTogglePin, onEdit, onToggleActive, isPending,
+  emp, salesThisMonth, pinRevealed, onTogglePin, onEdit, onToggleActive, isPending,
 }: {
   emp: Employee;
+  salesThisMonth: number;
   pinRevealed: boolean;
   onTogglePin: () => void;
   onEdit: () => void;
@@ -169,6 +172,11 @@ function StaffRow({
           <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold", ROLE_COLORS[emp.role] ?? "bg-gray-100 text-gray-600")}>
             {ROLE_LABELS[emp.role] ?? emp.role}
           </span>
+          {salesThisMonth > 0 && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-orange-100 text-orange-700">
+              🏆 {salesThisMonth} sale{salesThisMonth !== 1 ? "s" : ""} this month
+            </span>
+          )}
         </div>
         <p className="text-xs text-gray-500 mt-0.5">{emp.phone}</p>
       </div>

@@ -48,11 +48,12 @@ type Props = {
   employees: Employee[];
   allEmployees: Employee[];
   attendanceMap: Record<string, Record<string, DayRecord>>;
+  salesMap: Record<string, number>;
   month: number; year: number;
   userId: string; userRole: UserRole;
 };
 
-export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMap, month, year, userId, userRole }: Props) {
+export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMap, salesMap, month, year, userId, userRole }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<"attendance" | "staff">("attendance");
   const [detailEmp, setDetailEmp] = useState<Employee | null>(null);
@@ -406,7 +407,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
       )}
 
       {/* ── Staff tab ── */}
-      {tab === "staff" && <StaffTab employees={allEmployees} />}
+      {tab === "staff" && <StaffTab employees={allEmployees} salesMap={salesMap} />}
     </div>
   );
 }
