@@ -51,7 +51,7 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
     const params = new URLSearchParams(searchParams.toString());
     if (value === "" || value === "ALL") params.delete(key);
     else params.set(key, value);
-    params.delete("page");
+    if (key !== "page") params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
   }
 
