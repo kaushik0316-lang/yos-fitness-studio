@@ -93,7 +93,7 @@ export function StaffToolsClient({
     {
       label: "Active Members",
       value: activeMembers.toString(),
-      sub: "across both gyms",
+      sub: "currently active",
       icon: Users,
       strip: "bg-blue-500",
       iconBg: "bg-blue-50",
