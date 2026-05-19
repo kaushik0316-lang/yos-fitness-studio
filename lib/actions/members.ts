@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { addDays } from "date-fns";
 import { Company, MemberStatus, PaymentMode } from "@prisma/client";
-import { generateMemberId } from "@/lib/utils";
+import { generateMemberId, ucaseReq, ucase } from "@/lib/utils";
 import { z } from "zod";
 
 const createMemberSchema = z.object({
@@ -52,17 +52,17 @@ export async function createMember(input: z.infer<typeof createMemberSchema>) {
     const newMember = await tx.member.create({
       data: {
         memberId,
-        fullName: data.fullName,
+        fullName: ucaseReq(data.fullName),
         phone: data.phone,
         whatsapp: data.whatsapp || data.phone,
         gender: data.gender as any,
         dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
-        address: data.address,
-        emergencyContact: data.emergencyContact,
+        address: ucase(data.address),
+        emergencyContact: ucase(data.emergencyContact),
         emergencyPhone: data.emergencyPhone,
         primaryCompany: data.primaryCompany as Company,
         trainerId: data.trainerId || null,
-        notes: data.notes,
+        notes: ucase(data.notes),
         status: startDate ? MemberStatus.ACTIVE : (data.status as MemberStatus),
         currentPackageId: pkg?.id ?? null,
         startDate,
@@ -136,15 +136,15 @@ export async function updateMember(id: string, input: Partial<z.infer<typeof cre
   const updated = await prisma.member.update({
     where: { id },
     data: {
-      fullName: input.fullName,
+      fullName: input.fullName ? ucaseReq(input.fullName) : undefined,
       phone: input.phone,
       whatsapp: input.whatsapp,
       gender: input.gender as any,
-      address: input.address,
-      emergencyContact: input.emergencyContact,
+      address: ucase(input.address),
+      emergencyContact: ucase(input.emergencyContact),
       emergencyPhone: input.emergencyPhone,
       trainerId: input.trainerId || null,
-      notes: input.notes,
+      notes: ucase(input.notes),
       status: input.status as MemberStatus | undefined,
     },
   });

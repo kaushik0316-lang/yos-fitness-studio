@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     const employee = await prisma.employee.create({
       data: {
         employeeId,
-        fullName: data.fullName,
+        fullName: data.fullName.trim().toUpperCase(),
         phone: data.phone,
         role: data.role,
         joinDate: new Date(),

@@ -28,23 +28,24 @@ export async function POST(req: NextRequest) {
 
     const nextId = `${prefix}-${String(maxNum + 1).padStart(3, "0")}`;
 
+    const u = (s: string | undefined | null) => s?.trim().toUpperCase() || null;
     return tx.member.create({
       data: {
         memberId: nextId,
-        fullName: fullName.trim(),
+        fullName: fullName.trim().toUpperCase(),
         phone: phone.trim(),
         whatsapp: whatsapp?.trim() || phone.trim(),
         gender: gender || null,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-        email: email?.trim() || null,
+        email: email?.trim().toLowerCase() || null,
         bloodGroup: bloodGroup?.trim() || null,
         weight: weight ? parseFloat(weight) : null,
         height: height ? parseFloat(height) : null,
-        healthConditions: healthConditions?.trim() || null,
-        intentionOfJoining: intentionOfJoining?.trim() || null,
-        emergencyContact: emergencyContact?.trim() || null,
+        healthConditions: u(healthConditions),
+        intentionOfJoining: u(intentionOfJoining),
+        emergencyContact: u(emergencyContact),
         emergencyPhone: emergencyPhone?.trim() || null,
-        address: address?.trim() || null,
+        address: u(address),
         primaryCompany,
         status: "PROSPECT",
       },

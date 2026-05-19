@@ -133,6 +133,18 @@ export async function generateEmployeeId(prisma: any): Promise<string> {
 
 // ── Misc ──────────────────────────────────────────────────────────────────────
 
+// Trim + uppercase a string field before saving to DB. Returns undefined for blank input.
+export function ucase(s: string | undefined | null): string | undefined {
+  if (!s) return undefined;
+  const t = s.trim().toUpperCase();
+  return t || undefined;
+}
+
+// Trim + uppercase a required string field.
+export function ucaseReq(s: string): string {
+  return s.trim().toUpperCase();
+}
+
 export function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }

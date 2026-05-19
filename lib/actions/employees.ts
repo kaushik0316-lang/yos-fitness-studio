@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { EmployeeRole, SalaryType } from "@prisma/client";
-import { generateEmployeeId } from "@/lib/utils";
+import { generateEmployeeId, ucaseReq, ucase } from "@/lib/utils";
 import { z } from "zod";
 
 const employeeSchema = z.object({
@@ -34,7 +34,7 @@ export async function createEmployee(input: z.infer<typeof employeeSchema>) {
   const employee = await prisma.employee.create({
     data: {
       employeeId,
-      fullName: data.fullName,
+      fullName: ucaseReq(data.fullName),
       role: data.role,
       phone: data.phone,
       joinDate: new Date(data.joinDate),
@@ -42,7 +42,7 @@ export async function createEmployee(input: z.infer<typeof employeeSchema>) {
       monthlySalary: data.monthlySalary,
       perDaySalary: data.perDaySalary,
       pin: data.pin,
-      notes: data.notes,
+      notes: ucase(data.notes),
     },
   });
 
@@ -77,14 +77,14 @@ export async function updateEmployee(input: z.infer<typeof updateSchema>) {
   await prisma.employee.update({
     where: { id: data.id },
     data: {
-      fullName: data.fullName,
+      fullName: ucaseReq(data.fullName),
       role: data.role,
       phone: data.phone,
       salaryType: data.salaryType,
       monthlySalary: data.monthlySalary ?? null,
       perDaySalary: data.perDaySalary ?? null,
       pin: data.pin,
-      notes: data.notes,
+      notes: ucase(data.notes),
     },
   });
 

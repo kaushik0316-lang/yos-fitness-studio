@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { Company, PaymentMode, MemberStatus } from "@prisma/client";
 import { addDays } from "date-fns";
+import { ucase } from "@/lib/utils";
 import { z } from "zod";
 
 const paymentSchema = z.object({
@@ -38,8 +39,8 @@ export async function recordPayment(input: z.infer<typeof paymentSchema>) {
         packageId: data.packageId ?? null,
         company: data.company,
         collectedById: session.user.id,
-        transactionRef: data.transactionRef,
-        notes: data.notes,
+        transactionRef: ucase(data.transactionRef),
+        notes: ucase(data.notes),
       },
     });
 
