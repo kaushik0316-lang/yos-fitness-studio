@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2 } from "lucide-react";
+import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ImportResult = {
@@ -19,6 +19,14 @@ type RematchResult = {
   deleted: number;
   unresolved: number;
   unresolvedNames: string[];
+};
+
+type BackfillResult = {
+  datesUpdated: number;
+  notFound: number;
+  noDates: number;
+  membersSetActive: number;
+  membersSetExpired: number;
 };
 
 type Tab = "members" | "receipts";
@@ -251,6 +259,8 @@ function ReceiptsImport() {
       {result && <ResultCard result={result} type="receipts" />}
 
       <RematchPanel />
+      <FixGhostsPanel />
+      <BackfillPanel />
     </div>
   );
 }
@@ -335,6 +345,146 @@ function RematchPanel() {
               )}
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Fix ghost members → INACTIVE ──────────────────────────────────────── */
+
+function FixGhostsPanel() {
+  const [loading, setLoading] = useState(false);
+  const [updated, setUpdated] = useState<number | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+
+  async function run() {
+    if (!confirm("Mark all IMP-* ghost members as INACTIVE? This will fix the inflated active member count.")) return;
+    setLoading(true); setError(null);
+    try {
+      const res = await fetch("/api/import/fix-ghosts", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setUpdated(data.updated);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-red-200 p-5 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <UserX className="h-4 w-4 text-red-500" />
+            Mark Ghost Members Inactive
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Sets all <code className="bg-gray-100 px-1 rounded text-red-600 text-[11px]">IMP-*</code> ghost members
+            to <strong>INACTIVE</strong> so they don't inflate the active member count on your dashboard.
+          </p>
+        </div>
+        <button
+          onClick={run} disabled={loading}
+          className={cn(
+            "flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+            loading ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-200"
+          )}
+        >
+          <UserX className="h-3.5 w-3.5" />
+          {loading ? "Fixing…" : "Run Fix"}
+        </button>
+      </div>
+      {error && <ErrorBanner message={error} />}
+      {updated !== null && (
+        <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2">
+          <CheckCircle className="h-4 w-4" />
+          {updated} ghost members marked inactive
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Backfill dates + sync member status ────────────────────────────────── */
+
+function BackfillPanel() {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [company, setCompany] = useState("YOS_FITNESS");
+  const [file, setFile]       = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult]   = useState<BackfillResult | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+
+  async function run() {
+    if (!file) return;
+    setLoading(true); setResult(null); setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("company", company);
+      const res = await fetch("/api/import/backfill", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setResult(data);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-green-200 p-5 space-y-4">
+      <div>
+        <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+          <RefreshCw className="h-4 w-4 text-green-600" />
+          Backfill Dates & Sync Member Status
+        </p>
+        <p className="text-xs text-gray-500 mt-0.5">
+          Re-upload a receipts file to fill in membership start/end dates on existing payments,
+          then automatically sets each member to <strong>ACTIVE</strong> or <strong>EXPIRED</strong>
+          based on their latest receipt end date.
+        </p>
+      </div>
+
+      {/* Company */}
+      <div className="flex gap-3">
+        {[
+          { value: "YOS_FITNESS", label: "Yos Fitness", color: "border-orange-400 bg-orange-50 text-orange-700" },
+          { value: "YOS_FITNESS_STUDIO", label: "Yos Studio", color: "border-indigo-400 bg-indigo-50 text-indigo-700" },
+        ].map((c) => (
+          <button key={c.value} onClick={() => setCompany(c.value)}
+            className={cn("px-4 py-2 rounded-xl border-2 text-sm font-semibold transition-all",
+              company === c.value ? c.color : "border-gray-200 text-gray-500 hover:border-gray-300")}>
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      {/* File picker */}
+      <div
+        onClick={() => fileRef.current?.click()}
+        className={cn("border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors",
+          file ? "border-green-400 bg-green-50" : "border-gray-200 hover:border-green-300 hover:bg-green-50/30")}>
+        <Upload className={cn("h-5 w-5 mx-auto mb-1", file ? "text-green-500" : "text-gray-400")} />
+        {file
+          ? <p className="text-sm font-semibold text-green-700">{file.name}</p>
+          : <p className="text-sm text-gray-500">Click to choose the same receipts .xlsx file</p>}
+      </div>
+      <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden"
+        onChange={(e) => { setFile(e.target.files?.[0] ?? null); setResult(null); }} />
+
+      <button onClick={run} disabled={!file || loading}
+        className={cn("w-full py-3 rounded-xl font-bold text-sm transition-all",
+          !file || loading ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                           : "bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-200")}>
+        {loading ? "Processing… this may take a minute" : "Backfill Dates & Sync Status"}
+      </button>
+
+      {error && <ErrorBanner message={error} />}
+      {result && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <StatPill icon={CheckCircle}   label="Dates updated"   value={result.datesUpdated}      color="text-green-600 bg-green-50" />
+          <StatPill icon={CheckCircle}   label="Set ACTIVE"      value={result.membersSetActive}  color="text-blue-600 bg-blue-50" />
+          <StatPill icon={AlertTriangle} label="Set EXPIRED"     value={result.membersSetExpired} color="text-amber-600 bg-amber-50" />
         </div>
       )}
     </div>
