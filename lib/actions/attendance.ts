@@ -92,6 +92,7 @@ export async function manualMarkAttendanceWithTime(input: {
   checkInTime?: string;  // "HH:MM" in IST
   checkOutTime?: string; // "HH:MM" in IST
   notes?: string;
+  shiftIndex?: number;   // which shift to upsert (defaults to 1)
 }) {
   const session = await auth();
   if (!session?.user) throw new Error("Unauthorized");
@@ -121,9 +122,10 @@ export async function manualMarkAttendanceWithTime(input: {
     include: { shifts: { orderBy: { shiftIndex: "asc" } } },
   });
 
-  // If times were provided, upsert a manual shift (always shift index 1 for manual entry)
+  // If times were provided, upsert the chosen shift
+  const targetShift = input.shiftIndex ?? 1;
   if (checkIn) {
-    const existing = attendance.shifts.find((s) => s.shiftIndex === 1);
+    const existing = attendance.shifts.find((s) => s.shiftIndex === targetShift);
     if (existing) {
       await prisma.attendanceShift.update({
         where: { id: existing.id },
@@ -133,7 +135,7 @@ export async function manualMarkAttendanceWithTime(input: {
       await prisma.attendanceShift.create({
         data: {
           attendanceId: attendance.id,
-          shiftIndex: 1,
+          shiftIndex: targetShift,
           checkInTime: checkIn,
           checkOutTime: checkOut ?? null,
         },

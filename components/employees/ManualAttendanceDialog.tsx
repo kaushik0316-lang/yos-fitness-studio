@@ -54,11 +54,33 @@ export function ManualAttendanceDialog({
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<AttendanceStatus>(currentStatus ?? "PRESENT");
+
+  // Which shift the admin is editing; null = "new shift"
+  const [editingShiftIndex, setEditingShiftIndex] = useState<number>(
+    existingShifts[0]?.shiftIndex ?? 1
+  );
   const [checkIn, setCheckIn]   = useState(isoToISTInput(existingShifts[0]?.checkInTime ?? null));
   const [checkOut, setCheckOut] = useState(isoToISTInput(existingShifts[0]?.checkOutTime ?? null));
   const [notes, setNotes]       = useState("");
 
   const hasKioskShifts = existingShifts.length > 0;
+  const nextShiftIndex = existingShifts.length > 0
+    ? Math.max(...existingShifts.map((s) => s.shiftIndex)) + 1
+    : 1;
+
+  function selectShift(shiftIndex: number | "new") {
+    if (shiftIndex === "new") {
+      const newIdx = nextShiftIndex;
+      setEditingShiftIndex(newIdx);
+      setCheckIn("");
+      setCheckOut("");
+    } else {
+      setEditingShiftIndex(shiftIndex);
+      const s = existingShifts.find((s) => s.shiftIndex === shiftIndex);
+      setCheckIn(isoToISTInput(s?.checkInTime ?? null));
+      setCheckOut(isoToISTInput(s?.checkOutTime ?? null));
+    }
+  }
 
   async function handleSave() {
     setLoading(true);
@@ -70,6 +92,7 @@ export function ManualAttendanceDialog({
         checkInTime:  checkIn  || undefined,
         checkOutTime: checkOut || undefined,
         notes: notes || undefined,
+        shiftIndex: editingShiftIndex,
       });
       toast({ title: "Saved!", description: `Attendance updated for ${displayDate}.` });
       onClose();
@@ -113,10 +136,10 @@ export function ManualAttendanceDialog({
             </div>
           </div>
 
-          {/* Existing kiosk shifts (read-only) */}
+          {/* Existing kiosk shifts + shift selector */}
           {hasKioskShifts && (
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
+            <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+              <p className="text-xs font-medium text-gray-500 flex items-center gap-1">
                 <Clock className="h-3 w-3" /> Kiosk-recorded times
               </p>
               <div className="space-y-1">
@@ -133,9 +156,39 @@ export function ManualAttendanceDialog({
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] text-gray-400 mt-2">
-                Entering times below will overwrite shift 1 with your manual values.
-              </p>
+              {/* Shift picker */}
+              <div>
+                <p className="text-[10px] text-gray-400 mb-1.5">Edit times for:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {existingShifts.map((s) => (
+                    <button
+                      key={s.shiftIndex}
+                      type="button"
+                      onClick={() => selectShift(s.shiftIndex)}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md text-xs font-semibold border transition-all",
+                        editingShiftIndex === s.shiftIndex
+                          ? "bg-orange-500 text-white border-orange-500"
+                          : "bg-white text-gray-600 border-gray-300 hover:border-orange-400"
+                      )}
+                    >
+                      Shift {s.shiftIndex}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => selectShift("new")}
+                    className={cn(
+                      "px-2.5 py-1 rounded-md text-xs font-semibold border transition-all",
+                      editingShiftIndex === nextShiftIndex
+                        ? "bg-orange-500 text-white border-orange-500"
+                        : "bg-white text-gray-600 border-gray-300 hover:border-orange-400"
+                    )}
+                  >
+                    + New shift
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
