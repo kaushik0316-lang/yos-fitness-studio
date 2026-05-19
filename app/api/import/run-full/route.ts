@@ -216,7 +216,8 @@ export async function POST(req: NextRequest) {
       if (amount <= 0) { skipped++; continue; }
 
       let memberId: string | null = null;
-      if (applNo) memberId = byMemberId[`${prefix}-${applNo}`] ?? null;
+      // Try prefix-specific lookup first, then fallback to YF- (all members come from YF master)
+      if (applNo) memberId = byMemberId[`${prefix}-${applNo}`] ?? byMemberId[`YF-${applNo}`] ?? null;
       if (!memberId && mobile) memberId = byPhone[mobile] ?? null;
       if (!memberId) {
         const nm = findByName(name, nameIdx, wordsMap);
