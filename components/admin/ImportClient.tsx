@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 type ImportResult = {
   imported: number;
   skipped: number;
-  noMember?: number;
+  membersCreated?: number;
   errors: number;
   total: number;
   warnings: string[];
@@ -257,8 +257,8 @@ function ResultCard({ result, type }: { result: ImportResult; type: "members" | 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatPill icon={CheckCircle} label="Imported" value={result.imported} color="text-green-600 bg-green-50" />
         <StatPill icon={AlertTriangle} label="Skipped" value={result.skipped} color="text-amber-600 bg-amber-50" />
-        {type === "receipts" && result.noMember !== undefined && (
-          <StatPill icon={XCircle} label="No member" value={result.noMember} color="text-red-600 bg-red-50" />
+        {type === "receipts" && result.membersCreated !== undefined && result.membersCreated > 0 && (
+          <StatPill icon={CheckCircle} label="Members created" value={result.membersCreated} color="text-blue-600 bg-blue-50" />
         )}
         <StatPill icon={XCircle} label="Errors" value={result.errors} color="text-red-600 bg-red-50" />
       </div>
