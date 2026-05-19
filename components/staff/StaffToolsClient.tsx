@@ -6,7 +6,7 @@ import QRCode from "react-qr-code";
 import {
   Receipt, Copy, Check, Printer, ExternalLink, QrCode,
   MessageCircle, Users, RotateCcw, CreditCard, AlertTriangle,
-  IndianRupee, CalendarX, UserX, ClipboardList,
+  IndianRupee, CalendarX, UserX, ClipboardList, FileUp,
 } from "lucide-react";
 import { formatCurrency, cn, COMPANY_COLORS } from "@/lib/utils";
 import type { Company } from "@prisma/client";
@@ -120,12 +120,13 @@ export function StaffToolsClient({
   ];
 
   const quickActions = [
-    { label: "New Receipt", desc: "Record a member payment", href: "/payments/new", icon: Receipt, accent: "border-orange-200 hover:border-orange-400", iconBg: "bg-orange-50", iconColor: "text-orange-500" },
-    { label: "Members", desc: "View & search all members", href: "/members", icon: Users, accent: "border-gray-200 hover:border-gray-400", iconBg: "bg-gray-50", iconColor: "text-gray-500" },
-    { label: "Renewals", desc: "Follow up expiring members", href: "/renewals", icon: RotateCcw, accent: "border-amber-200 hover:border-amber-400", iconBg: "bg-amber-50", iconColor: "text-amber-500" },
-    { label: "Payments", desc: "View all transactions", href: "/payments", icon: CreditCard, accent: "border-blue-200 hover:border-blue-400", iconBg: "bg-blue-50", iconColor: "text-blue-500" },
-    { label: "Attendance", desc: "Employee attendance log", href: "/employee-attendance", icon: ClipboardList, accent: "border-violet-200 hover:border-violet-400", iconBg: "bg-violet-50", iconColor: "text-violet-500" },
-  ];
+    { label: "New Receipt", desc: "Record a member payment", href: "/payments/new", icon: Receipt, accent: "border-orange-200 hover:border-orange-400", iconBg: "bg-orange-50", iconColor: "text-orange-500", adminOnly: false },
+    { label: "Members", desc: "View & search all members", href: "/members", icon: Users, accent: "border-gray-200 hover:border-gray-400", iconBg: "bg-gray-50", iconColor: "text-gray-500", adminOnly: false },
+    { label: "Renewals", desc: "Follow up expiring members", href: "/renewals", icon: RotateCcw, accent: "border-amber-200 hover:border-amber-400", iconBg: "bg-amber-50", iconColor: "text-amber-500", adminOnly: false },
+    { label: "Payments", desc: "View all transactions", href: "/payments", icon: CreditCard, accent: "border-blue-200 hover:border-blue-400", iconBg: "bg-blue-50", iconColor: "text-blue-500", adminOnly: false },
+    { label: "Attendance", desc: "Employee attendance log", href: "/employee-attendance", icon: ClipboardList, accent: "border-violet-200 hover:border-violet-400", iconBg: "bg-violet-50", iconColor: "text-violet-500", adminOnly: false },
+    { label: "Import Data", desc: "Bulk import from Excel", href: "/admin/import", icon: FileUp, accent: "border-green-200 hover:border-green-400", iconBg: "bg-green-50", iconColor: "text-green-600", adminOnly: true },
+  ].filter((a) => !a.adminOnly || userRole === "ADMIN");
 
   return (
     <div className="space-y-6">

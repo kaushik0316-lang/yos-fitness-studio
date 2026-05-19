@@ -20,6 +20,7 @@ const PUBLIC_PAGES = new Set([
 
 // CRM routes that require a verified session (path-prefix match)
 const PROTECTED_PREFIXES = [
+  "/admin",
   "/dashboard",
   "/attendance",
   "/automation",
