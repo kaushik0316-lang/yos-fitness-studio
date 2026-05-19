@@ -21,6 +21,8 @@ import * as XLSX from "xlsx";
 import path from "path";
 import fs from "fs";
 
+export const maxDuration = 300; // Vercel Pro: up to 300s
+
 const SECRET = "yos-reset-2026";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -266,28 +268,33 @@ export async function POST(req: NextRequest) {
     const rows = readSheet(file);
     const existing = await prisma.payment.findMany({
       where: { company: company as any, receiptNumber: { not: null } },
-      select: { id: true, receiptNumber: true, memberId: true },
+      select: { id: true, receiptNumber: true },
     });
-    const byReceipt: Record<number, { id: string; memberId: string }> = {};
-    for (const p of existing) if (p.receiptNumber !== null) byReceipt[p.receiptNumber] = { id: p.id, memberId: p.memberId };
+    const byReceipt: Record<number, string> = {};
+    for (const p of existing) if (p.receiptNumber !== null) byReceipt[p.receiptNumber] = p.id;
 
-    let updated = 0;
+    // Build update list
+    const updates: Array<{ id: string; data: any }> = [];
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i] as any[];
       const receiptNo = typeof row[1] === "number" ? row[1] : null;
       if (!receiptNo) continue;
-      const p = byReceipt[receiptNo];
-      if (!p) continue;
+      const id = byReceipt[receiptNo];
+      if (!id) continue;
       const d     = safeDate(excelDate(row[0]));
       const start = safeDate(excelDate(row[9]));
       const end   = safeDate(excelDate(row[10]));
       if (!start || !end) continue;
       const data: any = { startDate: start, expiryDate: end };
       if (d) data.date = d;
-      await prisma.payment.update({ where: { id: p.id }, data });
-      updated++;
+      updates.push({ id, data });
     }
-    return updated;
+
+    // Run in parallel batches of 50
+    for (let i = 0; i < updates.length; i += 50) {
+      await Promise.all(updates.slice(i, i + 50).map(u => prisma.payment.update({ where: { id: u.id }, data: u.data })));
+    }
+    return updates.length;
   }
 
   const bf1 = await backfillDates(path.join(base, "fitness.xlsx"), "YOS_FITNESS");
@@ -306,12 +313,17 @@ export async function POST(req: NextRequest) {
   });
 
   let setActive = 0, setExpired = 0;
-  for (const row of latestExpiry) {
-    const exp = row._max.expiryDate;
-    if (!exp) continue;
-    const status = exp >= today ? "ACTIVE" : "EXPIRED";
-    await prisma.member.update({ where: { id: row.memberId }, data: { status, expiryDate: exp } });
-    if (status === "ACTIVE") setActive++; else setExpired++;
+  const statusUpdates = latestExpiry
+    .filter(r => r._max.expiryDate != null)
+    .map(r => {
+      const exp = r._max.expiryDate!;
+      const status = exp >= today ? "ACTIVE" : "EXPIRED";
+      if (status === "ACTIVE") setActive++; else setExpired++;
+      return prisma.member.update({ where: { id: r.memberId }, data: { status, expiryDate: exp } });
+    });
+  // Run in parallel batches of 50
+  for (let i = 0; i < statusUpdates.length; i += 50) {
+    await Promise.all(statusUpdates.slice(i, i + 50));
   }
   log.push(`Status sync: ${setActive} ACTIVE, ${setExpired} EXPIRED`);
 
@@ -323,12 +335,14 @@ export async function POST(req: NextRequest) {
   });
   const companyMap: Record<string, string> = {};
   for (const p of allPay) if (!companyMap[p.memberId]) companyMap[p.memberId] = p.company;
-  let compFixed = 0;
-  for (const [mid, co] of Object.entries(companyMap)) {
-    await prisma.member.update({ where: { id: mid }, data: { primaryCompany: co as any } });
-    compFixed++;
+
+  const compUpdates = Object.entries(companyMap).map(([mid, co]) =>
+    prisma.member.update({ where: { id: mid }, data: { primaryCompany: co as any } })
+  );
+  for (let i = 0; i < compUpdates.length; i += 50) {
+    await Promise.all(compUpdates.slice(i, i + 50));
   }
-  log.push(`Company fixed: ${compFixed} members`);
+  log.push(`Company fixed: ${compUpdates.length} members`);
 
   // ── 8. Members with no payments → PROSPECT ───────────────────────────────────
   const paidIds = (await prisma.payment.findMany({ select: { memberId: true }, distinct: ["memberId"] })).map(p => p.memberId);
