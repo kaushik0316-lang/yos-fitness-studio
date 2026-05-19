@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     const newStatus = expiry >= today ? "ACTIVE" : "EXPIRED";
     await prisma.member.update({
       where: { id: row.memberId },
-      data: { status: newStatus },
+      data: { status: newStatus, expiryDate: expiry },
     });
 
     if (newStatus === "ACTIVE") setActive++;

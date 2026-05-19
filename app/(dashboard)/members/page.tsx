@@ -64,7 +64,10 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
         trainer: { select: { id: true, fullName: true } },
         _count: { select: { attendances: true } },
       },
-      orderBy: [{ createdAt: "desc" }],
+      orderBy: [
+        { status: "asc" },   // ACTIVE → EXPIRED → FROZEN → INACTIVE → PROSPECT (alphabetical)
+        { fullName: "asc" }, // then A→Z within each status
+      ],
       skip,
       take: pageSize,
     }),
