@@ -71,7 +71,6 @@ select {
   text-transform: uppercase;
 }
 
-/* Keep placeholder text readable (browsers auto-uppercase it via CSS inheritance, which is fine) */
 
 /* Better focus rings */
 *:focus-visible {
