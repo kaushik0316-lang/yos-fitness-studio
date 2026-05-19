@@ -288,6 +288,10 @@ export default function MarketingPage() {
                       <span className="text-base">🏠</span>
                       <span className="font-medium text-sm">Staff Dashboard</span>
                     </Link>
+                    <Link href="/checkin" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
+                      <span className="text-base">📍</span>
+                      <span className="font-medium text-sm">Check In</span>
+                    </Link>
                     <div className="mx-4 my-1 border-t border-gray-100" />
                     <Link href="/join" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
                       <span className="text-base">✍️</span>
