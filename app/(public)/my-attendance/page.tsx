@@ -397,7 +397,7 @@ export default function MyAttendancePage() {
         </button>
 
         <Link href="/checkin" className="mt-6 text-sm text-gray-500 hover:text-gray-300 transition-colors">
-          ← Back to Check-In
+          ← Back to Staff Dashboard
         </Link>
       </div>
     </div>

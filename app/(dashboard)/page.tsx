@@ -286,7 +286,7 @@ export default function MarketingPage() {
                   <div className="py-1.5">
                     <Link href="/checkin" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
                       <span className="text-base">📍</span>
-                      <span className="font-medium text-sm">Staff Check-In</span>
+                      <span className="font-medium text-sm">Staff Dashboard</span>
                     </Link>
                     <Link href="/my-attendance" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
                       <span className="text-base">📅</span>
@@ -1029,7 +1029,7 @@ export default function MarketingPage() {
                 <p className="text-white font-bold text-sm mb-4">Staff Portal</p>
                 <ul className="space-y-2 text-sm">
                   {[
-                    { label: "Staff Check-In", href: "/checkin" },
+                    { label: "Staff Dashboard", href: "/checkin" },
                     { label: "My Attendance", href: "/my-attendance" },
                     { label: "Register as Staff", href: "/join" },
                   ].map(({ label, href }) => (

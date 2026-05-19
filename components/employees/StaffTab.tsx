@@ -79,7 +79,7 @@ export function StaffTab({ employees }: { employees: Employee[] }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-500">{active.length} active staff · each uses their PIN to check in at <span className="font-medium text-gray-700">yosfitnessstudio.in/checkin</span></p>
+          <p className="text-sm text-gray-500">{active.length} active staff · each uses their PIN at the <span className="font-medium text-gray-700">Staff Dashboard → yosfitnessstudio.in/checkin</span></p>
         </div>
         <Button onClick={() => setAddOpen(true)} size="sm">
           <Plus className="h-4 w-4" />
