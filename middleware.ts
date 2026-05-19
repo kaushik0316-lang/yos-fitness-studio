@@ -10,6 +10,7 @@ const PUBLIC_PAGES = new Set([
   "/semi-private-coaching-chennai",
   "/strength-training-mylapore",
   "/checkin",
+  "/staff-dashboard",
   "/my-attendance",
   "/join",
   "/login",

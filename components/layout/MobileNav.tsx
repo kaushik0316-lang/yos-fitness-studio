@@ -14,7 +14,8 @@ const NAV_LINKS = [
 ];
 
 const STAFF_LINKS = [
-  { label: "Staff Dashboard", href: "/checkin", emoji: "📍" },
+  { label: "Staff Dashboard", href: "/staff-dashboard", emoji: "🏠" },
+  { label: "Check In", href: "/checkin", emoji: "📍" },
   { label: "My Attendance", href: "/my-attendance", emoji: "📅" },
   { label: "Register as Staff", href: "/join", emoji: "✍️" },
 ];

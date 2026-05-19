@@ -2,10 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import QRCode from "react-qr-code";
 import { useRef, useState, useEffect, KeyboardEvent, ChangeEvent } from "react";
-import { Copy, Check, MessageCircle, Printer, QrCode } from "lucide-react";
-import { REGISTRATION_FORM_URL } from "@/lib/site-config";
 
 type Phase = "input" | "locating" | "loading" | "success" | "error" | "cooldown";
 
@@ -20,13 +17,12 @@ const TOTAL_BOXES   = 4;
 const MIN_DIGITS    = 4;
 const COOLDOWN_SECS = 120;
 
-export default function StaffDashboardPage() {
+export default function CheckInPage() {
   const [digits, setDigits]       = useState<string[]>(Array(TOTAL_BOXES).fill(""));
   const [phase, setPhase]         = useState<Phase>("input");
   const [successData, setSuccess] = useState<SuccessData | null>(null);
   const [errorMsg, setErrorMsg]   = useState("");
   const [countdown, setCountdown] = useState(0);
-  const [copied, setCopied]       = useState(false);
   const inputs   = useRef<(HTMLInputElement | null)[]>([]);
   const deviceId = useRef<string>("");
 
@@ -34,6 +30,7 @@ export default function StaffDashboardPage() {
     let id = localStorage.getItem("kiosk_device_id");
     if (!id) { id = crypto.randomUUID(); localStorage.setItem("kiosk_device_id", id); }
     deviceId.current = id;
+    setTimeout(() => inputs.current[0]?.focus(), 100);
   }, []);
 
   useEffect(() => {
@@ -54,9 +51,7 @@ export default function StaffDashboardPage() {
 
   function handleChange(index: number, e: ChangeEvent<HTMLInputElement>) {
     const val = e.target.value.replace(/\D/g, "").slice(-1);
-    const next = [...digits];
-    next[index] = val;
-    setDigits(next);
+    const next = [...digits]; next[index] = val; setDigits(next);
     if (val && index < TOTAL_BOXES - 1) inputs.current[index + 1]?.focus();
   }
 
@@ -105,21 +100,42 @@ export default function StaffDashboardPage() {
     );
   }
 
-  function copyLink() {
-    if (!REGISTRATION_FORM_URL) return;
-    navigator.clipboard.writeText(REGISTRATION_FORM_URL).then(() => {
-      setCopied(true); setTimeout(() => setCopied(false), 2000);
-    });
-  }
-
-  function shareWhatsApp() {
-    const msg = encodeURIComponent(`Hi! Please fill in this quick registration form for Yos Fitness Studio:\n${REGISTRATION_FORM_URL}`);
-    window.open(`https://wa.me/?text=${msg}`, "_blank");
-  }
-
   const pinComplete = digits.slice(0, MIN_DIGITS).every((d) => d !== "");
 
-  // ─── Cooldown screen ───────────────────────────────────────────────────────
+  // ─── Success ───────────────────────────────────────────────────────────────
+  if (phase === "success" && successData) {
+    const isIn = successData.action === "checkin";
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10" style={{ background: "#0f0f0f" }}>
+        <div className="w-full max-w-sm text-center">
+          <div className="text-7xl mb-5">{isIn ? "✅" : "👋"}</div>
+          <span
+            className="inline-block px-5 py-1.5 rounded-full text-white font-bold text-sm uppercase tracking-widest mb-5"
+            style={{ background: isIn ? "#166534" : "#7f1d1d" }}>
+            {isIn ? "Checked In" : "Checked Out"}
+          </span>
+          <h2 className="text-2xl font-bold text-white mb-1">{successData.employeeName}</h2>
+          {successData.shiftNumber && successData.shiftNumber > 1 && (
+            <p className="text-gray-500 text-sm mb-1">Shift {successData.shiftNumber}</p>
+          )}
+          <p className="text-gray-400 text-lg mb-8">{successData.time}</p>
+
+          <Link href="/my-attendance"
+            className="block w-full py-3 rounded-xl font-semibold text-sm mb-3 transition-colors"
+            style={{ background: "#1a1a1a", color: "#9ca3af" }}>
+            View My Attendance →
+          </Link>
+          <button onClick={() => setPhase("cooldown")}
+            className="w-full py-4 rounded-xl font-bold text-white text-base"
+            style={{ background: "#dc2626" }}>
+            Done · Next Person
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Cooldown ──────────────────────────────────────────────────────────────
   if (phase === "cooldown") {
     const pct = Math.round((countdown / COOLDOWN_SECS) * 283);
     return (
@@ -141,7 +157,7 @@ export default function StaffDashboardPage() {
             This ensures each staff member checks in themselves.
           </p>
           <button onClick={resetForm}
-            className="w-full py-4 rounded-xl font-semibold text-base transition-opacity"
+            className="w-full py-4 rounded-xl font-semibold text-base"
             style={{ background: "#1a1a1a", color: "#6b7280" }}>
             Skip ({countdown}s)
           </button>
@@ -150,152 +166,66 @@ export default function StaffDashboardPage() {
     );
   }
 
-  // ─── Main dashboard ────────────────────────────────────────────────────────
-  return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#0f0f0f" }}>
-
-      {/* Header */}
-      <div className="flex flex-col items-center pt-8 pb-4 px-4">
-        <Image src="/Logo.png" alt="Yos Fitness Studio" width={160} height={40}
-          className="h-10 w-auto object-contain mb-3" priority />
-        <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">Staff Dashboard</p>
+  // ─── Error ─────────────────────────────────────────────────────────────────
+  if (phase === "error") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10" style={{ background: "#0f0f0f" }}>
+        <div className="w-full max-w-sm text-center">
+          <div className="text-7xl mb-6">❌</div>
+          <h2 className="text-xl font-bold text-white mb-4">Oops!</h2>
+          <p className="text-gray-300 text-base mb-10 leading-relaxed">{errorMsg}</p>
+          <button onClick={resetForm}
+            className="w-full py-4 rounded-xl font-semibold text-white text-base"
+            style={{ background: "#dc2626" }}>
+            Try Again
+          </button>
+        </div>
       </div>
+    );
+  }
 
-      <div className="flex-1 flex flex-col items-center px-4 pb-10 gap-4 w-full max-w-sm mx-auto">
+  // ─── Input ─────────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10" style={{ background: "#0f0f0f" }}>
+      <div className="w-full max-w-sm flex flex-col items-center">
+        <Image src="/Logo.png" alt="Yos Fitness Studio" width={200} height={48}
+          className="h-12 w-auto object-contain mb-8" priority />
 
-        {/* ── Attendance Card ── */}
-        <div className="w-full rounded-2xl p-6" style={{ background: "#1a1a1a" }}>
+        <h1 className="text-2xl font-bold text-white mb-2 text-center">Staff Check In</h1>
+        <p className="text-gray-400 text-base text-center mb-10">
+          Enter your 4-digit PIN to check in or out
+        </p>
 
-          {/* Input / Locating / Loading */}
-          {(phase === "input" || phase === "locating" || phase === "loading") && (
-            <>
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Attendance</p>
-              <p className="text-white font-semibold text-sm mb-6">Enter your 4-digit PIN</p>
-              <div className="flex gap-3 justify-center mb-6">
-                {digits.map((digit, i) => (
-                  <input key={i}
-                    ref={(el) => { inputs.current[i] = el; }}
-                    type="tel" inputMode="numeric" maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleChange(i, e)}
-                    onKeyDown={(e) => handleKeyDown(i, e)}
-                    disabled={phase === "locating" || phase === "loading"}
-                    className="h-14 w-14 text-center text-2xl font-bold rounded-xl border-2 outline-none text-white transition-colors"
-                    style={{ background: "#111", borderColor: digit ? "#dc2626" : "#374151", caretColor: "#dc2626" }}
-                    onFocus={(e) => e.target.select()}
-                  />
-                ))}
-              </div>
-              <button onClick={handleSubmit}
-                disabled={!pinComplete || phase === "locating" || phase === "loading"}
-                className="w-full py-3.5 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-40"
-                style={{ background: "#dc2626" }}>
-                {phase === "locating" && <><Spinner /> Getting location...</>}
-                {phase === "loading" && <><Spinner /> Marking attendance...</>}
-                {phase === "input" && "Mark Attendance"}
-              </button>
-            </>
-          )}
-
-          {/* Error */}
-          {phase === "error" && (
-            <div className="text-center">
-              <div className="text-5xl mb-4">❌</div>
-              <p className="text-white font-bold mb-2">Something went wrong</p>
-              <p className="text-gray-400 text-sm mb-6 leading-relaxed">{errorMsg}</p>
-              <button onClick={resetForm}
-                className="w-full py-3.5 rounded-xl font-semibold text-white text-sm"
-                style={{ background: "#dc2626" }}>
-                Try Again
-              </button>
-            </div>
-          )}
-
-          {/* Success */}
-          {phase === "success" && successData && (
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="text-3xl">{successData.action === "checkin" ? "✅" : "🔴"}</div>
-                <div>
-                  <p className="text-white font-bold text-base leading-tight">{successData.employeeName}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span
-                      className="text-xs font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: successData.action === "checkin" ? "#166534" : "#7f1d1d", color: successData.action === "checkin" ? "#4ade80" : "#f87171" }}>
-                      {successData.action === "checkin" ? "Checked In" : "Checked Out"}
-                    </span>
-                    {successData.shiftNumber && successData.shiftNumber > 1 && (
-                      <span className="text-xs text-gray-500">Shift {successData.shiftNumber}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <p className="text-gray-400 text-sm mb-5">{successData.time}</p>
-              <div className="flex gap-2">
-                <Link href="/my-attendance"
-                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-center transition-colors"
-                  style={{ background: "#111", color: "#9ca3af" }}>
-                  My Attendance →
-                </Link>
-                <button onClick={() => setPhase("cooldown")}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white transition-colors"
-                  style={{ background: "#dc2626" }}>
-                  Done · Next Person
-                </button>
-              </div>
-            </div>
-          )}
+        <div className="flex gap-4 mb-10">
+          {digits.map((digit, i) => (
+            <input key={i}
+              ref={(el) => { inputs.current[i] = el; }}
+              type="tel" inputMode="numeric" maxLength={1}
+              value={digit}
+              onChange={(e) => handleChange(i, e)}
+              onKeyDown={(e) => handleKeyDown(i, e)}
+              disabled={phase === "locating" || phase === "loading"}
+              className="h-14 w-14 text-center text-2xl font-bold rounded-xl border-2 outline-none text-white transition-colors"
+              style={{ background: "#1a1a1a", borderColor: digit ? "#dc2626" : "#374151", caretColor: "#dc2626" }}
+              onFocus={(e) => e.target.select()}
+            />
+          ))}
         </div>
 
-        {/* ── Registration Form Card ── */}
-        <div className="w-full rounded-2xl p-6" style={{ background: "#1a1a1a" }}>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Member Registration</p>
-          <p className="text-white font-semibold text-sm mb-4">New member? Share the form</p>
+        <button onClick={handleSubmit}
+          disabled={!pinComplete || phase === "locating" || phase === "loading"}
+          className="w-full py-4 rounded-xl font-semibold text-white text-base flex items-center justify-center gap-3 transition-opacity disabled:opacity-50"
+          style={{ background: "#dc2626" }}>
+          {phase === "locating" && <><Spinner /> Getting location...</>}
+          {phase === "loading"  && <><Spinner /> Marking attendance...</>}
+          {phase === "input"    && "Mark Attendance"}
+        </button>
 
-          {!REGISTRATION_FORM_URL ? (
-            <div className="flex items-center gap-3 bg-black/30 rounded-xl p-4">
-              <QrCode className="h-8 w-8 text-gray-600 flex-shrink-0" />
-              <div>
-                <p className="text-gray-400 text-xs font-medium">Form URL not set up yet</p>
-                <p className="text-gray-600 text-xs mt-0.5">Admin: add NEXT_PUBLIC_REGISTRATION_FORM_URL in Vercel</p>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* QR Code */}
-              <div className="flex justify-center mb-4">
-                <div className="bg-white p-3 rounded-xl">
-                  <QRCode value={REGISTRATION_FORM_URL} size={140} bgColor="#ffffff" fgColor="#111827" />
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={copyLink}
-                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-colors"
-                  style={{ background: "#111", color: "#d1d5db" }}>
-                  {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
-                  {copied ? "Copied!" : "Copy Link"}
-                </button>
-
-                <button onClick={shareWhatsApp}
-                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-white transition-colors"
-                  style={{ background: "#1ebe5d" }}>
-                  <MessageCircle className="h-3.5 w-3.5" />
-                  WhatsApp
-                </button>
-
-                <Link href="/qr" target="_blank"
-                  className="col-span-2 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-colors"
-                  style={{ background: "#111", color: "#d1d5db" }}>
-                  <Printer className="h-3.5 w-3.5" />
-                  Print QR Code
-                </Link>
-              </div>
-            </>
-          )}
-        </div>
-
+        <Link href="/staff-dashboard"
+          className="mt-6 text-sm transition-colors"
+          style={{ color: "#4b5563" }}>
+          ← Staff Dashboard
+        </Link>
       </div>
     </div>
   );
@@ -303,7 +233,7 @@ export default function StaffDashboardPage() {
 
 function Spinner() {
   return (
-    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
     </svg>

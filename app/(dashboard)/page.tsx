@@ -284,9 +284,13 @@ export default function MarketingPage() {
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50 overflow-hidden">
                   <div className="py-1.5">
+                    <Link href="/staff-dashboard" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
+                      <span className="text-base">🏠</span>
+                      <span className="font-medium text-sm">Staff Dashboard</span>
+                    </Link>
                     <Link href="/checkin" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
                       <span className="text-base">📍</span>
-                      <span className="font-medium text-sm">Staff Dashboard</span>
+                      <span className="font-medium text-sm">Check In</span>
                     </Link>
                     <Link href="/my-attendance" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors">
                       <span className="text-base">📅</span>
@@ -1029,7 +1033,8 @@ export default function MarketingPage() {
                 <p className="text-white font-bold text-sm mb-4">Staff Portal</p>
                 <ul className="space-y-2 text-sm">
                   {[
-                    { label: "Staff Dashboard", href: "/checkin" },
+                    { label: "Staff Dashboard", href: "/staff-dashboard" },
+                    { label: "Check In", href: "/checkin" },
                     { label: "My Attendance", href: "/my-attendance" },
                     { label: "Register as Staff", href: "/join" },
                   ].map(({ label, href }) => (
