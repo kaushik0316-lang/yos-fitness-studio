@@ -109,6 +109,11 @@ function findByName(
   return null; // ambiguous
 }
 
+/** Replace dots, slashes, commas etc. with a space and collapse whitespace */
+function cleanName(raw: string): string {
+  return raw.replace(/[.\-\/,;()_\\]/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
+}
+
 // ── Ghost member creation ─────────────────────────────────────────────────────
 async function createGhostMember(
   name: string,
@@ -126,7 +131,7 @@ async function createGhostMember(
   const member = await prisma.member.create({
     data: {
       memberId,
-      fullName: name || "UNKNOWN",
+      fullName: cleanName(name) || "UNKNOWN",
       phone: phone || "0000000000",
       primaryCompany: company as any,
       status: "ACTIVE",

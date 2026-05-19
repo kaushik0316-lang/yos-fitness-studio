@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap, UserCheck, Building2, CalendarX, GitMerge } from "lucide-react";
+import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap, UserCheck, Building2, CalendarX, GitMerge, Type } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ImportResult = {
@@ -258,6 +258,7 @@ function ReceiptsImport() {
       {error && <ErrorBanner message={error} />}
       {result && <ResultCard result={result} type="receipts" />}
 
+      <FixNamesPanel />
       <FuzzyMergePanel />
       <RematchPanel />
       <FixGhostsPanel />
@@ -266,6 +267,85 @@ function ReceiptsImport() {
       <FixNoPaymentPanel />
       <FixCompanyPanel />
       <FixDatesPanel />
+    </div>
+  );
+}
+
+/* ─── Fix member names: remove dots/slashes, separate by space ───────────── */
+
+function FixNamesPanel() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult]   = useState<{ fixed: number; sample: { from: string; to: string }[] } | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+  const [showSample, setShowSample] = useState(false);
+
+  async function run() {
+    setLoading(true); setResult(null); setError(null);
+    try {
+      const res  = await fetch("/api/import/fix-names", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setResult(data);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-blue-200 p-5 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <Type className="h-4 w-4 text-blue-500" />
+            Fix Member Names
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Replaces dots, slashes, commas and other special characters in member names with a space —
+            e.g. <em>DHIVYA.V</em> becomes <em>DHIVYA V</em>, <em>MURALI/RAJAN</em> becomes <em>MURALI RAJAN</em>.
+          </p>
+        </div>
+        <button
+          onClick={run} disabled={loading}
+          className={cn(
+            "flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+            loading ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-blue-500 hover:bg-blue-600 text-white shadow-md shadow-blue-200"
+          )}
+        >
+          <Type className="h-3.5 w-3.5" />
+          {loading ? "Fixing…" : "Fix Names"}
+        </button>
+      </div>
+
+      {error && <ErrorBanner message={error} />}
+
+      {result && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2">
+            <CheckCircle className="h-4 w-4" />
+            {result.fixed} member name{result.fixed !== 1 ? "s" : ""} cleaned
+          </div>
+          {result.sample.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowSample(v => !v)}
+                className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900"
+              >
+                {showSample ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                Sample changes
+              </button>
+              {showSample && (
+                <div className="mt-2 bg-blue-50 border border-blue-100 rounded-lg p-3 max-h-48 overflow-y-auto">
+                  {result.sample.map((s, i) => (
+                    <p key={i} className="text-[11px] font-mono text-blue-900 leading-relaxed">
+                      {s.from} → {s.to}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
