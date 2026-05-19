@@ -37,9 +37,36 @@ export async function POST(req: NextRequest) {
     fixed += Math.min(50, toFix.length - i);
   }
 
-  // Push ghost members to bottom of any date-sorted list by setting joinDate far in the past
+  // Set each ghost's joinDate from their earliest payment date (real first-visit date)
+  // Falls back to 1970-01-01 for ghosts with no payments so they sort to the bottom
+  const ghostsWithEarliestPayment = await prisma.payment.groupBy({
+    by: ["memberId"],
+    where: { member: { memberId: { startsWith: "IMP-" } } },
+    _min: { date: true },
+  });
+
+  let ghostJoinFixed = 0;
+  // Update ghosts that have payments — use earliest payment date as joinDate
+  for (let i = 0; i < ghostsWithEarliestPayment.length; i += 50) {
+    await Promise.all(
+      ghostsWithEarliestPayment.slice(i, i + 50).map((g) =>
+        g._min.date
+          ? prisma.member.update({
+              where: { id: g.memberId },
+              data: { joinDate: g._min.date },
+            })
+          : Promise.resolve()
+      )
+    );
+    ghostJoinFixed += ghostsWithEarliestPayment.slice(i, i + 50).filter((g) => g._min.date).length;
+  }
+
+  // Ghosts with no payments at all → push to 1970 so they sort below everything
   const ghostJoinFix = await prisma.member.updateMany({
-    where: { memberId: { startsWith: "IMP-" } },
+    where: {
+      memberId: { startsWith: "IMP-" },
+      payments: { none: {} },
+    },
     data: { joinDate: new Date("1970-01-01") },
   });
 
@@ -77,5 +104,5 @@ export async function POST(req: NextRequest) {
     await Promise.all(syncOps.slice(i, i + 50));
   }
 
-  return NextResponse.json({ fixed, ghostJoinFixed: ghostJoinFix.count, setActive, setExpired });
+  return NextResponse.json({ fixed, ghostJoinFixed: ghostJoinFixed + ghostJoinFix.count, setActive, setExpired });
 }
