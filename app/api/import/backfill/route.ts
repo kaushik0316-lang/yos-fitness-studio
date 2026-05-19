@@ -20,6 +20,23 @@ function excelDate(serial: unknown): Date | null {
   return null;
 }
 
+/** Fix obviously-wrong years (3036→2026, 3015→2015, 2105→2025) */
+function correctYear(d: Date): Date {
+  let y = d.getFullYear();
+  while (y >= 3000) y -= 1000;
+  while (y >= 2100) y -= 100;
+  while (y > 2027)  y -= 10;
+  if (y < 2005)     y += 20;
+  const fixed = new Date(d);
+  fixed.setFullYear(y);
+  return fixed;
+}
+
+function safeDate(d: Date | null): Date | null {
+  if (!d) return null;
+  return d.getFullYear() > 2027 ? correctYear(d) : d;
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") {
@@ -72,13 +89,14 @@ export async function POST(req: NextRequest) {
     const payment = byReceiptNo[receiptNo];
     if (!payment) { notFound++; continue; }
 
-    const startDate  = excelDate(startSerial);
-    const expiryDate = excelDate(endSerial);
+    const startDate  = safeDate(excelDate(startSerial));
+    const expiryDate = safeDate(excelDate(endSerial));
 
     if (!startDate || !expiryDate) { noDates++; continue; }
 
-    // Attempt to fix the payment date if it was defaulted to import time
-    const receiptDate = excelDate(dateSerial);
+    // Fix the payment date from column 0 (always overwrite — corrects both
+    // defaulted-to-import-time and bad-year-from-Excel problems)
+    const receiptDate = safeDate(excelDate(dateSerial));
 
     updates.push({ id: payment.id, startDate, expiryDate, date: receiptDate, memberId: payment.memberId });
   }
@@ -129,10 +147,26 @@ export async function POST(req: NextRequest) {
     else setExpired++;
   }
 
+  // ── Final cleanup: fix any remaining corrupt dates across ALL payments ───────
+  // (catches rows whose Excel date was unparseable so receiptDate was null)
+  const stillBad = await prisma.payment.findMany({
+    where: { date: { gt: new Date("2027-12-31") } },
+    select: { id: true, date: true },
+  });
+  let extraFixed = 0;
+  for (const p of stillBad) {
+    await prisma.payment.update({
+      where: { id: p.id },
+      data: { date: correctYear(p.date) },
+    });
+    extraFixed++;
+  }
+
   return NextResponse.json({
     datesUpdated,
     notFound,
     noDates,
+    extraDatesFixed: extraFixed,
     membersSetActive: setActive,
     membersSetExpired: setExpired,
   });
