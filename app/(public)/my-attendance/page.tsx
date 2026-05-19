@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef, useState, KeyboardEvent, ChangeEvent } from "react";
+import { useRef, useState, useEffect, KeyboardEvent, ChangeEvent } from "react";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -101,6 +101,13 @@ export default function MyAttendancePage() {
   const [savedPin, setSavedPin]   = useState("");
   const [signOutConfirm, setSignOutConfirm] = useState(false);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Auto-login if coming from Staff Dashboard
+  useEffect(() => {
+    const storedPin = sessionStorage.getItem("staff_pin");
+    if (storedPin) fetch_(storedPin, today.getMonth() + 1, today.getFullYear());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleChange(index: number, e: ChangeEvent<HTMLInputElement>) {
     const val = e.target.value.replace(/\D/g, "").slice(-1);
