@@ -4,7 +4,7 @@
  */
 
 export const REGISTRATION_FORM_URL =
-  process.env.NEXT_PUBLIC_REGISTRATION_FORM_URL ?? "";
+  process.env.NEXT_PUBLIC_REGISTRATION_FORM_URL ?? "https://yosfitnessstudio.in/register";
 
 export const GYM_NAME = "Yos Fitness Studio";
 export const GYM_LOCATION = "Mylapore, Chennai";
