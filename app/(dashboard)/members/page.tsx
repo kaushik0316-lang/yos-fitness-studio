@@ -65,7 +65,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
         _count: { select: { attendances: true } },
       },
       orderBy: [
-        { expiryDate: { sort: "desc", nulls: "last" } }, // most recently billed first; no-payment members at end
+        { joinDate: "desc" }, // most recently added first
         { fullName: "asc" },
       ],
       skip,
