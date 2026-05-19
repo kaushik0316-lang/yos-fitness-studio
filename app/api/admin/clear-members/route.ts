@@ -8,8 +8,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Cascade deletes handle: Membership, Payment, MemberAttendance, RenewalFollowUp, etc.
+  const total = await prisma.member.count();
   const { count } = await prisma.member.deleteMany({});
 
-  return NextResponse.json({ ok: true, membersDeleted: count });
+  return NextResponse.json({ ok: true, countBefore: total, membersDeleted: count });
+}
+
+export async function GET(req: NextRequest) {
+  if (req.headers.get("x-admin-secret") !== SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const total = await prisma.member.count();
+  const byStatus = await prisma.member.groupBy({ by: ["status"], _count: true });
+  return NextResponse.json({ total, byStatus });
 }
