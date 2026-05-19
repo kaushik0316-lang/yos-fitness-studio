@@ -13,8 +13,16 @@ type Member = {
   primaryCompany: "YOS_FITNESS" | "YOS_FITNESS_STUDIO";
 };
 
+type Employee = {
+  id: string;
+  fullName: string;
+  role: string;
+  employeeId: string;
+};
+
 type Props = {
   members: Member[];
+  employees: Employee[];
   userId: string;
 };
 
@@ -46,7 +54,7 @@ function todayStr(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-export function NewReceiptClient({ members }: Props) {
+export function NewReceiptClient({ members, employees }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +78,7 @@ export function NewReceiptClient({ members }: Props) {
   const [notes, setNotes] = useState("");
   const [prevReceiptNo, setPrevReceiptNo] = useState("");
   const [prevAmount, setPrevAmount] = useState("");
+  const [soldById, setSoldById] = useState<string | null>(null); // null = common/unattributed
 
   // Filtered members
   const filteredMembers = useMemo(() => {
@@ -142,6 +151,7 @@ export function NewReceiptClient({ members }: Props) {
         previousReceiptNo: prevReceiptNo ? Number(prevReceiptNo) : undefined,
         previousAmount: prevAmount ? Number(prevAmount) : undefined,
         notes: notes || undefined,
+        soldById: soldById ?? undefined,
       });
       router.push(`/payments/${result.paymentId}/receipt`);
     } catch (err: any) {
@@ -426,7 +436,55 @@ export function NewReceiptClient({ members }: Props) {
         </div>
       </div>
 
-      {/* ── Row 9: Notes ── */}
+      {/* ── Row 9: Who made the sale? (admin only — not on receipt) ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Who Made the Sale?</p>
+          <span className="text-[10px] font-semibold text-gray-300 bg-gray-100 px-2 py-0.5 rounded-full">
+            INTERNAL · NOT ON RECEIPT
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {/* Common / unattributed */}
+          <button
+            type="button"
+            onClick={() => setSoldById(null)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all ${
+              soldById === null
+                ? "bg-gray-700 border-gray-700 text-white"
+                : "bg-white border-gray-200 text-gray-500 hover:border-gray-400"
+            }`}
+          >
+            Common Sale
+          </button>
+          {employees.map((emp) => (
+            <button
+              key={emp.id}
+              type="button"
+              onClick={() => setSoldById(emp.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all ${
+                soldById === emp.id
+                  ? "bg-orange-500 border-orange-500 text-white"
+                  : "bg-white border-gray-200 text-gray-500 hover:border-orange-300"
+              }`}
+            >
+              {emp.fullName}
+            </button>
+          ))}
+        </div>
+        {soldById && (
+          <p className="text-[11px] text-orange-600 font-semibold mt-2">
+            ✓ Attributed to {employees.find((e) => e.id === soldById)?.fullName}
+          </p>
+        )}
+        {soldById === null && (
+          <p className="text-[11px] text-gray-400 mt-2">
+            Not attributed to a specific staff member
+          </p>
+        )}
+      </div>
+
+      {/* ── Row 10: Notes ── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
         <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Notes (optional)</label>
         <input

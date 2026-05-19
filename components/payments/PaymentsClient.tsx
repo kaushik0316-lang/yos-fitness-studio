@@ -15,6 +15,7 @@ type Payment = {
   member: { id: string; memberId: string; fullName: string; phone: string };
   package: { name: string } | null;
   collectedBy: { name: string };
+  soldBy: { fullName: string; employeeId: string } | null;
 };
 
 type Stats = { company: Company; _sum: { amount: any }; _count: number }[];
@@ -121,7 +122,7 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/70">
-                {["Receipt #", "Date", "Member", "Amount", "Mode", "Package", "Company", "Collected By"].map((h) => (
+                {["Receipt #", "Date", "Member", "Amount", "Mode", "Package", "Company", "Sold By"].map((h) => (
                   <th key={h} className="text-left px-5 py-3.5 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">
                     {h}
                   </th>
@@ -174,7 +175,11 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
                         {p.company === "YOS_FITNESS" ? "Yos Fitness" : "Yos Studio"}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-sm text-gray-600">{p.collectedBy.name}</td>
+                    <td className="px-5 py-4 text-sm">
+                      {p.soldBy
+                        ? <span className="font-semibold text-orange-600">{p.soldBy.fullName}</span>
+                        : <span className="text-gray-400 text-xs">Common</span>}
+                    </td>
                   </tr>
                 ))
               )}

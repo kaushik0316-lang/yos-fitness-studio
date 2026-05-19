@@ -34,6 +34,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
         member: { select: { id: true, memberId: true, fullName: true, phone: true } },
         package: { select: { name: true } },
         collectedBy: { select: { name: true } },
+        soldBy: { select: { fullName: true, employeeId: true } },
       },
       orderBy: { date: "desc" },
       skip,

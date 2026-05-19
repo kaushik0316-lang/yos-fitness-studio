@@ -21,6 +21,7 @@ const receiptSchema = z.object({
   previousReceiptNo: z.number().optional(),
   previousAmount: z.number().optional(),
   notes: z.string().optional(),
+  soldById: z.string().optional(), // employee who made the sale; null = common/unattributed
 });
 
 export async function createReceipt(input: z.infer<typeof receiptSchema>) {
@@ -50,6 +51,7 @@ export async function createReceipt(input: z.infer<typeof receiptSchema>) {
         paymentMode: data.paymentMode,
         company: data.company,
         collectedById: session.user.id,
+        soldById: data.soldById ?? null,
         notes: data.notes,
         receiptNumber: nextReceiptNumber,
         paymentType: data.paymentType,
