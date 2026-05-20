@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Header } from "@/components/layout/Header";
+import { DashboardHero } from "@/components/dashboard/DashboardHero";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { InactiveMembersAlert } from "@/components/dashboard/InactiveMembersAlert";
 import { RenewalsDueWidget } from "@/components/dashboard/RenewalsDueWidget";
@@ -134,11 +134,15 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <Header
-        title="Dashboard"
-        subtitle={`Welcome back, ${session!.user.name.split(" ")[0]}`}
-      />
       <div className="flex-1 p-6 space-y-6">
+        <DashboardHero
+          userName={session!.user.name}
+          userRole={session!.user.role}
+          activeMembers={data.stats.activeMembers}
+          renewalsDue={data.stats.renewalsDueThisWeek}
+          todayRevenue={data.stats.todayCollections}
+          staffPresent={data.stats.employeePresentToday}
+        />
         <DashboardStats stats={data.stats} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
