@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       currentPackageId: null,
       expiryDate: { not: null },
     },
-    select: { id: true, expiryDate: true, primaryCompany: true },
+    select: { id: true, expiryDate: true },
   });
 
   if (membersToFix.length === 0) {
@@ -31,9 +31,9 @@ export async function POST(req: NextRequest) {
 
   const memberIds = membersToFix.map((m) => m.id);
 
-  // Build a lookup: memberId → { expiryDate, primaryCompany }
+  // Build a lookup: memberId → { expiryDate }
   const memberMap = new Map(
-    membersToFix.map((m) => [m.id, { expiryDate: m.expiryDate!, company: m.primaryCompany }])
+    membersToFix.map((m) => [m.id, { expiryDate: m.expiryDate! }])
   );
 
   // Get the most recent payment date for each of these members
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const updates: { memberId: string; packageId: string }[] = [];
   let noPackageFound = 0;
 
-  for (const [memberId, { expiryDate, company }] of Array.from(memberMap.entries())) {
+  for (const [memberId, { expiryDate }] of Array.from(memberMap.entries())) {
     const latest = latestPayment.get(memberId);
     if (!latest) { noPackageFound++; continue; }
 
@@ -68,24 +68,20 @@ export async function POST(req: NextRequest) {
     // Skip nonsensical durations (negative or > 2 years)
     if (durationDays < 0 || durationDays > 730) { noPackageFound++; continue; }
 
-    // Find packages: right company, closest duration (±10 days tolerance)
-    // Use member's primaryCompany for matching (more reliable than payment company)
+    // Find packages: match by duration (±10 days tolerance) and payment company
     const paymentCompany = latest.company as string;
     const candidates = allPackages.filter((pkg) => {
       const durationMatch = Math.abs(pkg.durationDays - durationDays) <= 10;
       const companyMatch =
         pkg.company === null ||
-        pkg.company === paymentCompany ||
-        pkg.company === company;
+        pkg.company === paymentCompany;
       return durationMatch && companyMatch;
     });
 
     if (candidates.length === 0) { noPackageFound++; continue; }
 
-    // Prefer: exact company match > BOTH company > anything else
-    const exact = candidates.filter(
-      (pkg) => pkg.company === paymentCompany || pkg.company === company
-    );
+    // Prefer: exact payment company match > null (both)
+    const exact = candidates.filter((pkg) => pkg.company === paymentCompany);
     const chosen = exact.length > 0 ? exact[0] : candidates[0];
 
     updates.push({ memberId, packageId: chosen.id });

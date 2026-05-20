@@ -16,6 +16,7 @@ const receiptSchema = z.object({
   discount: z.number().default(0),
   pendingAmount: z.number().default(0),
   paymentMode: z.nativeEnum(PaymentMode),
+  billDate: z.string().optional(), // "YYYY-MM-DD" — defaults to today if omitted
   startDate: z.string(), // "YYYY-MM-DD"
   expiryDate: z.string(), // "YYYY-MM-DD"
   previousReceiptNo: z.number().optional(),
@@ -57,6 +58,7 @@ export async function createReceipt(input: z.infer<typeof receiptSchema>) {
         paymentType: data.paymentType,
         categoryLabel: data.categoryLabel,
         periodLabel: data.periodLabel,
+        date: data.billDate ? new Date(data.billDate) : new Date(),
         startDate: new Date(data.startDate),
         expiryDate: new Date(data.expiryDate),
         previousReceiptNo: data.previousReceiptNo ?? null,

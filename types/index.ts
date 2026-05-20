@@ -82,7 +82,6 @@ export type InactiveMemberSummary = {
   expiryDate: Date | null;
   packageName: string | null;
   trainerName: string | null;
-  company: Company;
   reminderSent: boolean;
 };
 
@@ -133,7 +132,7 @@ export type CreateMemberInput = {
   emergencyPhone?: string;
   joinDate?: string;
   status?: MemberStatus;
-  primaryCompany: Company;
+  idCompany: Company;
   trainerId?: string;
   notes?: string;
   packageId?: string;

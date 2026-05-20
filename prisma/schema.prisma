@@ -175,9 +175,6 @@ model Member {
   lastPaymentDate  DateTime?
   lastAttendanceDate DateTime?
 
-  // Company that enrolled this member (primary)
-  primaryCompany Company @default(YOS_FITNESS)
-
   // Assigned trainer
   trainerId String?
   trainer   Employee? @relation("TrainerMembers", fields: [trainerId], references: [id])
@@ -194,7 +191,6 @@ model Member {
   @@index([status])
   @@index([expiryDate])
   @@index([lastAttendanceDate])
-  @@index([primaryCompany])
   @@map("members")
 }
 

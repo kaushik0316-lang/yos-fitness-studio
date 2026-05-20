@@ -17,7 +17,7 @@ const createMemberSchema = z.object({
   address: z.string().optional(),
   emergencyContact: z.string().optional(),
   emergencyPhone: z.string().optional(),
-  primaryCompany: z.enum(["YOS_FITNESS", "YOS_FITNESS_STUDIO"]),
+  idCompany: z.enum(["YOS_FITNESS", "YOS_FITNESS_STUDIO"]),
   trainerId: z.string().optional(),
   notes: z.string().optional(),
   status: z.enum(["ACTIVE", "EXPIRED", "FROZEN", "INACTIVE", "PROSPECT"]).default("ACTIVE"),
@@ -35,7 +35,7 @@ export async function createMember(input: z.infer<typeof createMemberSchema>) {
 
   const data = createMemberSchema.parse(input);
 
-  const memberId = await generateMemberId(data.primaryCompany as Company, prisma);
+  const memberId = await generateMemberId(data.idCompany as Company, prisma);
 
   const member = await prisma.$transaction(async (tx) => {
     let startDate: Date | undefined;
@@ -60,7 +60,6 @@ export async function createMember(input: z.infer<typeof createMemberSchema>) {
         address: ucase(data.address),
         emergencyContact: ucase(data.emergencyContact),
         emergencyPhone: data.emergencyPhone,
-        primaryCompany: data.primaryCompany as Company,
         trainerId: data.trainerId || null,
         notes: ucase(data.notes),
         status: startDate ? MemberStatus.ACTIVE : (data.status as MemberStatus),
@@ -82,7 +81,7 @@ export async function createMember(input: z.infer<typeof createMemberSchema>) {
           discount: data.discount,
           paymentMode: (data.paymentMode as PaymentMode) ?? PaymentMode.CASH,
           packageId: pkg.id,
-          company: data.primaryCompany as Company,
+          company: data.idCompany as Company,
           collectedById: session.user.id,
           notes: "Initial enrollment",
         },
@@ -94,7 +93,7 @@ export async function createMember(input: z.infer<typeof createMemberSchema>) {
           packageId: pkg.id,
           startDate,
           expiryDate,
-          company: data.primaryCompany as Company,
+          company: data.idCompany as Company,
           amount,
           discount: data.discount,
           paymentId: payment.id,

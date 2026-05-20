@@ -14,7 +14,7 @@ import { Company, PaymentMode } from "@prisma/client";
 type Props = {
   open: boolean;
   onClose: () => void;
-  member: { id: string; memberId: string; fullName: string; primaryCompany: Company };
+  member: { id: string; memberId: string; fullName: string };
   packages: { id: string; name: string; price: any; durationDays: number; company: Company | null }[];
   userId: string;
 };
@@ -30,7 +30,7 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId 
       amount: "",
       discount: "0",
       paymentMode: "CASH" as PaymentMode,
-      company: member.primaryCompany,
+      company: "YOS_FITNESS" as Company,
       notes: "",
     },
   });
@@ -38,9 +38,7 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId 
   const selectedPackageId = watch("packageId");
   const selectedPkg = packages.find((p) => p.id === selectedPackageId);
 
-  const filteredPackages = packages.filter(
-    (p) => !p.company || p.company === member.primaryCompany
-  );
+  const filteredPackages = packages;
 
   function handleClose() {
     reset();

@@ -11,10 +11,10 @@ import { RecordPaymentDialog } from "@/components/payments/RecordPaymentDialog";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import {
   formatDate, formatCurrency, daysUntil, daysAgo,
-  COMPANY_COLORS, MEMBER_STATUS_COLORS, getInitials,
+  MEMBER_STATUS_COLORS, getInitials,
 } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import type { UserRole, Company, MemberStatus } from "@prisma/client";
+import type { UserRole, MemberStatus } from "@prisma/client";
 
 type Props = {
   member: any; packages: any[];
@@ -95,9 +95,6 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={cn("px-2.5 py-1 rounded-lg text-xs font-bold", MEMBER_STATUS_COLORS[member.status as MemberStatus])}>
                   {member.status}
-                </span>
-                <span className={cn("px-2.5 py-1 rounded-lg text-xs font-bold", COMPANY_COLORS[member.primaryCompany as Company])}>
-                  {member.primaryCompany === "YOS_FITNESS" ? "Yos Fitness" : "Yos Studio"}
                 </span>
               </div>
 
@@ -354,12 +351,12 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
       {/* Dialogs */}
       <RenewMembershipDialog
         open={showRenew} onClose={() => setShowRenew(false)}
-        member={{ id: member.id, memberId: member.memberId, fullName: member.fullName, primaryCompany: member.primaryCompany }}
+        member={{ id: member.id, memberId: member.memberId, fullName: member.fullName }}
         packages={packages} userId={userId}
       />
       <RecordPaymentDialog
         open={showPayment} onClose={() => setShowPayment(false)}
-        member={{ id: member.id, memberId: member.memberId, fullName: member.fullName, primaryCompany: member.primaryCompany }}
+        member={{ id: member.id, memberId: member.memberId, fullName: member.fullName }}
         packages={packages} userId={userId}
       />
       <MarkAttendanceDialog

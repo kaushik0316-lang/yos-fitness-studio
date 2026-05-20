@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap, UserCheck, Building2, CalendarX, GitMerge, Type, ReceiptText, Link2 } from "lucide-react";
+import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap, UserCheck, CalendarX, GitMerge, Type, ReceiptText, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ImportResult = {
@@ -267,7 +267,6 @@ function ReceiptsImport() {
       <BackfillPanel />
       <SyncExpiryPanel />
       <FixNoPaymentPanel />
-      <FixCompanyPanel />
       <FixDatesPanel />
     </div>
   );
@@ -905,62 +904,6 @@ function FixNoPaymentPanel() {
         <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2">
           <CheckCircle className="h-4 w-4" />
           {updated} members changed to Prospect
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─── Fix member primaryCompany from payment records ────────────────────── */
-
-function FixCompanyPanel() {
-  const [loading, setLoading] = useState(false);
-  const [result, setResult]   = useState<{ updatedFitness: number; updatedStudio: number; total: number } | null>(null);
-  const [error, setError]     = useState<string | null>(null);
-
-  async function run() {
-    if (!confirm("This will update each member's company to match their most recent receipt. Members with Yos Studio receipts will be tagged as Yos Studio. Continue?")) return;
-    setLoading(true); setError(null);
-    try {
-      const res  = await fetch("/api/import/fix-company", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed");
-      setResult(data);
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
-  }
-
-  return (
-    <div className="bg-white rounded-xl border border-dashed border-orange-200 p-5 space-y-3">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-orange-500" />
-            Fix Member Company Assignment
-          </p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            All members were imported as "Yos Fitness" by default. This reads each member's
-            most recent receipt and sets their company correctly — Yos Fitness or Yos Studio.
-          </p>
-        </div>
-        <button
-          onClick={run} disabled={loading}
-          className={cn(
-            "flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
-            loading ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-200"
-          )}
-        >
-          <Building2 className="h-3.5 w-3.5" />
-          {loading ? "Fixing…" : "Run Fix"}
-        </button>
-      </div>
-      {error && <ErrorBanner message={error} />}
-      {result && (
-        <div className="grid grid-cols-3 gap-3">
-          <StatPill icon={CheckCircle} label="Yos Fitness"  value={result.updatedFitness} color="text-orange-600 bg-orange-50" />
-          <StatPill icon={CheckCircle} label="Yos Studio"   value={result.updatedStudio}  color="text-indigo-600 bg-indigo-50" />
-          <StatPill icon={CheckCircle} label="Total updated" value={result.total}          color="text-green-600 bg-green-50" />
         </div>
       )}
     </div>

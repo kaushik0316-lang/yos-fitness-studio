@@ -19,7 +19,7 @@ const schema = z.object({
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   address: z.string().optional(),
   emergencyContact: z.string().optional(),
-  primaryCompany: z.enum(["YOS_FITNESS", "YOS_FITNESS_STUDIO"]),
+  idCompany: z.enum(["YOS_FITNESS", "YOS_FITNESS_STUDIO"]),
   trainerId: z.string().optional(),
   notes: z.string().optional(),
   status: z.enum(["ACTIVE", "EXPIRED", "FROZEN", "INACTIVE", "PROSPECT"]),
@@ -49,7 +49,7 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      primaryCompany: "YOS_FITNESS",
+      idCompany: "YOS_FITNESS",
       status: "ACTIVE",
       startDate: format(new Date(), "yyyy-MM-dd"),
       discount: "0",
@@ -57,7 +57,7 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
   });
 
   const selectedPackageId = watch("packageId");
-  const selectedCompany = watch("primaryCompany") as Company;
+  const selectedCompany = watch("idCompany") as Company;
   const selectedPkg = packages.find((p) => p.id === selectedPackageId);
   const filteredPackages = packages.filter((p) => !p.company || p.company === selectedCompany);
 
@@ -143,16 +143,16 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
                     </select>
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Company *</label>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Which gym? (for ID only)</label>
                     <div className="grid grid-cols-2 gap-3">
                       {[
                         { value: "YOS_FITNESS", label: "Yos Fitness", color: "orange" },
                         { value: "YOS_FITNESS_STUDIO", label: "Yos Fitness Studio", color: "indigo" },
                       ].map((c) => {
-                        const isSelected = watch("primaryCompany") === c.value;
+                        const isSelected = watch("idCompany") === c.value;
                         return (
                           <label key={c.value} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${isSelected ? "border-orange-400 bg-orange-50" : "border-gray-200 hover:border-gray-300"}`}>
-                            <input type="radio" {...register("primaryCompany")} value={c.value} className="hidden" />
+                            <input type="radio" {...register("idCompany")} value={c.value} className="hidden" />
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isSelected ? "border-orange-500" : "border-gray-300"}`}>
                               {isSelected && <div className="w-2 h-2 rounded-full bg-orange-500" />}
                             </div>

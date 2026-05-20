@@ -120,7 +120,7 @@ export function hasPermission(role: UserRole, permission: string): boolean {
 
 export async function generateMemberId(company: Company, prisma: any): Promise<string> {
   const prefix = company === Company.YOS_FITNESS ? "YF" : "YFS";
-  const count = await prisma.member.count({ where: { primaryCompany: company } });
+  const count = await prisma.member.count({ where: { memberId: { startsWith: `${prefix}-` } } });
   const num = String(count + 1).padStart(3, "0");
   return `${prefix}-${num}`;
 }

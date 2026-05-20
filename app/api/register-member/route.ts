@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Name, phone and gym selection are required." }, { status: 400 });
   }
 
-  // Generate next member ID inside a transaction
+  // Generate next member ID inside a transaction (primaryCompany used for ID prefix only, not stored)
   const member = await prisma.$transaction(async (tx) => {
     const prefix = primaryCompany === "YOS_FITNESS" ? "YF" : "YFS";
 
@@ -54,7 +54,6 @@ export async function POST(req: NextRequest) {
         emergencyContact: u(emergencyContact),
         emergencyPhone: emergencyPhone?.trim() || null,
         address: u(address),
-        primaryCompany,
         status: "PROSPECT",
       },
       select: { memberId: true, fullName: true },

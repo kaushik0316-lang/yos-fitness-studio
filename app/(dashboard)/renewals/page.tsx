@@ -20,7 +20,7 @@ export default async function RenewalsPage() {
       where: { status: MemberStatus.EXPIRED },
       select: {
         id: true, memberId: true, fullName: true, phone: true, whatsapp: true,
-        expiryDate: true, primaryCompany: true, lastAttendanceDate: true,
+        expiryDate: true, lastAttendanceDate: true,
         currentPackage: { select: { name: true } },
         trainer: { select: { fullName: true } },
         renewalFollowUps: { where: { isCompleted: false }, take: 1 },
@@ -30,17 +30,17 @@ export default async function RenewalsPage() {
     }),
     prisma.member.findMany({
       where: { status: MemberStatus.ACTIVE, expiryDate: { gte: today, lte: in1Day } },
-      select: { id: true, memberId: true, fullName: true, phone: true, whatsapp: true, expiryDate: true, primaryCompany: true, currentPackage: { select: { name: true } } },
+      select: { id: true, memberId: true, fullName: true, phone: true, whatsapp: true, expiryDate: true, currentPackage: { select: { name: true } } },
       orderBy: { expiryDate: "asc" },
     }),
     prisma.member.findMany({
       where: { status: MemberStatus.ACTIVE, expiryDate: { gt: in1Day, lte: in3Days } },
-      select: { id: true, memberId: true, fullName: true, phone: true, whatsapp: true, expiryDate: true, primaryCompany: true, currentPackage: { select: { name: true } } },
+      select: { id: true, memberId: true, fullName: true, phone: true, whatsapp: true, expiryDate: true, currentPackage: { select: { name: true } } },
       orderBy: { expiryDate: "asc" },
     }),
     prisma.member.findMany({
       where: { status: MemberStatus.ACTIVE, expiryDate: { gt: in3Days, lte: in7Days } },
-      select: { id: true, memberId: true, fullName: true, phone: true, whatsapp: true, expiryDate: true, primaryCompany: true, currentPackage: { select: { name: true } } },
+      select: { id: true, memberId: true, fullName: true, phone: true, whatsapp: true, expiryDate: true, currentPackage: { select: { name: true } } },
       orderBy: { expiryDate: "asc" },
     }),
     prisma.membership.findMany({

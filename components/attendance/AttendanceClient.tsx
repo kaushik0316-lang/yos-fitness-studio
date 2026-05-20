@@ -4,19 +4,19 @@ import { useState, useMemo } from "react";
 import { Search, CheckCircle2, Users, Clock, CalendarCheck } from "lucide-react";
 import Link from "next/link";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
-import { formatTime, COMPANY_COLORS, daysAgo } from "@/lib/utils";
+import { formatTime, daysAgo } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import type { Company, UserRole } from "@prisma/client";
+import type { UserRole } from "@prisma/client";
 
 type AttendanceRecord = {
   id: string; checkInTime: Date; remarks: string | null;
-  member: { id: string; memberId: string; fullName: string; phone: string; primaryCompany: Company; currentPackage: { name: string } | null };
+  member: { id: string; memberId: string; fullName: string; phone: string; currentPackage: { name: string } | null };
   markedBy: { name: string };
 };
 
 type Member = {
   id: string; memberId: string; fullName: string; phone: string;
-  primaryCompany: Company; lastAttendanceDate: Date | null;
+  lastAttendanceDate: Date | null;
   expiryDate: Date | null; currentPackage: { name: string } | null;
   trainer: { fullName: string } | null;
 };
@@ -157,9 +157,6 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                           <Link href={`/members/${m.id}`} className="font-semibold text-gray-900 hover:text-orange-600 transition-colors">
                             {m.fullName}
                           </Link>
-                          <span className={cn("text-[11px] px-1.5 py-0.5 rounded-md font-bold", COMPANY_COLORS[m.primaryCompany])}>
-                            {m.primaryCompany === "YOS_FITNESS" ? "YF" : "YFS"}
-                          </span>
                           {isInactive && (
                             <span className="text-[11px] text-orange-600 font-bold bg-orange-50 px-1.5 py-0.5 rounded-md">
                               {lastVisit}d absent

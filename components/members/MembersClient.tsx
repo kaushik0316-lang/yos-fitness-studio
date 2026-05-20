@@ -9,14 +9,14 @@ import {
 } from "lucide-react";
 import { AddMemberDialog } from "@/components/members/AddMemberDialog";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
-import { formatDate, daysAgo, daysUntil, COMPANY_LABELS, COMPANY_COLORS, MEMBER_STATUS_COLORS } from "@/lib/utils";
+import { formatDate, daysAgo, daysUntil, MEMBER_STATUS_COLORS } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { Company, MemberStatus, UserRole } from "@prisma/client";
 
 type Member = {
   id: string; memberId: string; fullName: string; phone: string;
   whatsapp: string | null; gender: string | null; status: MemberStatus;
-  primaryCompany: Company; currentPackage: { name: string } | null;
+  currentPackage: { name: string } | null;
   expiryDate: Date | null; lastAttendanceDate: Date | null;
   joinDate: Date; trainer: { id: string; fullName: string } | null;
   _count: { attendances: number };
@@ -55,9 +55,9 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
 
   function exportCSV() {
     const rows = [
-      ["Member ID", "Name", "Phone", "Status", "Company", "Package", "Expiry", "Last Visit", "Join Date"],
+      ["Member ID", "Name", "Phone", "Status", "Package", "Expiry", "Last Visit", "Join Date"],
       ...members.map((m) => [
-        m.memberId, m.fullName, m.phone, m.status, COMPANY_LABELS[m.primaryCompany],
+        m.memberId, m.fullName, m.phone, m.status,
         m.currentPackage?.name ?? "—",
         m.expiryDate ? formatDate(m.expiryDate) : "—",
         m.lastAttendanceDate ? formatDate(m.lastAttendanceDate) : "—",
@@ -107,16 +107,6 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
             <option value="FROZEN">Frozen</option>
             <option value="INACTIVE">Inactive</option>
             <option value="PROSPECT">Prospect</option>
-          </select>
-
-          <select
-            defaultValue={searchParams.get("company") ?? "ALL"}
-            onChange={(e) => updateQuery("company", e.target.value)}
-            className="text-sm border-2 border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-orange-400 transition-colors bg-white text-gray-700 font-medium"
-          >
-            <option value="ALL">Both Companies</option>
-            <option value="YOS_FITNESS">Yos Fitness</option>
-            <option value="YOS_FITNESS_STUDIO">Yos Studio</option>
           </select>
 
           {/* Ghost member toggle — ghosts shown by default, hidden when showGhosts=false */}
@@ -206,9 +196,6 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
                             <p className="font-semibold text-gray-900">{m.fullName}</p>
                             <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                               <p className="text-xs text-gray-400">{m.memberId} · {m.phone}</p>
-                              <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-bold", COMPANY_COLORS[m.primaryCompany])}>
-                                {m.primaryCompany === "YOS_FITNESS" ? "YF" : "YFS"}
-                              </span>
                             </div>
                           </div>
                         </div>

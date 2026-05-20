@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { RotateCcw, ChevronRight, Phone } from "lucide-react";
-import { formatDate, daysUntil, COMPANY_COLORS } from "@/lib/utils";
+import { formatDate, daysUntil } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { Company } from "@prisma/client";
 
 type ExpiringMember = {
   id: string; memberId: string; fullName: string; phone: string;
-  expiryDate: Date | null; primaryCompany: Company;
+  expiryDate: Date | null;
 };
 
 type Props = { members: ExpiringMember[] };

@@ -60,7 +60,7 @@ export async function runRenewalReminders(): Promise<{
           expiry_date:    member.expiryDate ? format(member.expiryDate, "dd MMM yyyy") : "—",
           days_to_expiry: rule.daysBeforeExpiry,
           package_name:   member.currentPackage?.name ?? "your membership",
-          gym_name:       member.primaryCompany === "YOS_FITNESS" ? "Yos Fitness" : "Yos Fitness Studio",
+          gym_name:       "Yos Fitness Studio",
         });
 
         const phone = member.whatsapp ?? member.phone;
@@ -118,7 +118,7 @@ export async function runRenewalReminders(): Promise<{
         {
           name:        member.fullName.split(" ")[0],
           expiry_date: member.expiryDate ? format(member.expiryDate, "dd MMM yyyy") : "—",
-          gym_name:    member.primaryCompany === "YOS_FITNESS" ? "Yos Fitness" : "Yos Fitness Studio",
+          gym_name:    "Yos Fitness Studio",
         }
       );
       const phone = member.whatsapp ?? member.phone;

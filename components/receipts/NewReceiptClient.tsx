@@ -10,7 +10,6 @@ type Member = {
   memberId: string;
   fullName: string;
   phone: string;
-  primaryCompany: "YOS_FITNESS" | "YOS_FITNESS_STUDIO";
 };
 
 type Employee = {
@@ -37,18 +36,22 @@ const CATEGORIES = [
   "HIIT Classes",
 ];
 
-const PERIODS = ["1 Month", "3 Months", "6 Months", "12 Months"];
-
-const PERIOD_DAYS: Record<string, number> = {
-  "1 Month": 30,
-  "3 Months": 90,
-  "6 Months": 180,
-  "12 Months": 365,
+const PERIOD_PRESETS = ["1 Month", "3 Months", "6 Months", "12 Months"];
+const PERIOD_PRESET_MONTHS: Record<string, number> = {
+  "1 Month": 1, "3 Months": 3, "6 Months": 6, "12 Months": 12,
 };
 
-function addDaysToDate(dateStr: string, days: number): string {
+/** Parse "4 Months", "4 months", "4", "4M" → 4. Returns 0 if unrecognisable. */
+function parseMonths(period: string): number {
+  const s = period.trim();
+  const m = s.match(/^(\d+)\s*(?:months?|m)?$/i);
+  if (m) return parseInt(m[1], 10);
+  return 0;
+}
+
+function addMonthsToDate(dateStr: string, months: number): string {
   const d = new Date(dateStr);
-  d.setDate(d.getDate() + days);
+  d.setMonth(d.getMonth() + months);
   return d.toISOString().split("T")[0];
 }
 
@@ -75,15 +78,15 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
     if (member) {
       setSelectedMemberId(member.id);
       setMemberSearch(`${member.memberId} — ${member.fullName}`);
-      setCompany(member.primaryCompany);
     }
   }, [initialMemberId, members]);
   const [categoryInput, setCategoryInput] = useState("General Fitness");
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [periodInput, setPeriodInput] = useState("1 Month");
   const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
+  const [billDate, setBillDate] = useState(todayStr());
   const [startDate, setStartDate] = useState(todayStr());
-  const [expiryDate, setExpiryDate] = useState(addDaysToDate(todayStr(), 30));
+  const [expiryDate, setExpiryDate] = useState(addMonthsToDate(todayStr(), 1));
   const [amount, setAmount] = useState("");
   const [discount, setDiscount] = useState("");
   const [pendingAmount, setPendingAmount] = useState("");
@@ -113,25 +116,25 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
     setSelectedMemberId(m.id);
     setMemberSearch(`${m.memberId} — ${m.fullName}`);
     setShowMemberDropdown(false);
-    // Auto-set company to member's primary company
-    setCompany(m.primaryCompany);
   }
 
   function handlePeriodSelect(p: string) {
     setPeriodInput(p);
     setShowPeriodDropdown(false);
-    const days = PERIOD_DAYS[p];
-    if (days) {
-      setExpiryDate(addDaysToDate(startDate, days));
-    }
+    const months = PERIOD_PRESET_MONTHS[p] ?? parseMonths(p);
+    if (months > 0) setExpiryDate(addMonthsToDate(startDate, months));
+  }
+
+  function handlePeriodInputChange(val: string) {
+    setPeriodInput(val);
+    const months = PERIOD_PRESET_MONTHS[val] ?? parseMonths(val);
+    if (months > 0) setExpiryDate(addMonthsToDate(startDate, months));
   }
 
   function handleStartDateChange(val: string) {
     setStartDate(val);
-    const days = PERIOD_DAYS[periodInput];
-    if (days) {
-      setExpiryDate(addDaysToDate(val, days));
-    }
+    const months = PERIOD_PRESET_MONTHS[periodInput] ?? parseMonths(periodInput);
+    if (months > 0) setExpiryDate(addMonthsToDate(val, months));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -159,6 +162,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
         discount: Number(discount) || 0,
         pendingAmount: Number(pendingAmount) || 0,
         paymentMode,
+        billDate,
         startDate,
         expiryDate,
         previousReceiptNo: prevReceiptNo ? Number(prevReceiptNo) : undefined,
@@ -268,7 +272,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
           ))}
         </div>
 
-        {(paymentType === "RENEWAL" || paymentType === "BALANCE") && (
+        {paymentType === "BALANCE" && (
           <div className="grid grid-cols-2 gap-3 mt-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">Previous Receipt No</label>
@@ -294,7 +298,19 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
         )}
       </div>
 
-      {/* ── Row 4 & 5: Category + Period ── */}
+      {/* ── Row 4: Bill Date ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Bill Date</p>
+        <input
+          type="date"
+          value={billDate}
+          onChange={(e) => setBillDate(e.target.value)}
+          className={inputClass}
+        />
+        <p className="text-xs text-gray-400 mt-1.5">Defaults to today — change only if backdating a receipt</p>
+      </div>
+
+      {/* ── Row 5: Category + Period ── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Category combobox */}
@@ -327,26 +343,22 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
             )}
           </div>
 
-          {/* Period combobox */}
+          {/* Period — preset dropdown + free type */}
           <div className="relative">
             <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Period</label>
             <input
               value={periodInput}
-              onChange={(e) => {
-                setPeriodInput(e.target.value);
-                setShowPeriodDropdown(true);
-              }}
+              onChange={(e) => { handlePeriodInputChange(e.target.value); setShowPeriodDropdown(true); }}
               onFocus={() => setShowPeriodDropdown(true)}
               onBlur={() => setTimeout(() => setShowPeriodDropdown(false), 150)}
-              placeholder="e.g. 3 Months"
+              placeholder="e.g. 4 Months"
               className={inputClass}
               autoComplete="off"
             />
             {showPeriodDropdown && (
-              <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg">
-                {PERIODS.filter((p) =>
-                  p.toLowerCase().includes(periodInput.toLowerCase())
-                ).map((p) => (
+              <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                <p className="px-4 pt-2.5 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Common packages</p>
+                {PERIOD_PRESETS.map((p) => (
                   <button
                     key={p}
                     type="button"
@@ -356,6 +368,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
                     {p}
                   </button>
                 ))}
+                <p className="px-4 pt-1 pb-2.5 text-[10px] text-gray-400">Or type any duration e.g. "4 Months"</p>
               </div>
             )}
           </div>

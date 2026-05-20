@@ -13,7 +13,7 @@ import { Company, PaymentMode } from "@prisma/client";
 type Props = {
   open: boolean;
   onClose: () => void;
-  member: { id: string; memberId: string; fullName: string; primaryCompany: Company };
+  member: { id: string; memberId: string; fullName: string };
   packages: { id: string; name: string; price: any; company: Company | null }[];
   userId: string;
 };
@@ -28,7 +28,7 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId }:
       pendingAmount: "0",
       paymentMode: "CASH",
       packageId: "",
-      company: member.primaryCompany,
+      company: "YOS_FITNESS",
       transactionRef: "",
       notes: "",
     },

@@ -4,13 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { RotateCcw, Phone, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { RenewMembershipDialog } from "@/components/members/RenewMembershipDialog";
-import { formatDate, daysAgo, daysUntil, COMPANY_COLORS } from "@/lib/utils";
+import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import type { Company, UserRole } from "@prisma/client";
+import type { UserRole } from "@prisma/client";
 
 type RenewalMember = {
   id: string; memberId: string; fullName: string; phone: string; whatsapp: string | null;
-  expiryDate: Date | null; primaryCompany: Company; lastAttendanceDate?: Date | null;
+  expiryDate: Date | null; lastAttendanceDate?: Date | null;
   currentPackage: { name: string } | null; trainer?: { fullName: string } | null;
   renewalFollowUps?: any[];
 };
@@ -128,9 +128,6 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
                           <Link href={`/members/${m.id}`} className="font-semibold text-gray-900 hover:text-orange-600 transition-colors">
                             {m.fullName}
                           </Link>
-                          <span className={cn("text-[11px] px-1.5 py-0.5 rounded-md font-bold", COMPANY_COLORS[m.primaryCompany])}>
-                            {m.primaryCompany === "YOS_FITNESS" ? "YF" : "YFS"}
-                          </span>
                           {lastVisit !== null && lastVisit >= 4 && (
                             <span className="text-[11px] text-orange-600 font-bold bg-orange-50 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
                               <AlertTriangle className="h-2.5 w-2.5" />
@@ -184,7 +181,7 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
         <RenewMembershipDialog
           open={!!renewFor}
           onClose={() => setRenewFor(null)}
-          member={{ id: renewFor.id, memberId: renewFor.memberId, fullName: renewFor.fullName, primaryCompany: renewFor.primaryCompany }}
+          member={{ id: renewFor.id, memberId: renewFor.memberId, fullName: renewFor.fullName }}
           packages={packages}
           userId={userId}
         />

@@ -84,7 +84,7 @@ async function getDashboardData(userId: string) {
         status: MemberStatus.ACTIVE,
         expiryDate: { gte: today, lte: in7Days },
       },
-      select: { id: true, memberId: true, fullName: true, phone: true, expiryDate: true, primaryCompany: true },
+      select: { id: true, memberId: true, fullName: true, phone: true, expiryDate: true },
       orderBy: { expiryDate: "asc" },
       take: 5,
     }),
@@ -98,7 +98,7 @@ async function getDashboardData(userId: string) {
       },
       select: {
         id: true, memberId: true, fullName: true, phone: true,
-        lastAttendanceDate: true, expiryDate: true, primaryCompany: true,
+        lastAttendanceDate: true, expiryDate: true,
         trainer: { select: { fullName: true } },
       },
       orderBy: { lastAttendanceDate: "asc" },

@@ -8,12 +8,20 @@ import {
   MessageCircle, Users, RotateCcw, CreditCard, AlertTriangle,
   IndianRupee, CalendarX, UserX, ClipboardList, FileUp, ArrowRight,
 } from "lucide-react";
-import { formatCurrency, cn, COMPANY_COLORS } from "@/lib/utils";
-import type { Company } from "@prisma/client";
+import { formatCurrency, cn } from "@/lib/utils";
+import { TodayAttendanceWidget } from "@/components/dashboard/TodayAttendanceWidget";
+import { CollectionsWidget } from "@/components/dashboard/CollectionsWidget";
+import { InactiveMembersAlert } from "@/components/dashboard/InactiveMembersAlert";
 
 type ExpiringSoon = {
   id: string; memberId: string; fullName: string;
-  phone: string; expiryDate: string | null; primaryCompany: Company;
+  phone: string; expiryDate: string | null;
+};
+
+type InactiveMember = {
+  id: string; memberId: string; fullName: string; phone: string;
+  lastAttendanceDate: Date | null; expiryDate: Date | null;
+  trainer: { fullName: string } | null;
 };
 
 type Props = {
@@ -24,11 +32,15 @@ type Props = {
   todayPaymentTotal: number;
   monthPaymentTotal: number;
   monthPaymentCount: number;
+  yosFitnessMonthly: number;
+  yosStudioMonthly: number;
   expiringThisWeek: number;
   expiringToday: number;
   activeMembers: number;
   expiredMembers: number;
   expiringSoonList: ExpiringSoon[];
+  attendanceTrend: { date: string; count: number }[];
+  inactiveMembers: InactiveMember[];
 };
 
 function daysUntil(iso: string | null) {
@@ -41,8 +53,10 @@ export function StaffToolsClient({
   formUrl, userName, userRole,
   todayPaymentCount, todayPaymentTotal,
   monthPaymentTotal, monthPaymentCount,
+  yosFitnessMonthly, yosStudioMonthly,
   expiringThisWeek, expiringToday,
   activeMembers, expiredMembers, expiringSoonList,
+  attendanceTrend, inactiveMembers,
 }: Props) {
   const [copied, setCopied] = useState(false);
   const hasForm = !!formUrl;
@@ -299,10 +313,6 @@ export function StaffToolsClient({
                         </Link>
                         <div className="flex items-center gap-2 mt-0.5">
                           <p className="text-xs text-gray-400">{m.memberId}</p>
-                          <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full",
-                            COMPANY_COLORS[m.primaryCompany])}>
-                            {m.primaryCompany === "YOS_FITNESS" ? "YF" : "YFS"}
-                          </span>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0 ml-4">
@@ -329,6 +339,32 @@ export function StaffToolsClient({
         </div>
 
       </div>
+
+      {/* ── Dashboard widgets ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Attendance trend — takes 2/3 */}
+        <div className="lg:col-span-2">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Attendance Trend</p>
+          <TodayAttendanceWidget trend={attendanceTrend} />
+        </div>
+
+        {/* Inactive members — takes 1/3 */}
+        <div>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Inactive Members</p>
+          <InactiveMembersAlert members={inactiveMembers} />
+        </div>
+      </div>
+
+      {/* Collections breakdown */}
+      <div>
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Monthly Collections Breakdown</p>
+        <CollectionsWidget
+          yosFitness={yosFitnessMonthly}
+          yosStudio={yosStudioMonthly}
+          total={monthPaymentTotal}
+        />
+      </div>
+
     </div>
   );
 }

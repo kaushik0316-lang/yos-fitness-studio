@@ -133,7 +133,6 @@ async function createGhostMember(
       memberId,
       fullName: cleanName(name) || "UNKNOWN",
       phone: phone || "0000000000",
-      primaryCompany: company as any,
       status: "ACTIVE",
       joinDate: new Date(),
     },

@@ -24,7 +24,7 @@ type Stats = { company: Company; _sum: { amount: any }; _count: number }[];
 type Props = {
   payments: Payment[]; total: number; page: number; pageSize: number;
   todayStats: Stats; monthStats: Stats; packages: any[];
-  members: { id: string; memberId: string; fullName: string; primaryCompany: Company }[];
+  members: { id: string; memberId: string; fullName: string }[];
   userRole: UserRole; userId: string;
   dateFilter?: string;
 };
@@ -236,7 +236,7 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
       <RecordPaymentDialog
         open={showRecord}
         onClose={() => setShowRecord(false)}
-        member={{ id: "", memberId: "", fullName: "Select member…", primaryCompany: "YOS_FITNESS" as Company }}
+        member={{ id: "", memberId: "", fullName: "Select member…" }}
         packages={packages}
         userId={userId}
       />

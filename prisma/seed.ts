@@ -1,4 +1,4 @@
-import { PrismaClient, Company, MemberStatus, Gender, PaymentMode, UserRole, EmployeeRole, SalaryType, EmployeeAttendanceStatus, AutomationTrigger, MessageChannel, MessageStatus } from "@prisma/client";
+import { PrismaClient, Company, MemberStatus, Gender, PaymentMode, UserRole, EmployeeRole, SalaryType, EmployeeAttendanceStatus, AutomationTrigger } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { addDays, subDays, subMonths, startOfMonth } from "date-fns";
 
@@ -229,7 +229,6 @@ async function main() {
         gender: m.gender,
         joinDate: m.joinDate,
         status: m.status,
-        primaryCompany: m.company,
         currentPackageId: m.pkg?.id,
         startDate,
         expiryDate,

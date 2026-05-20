@@ -31,7 +31,6 @@ export async function POST(req: NextRequest) {
   }
 
   // Members are company-agnostic. Use YF- prefix for all imported IDs.
-  // primaryCompany defaults to YOS_FITNESS and can be edited per-member later.
   const prefix = "YF";
   const buffer = Buffer.from(await file.arrayBuffer());
   const wb = XLSX.read(buffer, { type: "buffer" });
@@ -103,7 +102,6 @@ export async function POST(req: NextRequest) {
       weight,
       height,
       intentionOfJoining: purpose,
-      primaryCompany: "YOS_FITNESS",
       status: "ACTIVE",
       joinDate: doj ?? new Date(),
     });

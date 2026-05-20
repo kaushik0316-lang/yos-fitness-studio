@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { MembersClient } from "@/components/members/MembersClient";
 import { ExportMembersButton } from "@/components/members/ExportMembersButton";
-import { Company, MemberStatus } from "@prisma/client";
+import { MemberStatus } from "@prisma/client";
 import { subDays } from "date-fns";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,6 @@ export const metadata = { title: "Members" };
 type SearchParams = {
   search?: string;
   status?: string;
-  company?: string;
   inactive?: string;
   showGhosts?: string;
   page?: string;
@@ -42,10 +41,6 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
 
   if (searchParams.status && searchParams.status !== "ALL") {
     where.status = searchParams.status as MemberStatus;
-  }
-
-  if (searchParams.company && searchParams.company !== "ALL") {
-    where.primaryCompany = searchParams.company as Company;
   }
 
   if (searchParams.inactive === "true") {

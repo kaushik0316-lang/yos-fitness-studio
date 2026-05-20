@@ -5,6 +5,8 @@ import { Header } from "@/components/layout/Header";
 import { StaffToolsClient } from "@/components/staff/StaffToolsClient";
 import { REGISTRATION_FORM_URL } from "@/lib/site-config";
 import { startOfDay, endOfDay, addDays, startOfMonth, subDays } from "date-fns";
+import { Company, MemberStatus } from "@prisma/client";
+import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Operations Dashboard" };
@@ -16,7 +18,18 @@ export default async function StaffToolsPage() {
   const today = new Date();
   const monthStart = startOfMonth(today);
 
-  const [todayPayments, monthPayments, expiringThisWeek, expiringToday, activeMembers, expiredMembers] = await Promise.all([
+  const [
+    todayPayments,
+    monthPayments,
+    yosFitnessMonthly,
+    yosStudioMonthly,
+    expiringThisWeek,
+    expiringToday,
+    activeMembers,
+    expiredMembers,
+    recentAttendance,
+    inactiveMembersList,
+  ] = await Promise.all([
     // Today's collections
     prisma.payment.aggregate({
       where: { date: { gte: startOfDay(today), lte: endOfDay(today) } },
@@ -29,29 +42,58 @@ export default async function StaffToolsPage() {
       _sum: { amount: true },
       _count: true,
     }),
+    // YF monthly
+    prisma.payment.aggregate({
+      where: { company: Company.YOS_FITNESS, date: { gte: monthStart, lte: endOfDay(today) } },
+      _sum: { amount: true },
+    }),
+    // YFS monthly
+    prisma.payment.aggregate({
+      where: { company: Company.YOS_FITNESS_STUDIO, date: { gte: monthStart, lte: endOfDay(today) } },
+      _sum: { amount: true },
+    }),
     // Expiring in next 7 days (still active)
     prisma.member.count({
-      where: {
-        expiryDate: { gte: startOfDay(today), lte: addDays(today, 7) },
-        status: "ACTIVE",
-      },
+      where: { expiryDate: { gte: startOfDay(today), lte: addDays(today, 7) }, status: "ACTIVE" },
     }),
     // Expiring today
     prisma.member.count({
-      where: {
-        expiryDate: { gte: startOfDay(today), lte: endOfDay(today) },
-        status: "ACTIVE",
-      },
+      where: { expiryDate: { gte: startOfDay(today), lte: endOfDay(today) }, status: "ACTIVE" },
     }),
     // Total active members
     prisma.member.count({ where: { status: "ACTIVE" } }),
-    // Lapsed in the last 90 days — actionable follow-ups only
+    // Lapsed in the last 90 days
     prisma.member.count({
       where: {
         status: "EXPIRED",
-        memberId: { not: { startsWith: "IMP-" } }, // exclude ghosts
+        memberId: { not: { startsWith: "IMP-" } },
         expiryDate: { gte: subDays(today, 90) },
       },
+    }),
+    // 7-day attendance trend
+    prisma.$queryRaw<{ date: Date; count: bigint }[]>`
+      SELECT date, COUNT(*) as count
+      FROM member_attendance
+      WHERE date >= ${subDays(today, 6)}
+      GROUP BY date
+      ORDER BY date ASC
+    `,
+    // Inactive members (4+ days no check-in)
+    prisma.member.findMany({
+      where: {
+        status: MemberStatus.ACTIVE,
+        OR: [
+          { lastAttendanceDate: { lt: subDays(today, 3) } },
+          { lastAttendanceDate: null },
+        ],
+      },
+      select: {
+        id: true, memberId: true, fullName: true, phone: true,
+        lastAttendanceDate: true, expiryDate: true,
+        trainer: { select: { fullName: true } },
+      },
+      orderBy: { lastAttendanceDate: "asc" },
+      take: 8,
     }),
   ]);
 
@@ -61,14 +103,7 @@ export default async function StaffToolsPage() {
       expiryDate: { gte: today, lte: addDays(today, 7) },
       status: { in: ["ACTIVE", "EXPIRED"] },
     },
-    select: {
-      id: true,
-      memberId: true,
-      fullName: true,
-      phone: true,
-      expiryDate: true,
-      primaryCompany: true,
-    },
+    select: { id: true, memberId: true, fullName: true, phone: true, expiryDate: true },
     orderBy: { expiryDate: "asc" },
     take: 10,
   });
@@ -85,6 +120,8 @@ export default async function StaffToolsPage() {
           todayPaymentTotal={Number(todayPayments._sum.amount ?? 0)}
           monthPaymentTotal={Number(monthPayments._sum.amount ?? 0)}
           monthPaymentCount={monthPayments._count}
+          yosFitnessMonthly={Number(yosFitnessMonthly._sum.amount ?? 0)}
+          yosStudioMonthly={Number(yosStudioMonthly._sum.amount ?? 0)}
           expiringThisWeek={expiringThisWeek}
           expiringToday={expiringToday}
           activeMembers={activeMembers}
@@ -93,6 +130,11 @@ export default async function StaffToolsPage() {
             ...m,
             expiryDate: m.expiryDate ? m.expiryDate.toISOString() : null,
           }))}
+          attendanceTrend={recentAttendance.map((r) => ({
+            date: formatDate(r.date),
+            count: Number(r.count),
+          }))}
+          inactiveMembers={inactiveMembersList}
         />
       </div>
     </>

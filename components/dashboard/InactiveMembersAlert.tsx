@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { AlertTriangle, ChevronRight, Clock } from "lucide-react";
 import { daysAgo, formatDate } from "@/lib/utils";
-import { Company } from "@prisma/client";
 
 type InactiveMember = {
   id: string; memberId: string; fullName: string; phone: string;
   lastAttendanceDate: Date | null; expiryDate: Date | null;
-  primaryCompany: Company; trainer: { fullName: string } | null;
+  trainer: { fullName: string } | null;
 };
 
 type Props = { members: InactiveMember[] };

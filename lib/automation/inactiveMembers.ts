@@ -66,7 +66,7 @@ export async function runInactiveMembersCheck(): Promise<{
           expiry_date:   member.expiryDate ? format(member.expiryDate, "dd MMM yyyy") : "—",
           package_name:  "your membership",
           trainer_name:  member.trainer?.fullName ?? "your trainer",
-          gym_name:      member.primaryCompany === "YOS_FITNESS" ? "Yos Fitness" : "Yos Fitness Studio",
+          gym_name:      "Yos Fitness Studio",
         });
 
         const phone = member.whatsapp ?? member.phone;

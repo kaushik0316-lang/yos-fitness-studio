@@ -18,7 +18,7 @@ export default async function AttendancePage() {
     prisma.memberAttendance.findMany({
       where: { date: { gte: todayStart, lte: todayEnd } },
       include: {
-        member: { select: { id: true, memberId: true, fullName: true, phone: true, primaryCompany: true, currentPackage: { select: { name: true } } } },
+        member: { select: { id: true, memberId: true, fullName: true, phone: true, currentPackage: { select: { name: true } } } },
         markedBy: { select: { name: true } },
       },
       orderBy: { checkInTime: "desc" },
@@ -26,7 +26,7 @@ export default async function AttendancePage() {
     prisma.member.findMany({
       where: { status: MemberStatus.ACTIVE },
       select: {
-        id: true, memberId: true, fullName: true, phone: true, primaryCompany: true,
+        id: true, memberId: true, fullName: true, phone: true,
         lastAttendanceDate: true, expiryDate: true,
         currentPackage: { select: { name: true } },
         trainer: { select: { fullName: true } },
