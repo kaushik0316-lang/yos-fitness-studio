@@ -31,7 +31,21 @@ function formatIndian(amount: number): string {
 
 function fmtDate(d: Date | null | undefined): string {
   if (!d) return "—";
-  return format(new Date(d), "dd/MM/yy");
+  return format(new Date(d), "dd/MM/yyyy");
+}
+
+/** Derive a human period label from the duration in days */
+function derivePeriod(startDate: Date | null | undefined, expiryDate: Date | null | undefined, packageDays?: number | null): string | null {
+  const days = packageDays ?? (startDate && expiryDate
+    ? Math.round((new Date(expiryDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24))
+    : null);
+  if (days === null) return null;
+  if (days <= 35)  return "1 Month";
+  if (days <= 65)  return "2 Months";
+  if (days <= 95)  return "3 Months";
+  if (days <= 185) return "6 Months";
+  if (days <= 370) return "12 Months";
+  return `${days} Days`;
 }
 
 export default async function ReceiptPage({ params }: Props) {
@@ -48,6 +62,7 @@ export default async function ReceiptPage({ params }: Props) {
           phone: true,
         },
       },
+      package: { select: { name: true, durationDays: true } },
       collectedBy: { select: { name: true } },
     },
   });
@@ -62,7 +77,7 @@ export default async function ReceiptPage({ params }: Props) {
 
   const paymentDate = new Date(payment.date);
   const dayOfWeek = format(paymentDate, "EEEE");
-  const dateFormatted = format(paymentDate, "dd/MM/yy");
+  const dateFormatted = format(paymentDate, "dd/MM/yyyy");
 
   const amountNum = Number(payment.amount);
   const discountNum = Number(payment.discount);
@@ -273,10 +288,12 @@ export default async function ReceiptPage({ params }: Props) {
               <tbody>
                 <tr>
                   <td style={{ fontSize: "12px", fontWeight: 600, color: "#374151", paddingTop: "8px" }}>
-                    {payment.categoryLabel ?? "—"}
+                    {payment.categoryLabel ?? payment.package?.name ?? "General Fitness"}
                   </td>
                   <td style={{ fontSize: "12px", fontWeight: 600, color: "#374151", paddingTop: "8px" }}>
-                    {payment.periodLabel ?? "—"}
+                    {payment.periodLabel
+                      ?? derivePeriod(payment.startDate, payment.expiryDate, payment.package?.durationDays)
+                      ?? "—"}
                   </td>
                   <td style={{ fontSize: "12px", fontWeight: 600, color: "#374151", paddingTop: "8px" }}>
                     {fmtDate(payment.startDate)}
