@@ -204,14 +204,13 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
             ) : member.expiryDate || member.startDate ? (
               /* ── Package not linked yet, but dates exist ── */
               <div className="space-y-3">
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
-                  <Link2Off className="h-3.5 w-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs font-bold text-amber-700">Package name not linked</p>
-                    {member.startDate && (
-                      <p className="text-xs text-amber-600 mt-0.5">Started {formatDate(member.startDate)}</p>
-                    )}
-                  </div>
+                {/* Package row — greyed out placeholder */}
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 flex items-center gap-2">
+                  <Link2Off className="h-3.5 w-3.5 text-gray-300 flex-shrink-0" />
+                  <p className="text-xs text-gray-400 italic">Package name not on record</p>
+                  {member.startDate && (
+                    <p className="text-xs text-gray-400 ml-auto">from {formatDate(member.startDate)}</p>
+                  )}
                 </div>
                 {member.expiryDate && (
                   <div className={cn("rounded-xl p-3 border",
