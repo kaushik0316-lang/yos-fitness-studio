@@ -200,16 +200,20 @@ export async function POST(req: NextRequest) {
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i] as any[];
 
-    const rawDate    = row[0];
-    const receiptNo  = typeof row[1] === "number" ? row[1] : null;
-    const name       = String(row[2] ?? "").trim().toUpperCase();
-    const rawMobile  = String(row[3] ?? "").replace(/\D/g, "");
-    const mobile     = rawMobile.length >= 10 ? rawMobile.slice(-10) : rawMobile;
-    const applNo     = row[4];
-    const typeRaw    = row[5];
-    const modeRaw    = row[6];
-    const rawAmount  = row[11];
-    const rawBalance = row[12];
+    const rawDate      = row[0];
+    const receiptNo    = typeof row[1] === "number" ? row[1] : null;
+    const name         = String(row[2] ?? "").trim().toUpperCase();
+    const rawMobile    = String(row[3] ?? "").replace(/\D/g, "");
+    const mobile       = rawMobile.length >= 10 ? rawMobile.slice(-10) : rawMobile;
+    const applNo       = row[4];
+    const typeRaw      = row[5];
+    const modeRaw      = row[6];
+    const packageLabel = String(row[7] ?? "").trim() || null;   // PACKAGE column
+    // row[8] = DURATION (text label, not used for matching)
+    const rawStart     = row[9];   // START date
+    const rawEnd       = row[10];  // END date
+    const rawAmount    = row[11];
+    const rawBalance   = row[12];
 
     if (!name || !rawAmount) continue;
 
@@ -266,16 +270,19 @@ export async function POST(req: NextRequest) {
 
     toCreate.push({
       memberId,
-      date: excelDate(rawDate) ?? new Date(),
+      date:          excelDate(rawDate) ?? new Date(),
       amount,
       pendingAmount: balance,
-      discount: 0,
-      paymentMode: normalizeMode(modeRaw),
-      paymentType: normalizeType(typeRaw),
+      discount:      0,
+      paymentMode:   normalizeMode(modeRaw),
+      paymentType:   normalizeType(typeRaw),
       company,
       collectedById: userId,
       receiptNumber: receiptNo,
-      notes: null,
+      categoryLabel: packageLabel,
+      startDate:     excelDate(rawStart),
+      expiryDate:    excelDate(rawEnd),
+      notes:         null,
     });
   }
 

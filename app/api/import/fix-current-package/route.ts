@@ -8,52 +8,106 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Load all packages for duration matching
+  const allPackages = await prisma.package.findMany({
+    select: { id: true, durationDays: true, company: true, name: true },
+  });
+
   // Find all members with no currentPackageId
   const membersToFix = await prisma.member.findMany({
     where: { currentPackageId: null },
     select: { id: true },
   });
-
   const memberIds = membersToFix.map((m) => m.id);
 
   if (memberIds.length === 0) {
     return NextResponse.json({ fixed: 0, noPackageFound: 0 });
   }
 
-  // Fetch all payments with a packageId for these members, newest-first
-  // We only need one per member — the most recent one with a package linked
-  const payments = await prisma.payment.findMany({
+  // ── Strategy 1: payment already has packageId (future-proof) ──────────────
+  const paymentsWithPkg = await prisma.payment.findMany({
+    where: { memberId: { in: memberIds }, packageId: { not: null } },
+    select: { memberId: true, packageId: true, startDate: true, date: true },
+    orderBy: { date: "desc" },
+  });
+
+  const bestByPkgId = new Map<string, { packageId: string; startDate: Date | null }>();
+  for (const p of paymentsWithPkg) {
+    if (!bestByPkgId.has(p.memberId)) {
+      bestByPkgId.set(p.memberId, { packageId: p.packageId!, startDate: p.startDate });
+    }
+  }
+
+  // ── Strategy 2: duration match using payment startDate + expiryDate ────────
+  // (set by the Backfill step which reads START/END columns from Excel)
+  const paymentsWithDates = await prisma.payment.findMany({
     where: {
       memberId: { in: memberIds },
-      packageId: { not: null },
+      packageId: null,
+      startDate: { not: null },
+      expiryDate: { not: null },
     },
     select: {
       memberId: true,
-      packageId: true,
       startDate: true,
+      expiryDate: true,
+      company: true,
       date: true,
     },
     orderBy: { date: "desc" },
   });
 
-  // Keep only the most-recent payment per member
-  const bestPayment = new Map<string, (typeof payments)[0]>();
-  for (const p of payments) {
-    if (!bestPayment.has(p.memberId)) bestPayment.set(p.memberId, p);
+  // Keep only the most-recent payment per member for duration matching
+  const bestByDuration = new Map<
+    string,
+    { packageId: string; startDate: Date | null } | null
+  >();
+
+  for (const p of paymentsWithDates) {
+    if (bestByDuration.has(p.memberId) || bestByPkgId.has(p.memberId)) continue;
+
+    const durationDays = Math.round(
+      (p.expiryDate!.getTime() - p.startDate!.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    // Find packages matching company + duration (±5 days tolerance)
+    const candidates = allPackages.filter((pkg) => {
+      const durationMatch = Math.abs(pkg.durationDays - durationDays) <= 5;
+      const companyMatch = pkg.company === null || pkg.company === p.company;
+      return durationMatch && companyMatch;
+    });
+
+    if (candidates.length === 0) {
+      bestByDuration.set(p.memberId, null); // no match
+      continue;
+    }
+
+    // Prefer exact company match over null/"BOTH" company packages
+    // (e.g. "1 Month - Yos Fitness" over "Personal Training - Monthly" for a YF payment)
+    const exactCompany = candidates.filter((pkg) => pkg.company === p.company);
+    const chosen = exactCompany.length > 0 ? exactCompany[0] : candidates[0];
+
+    bestByDuration.set(p.memberId, { packageId: chosen.id, startDate: p.startDate });
   }
 
-  // Batch-update in chunks of 50
+  // ── Merge both strategies and update members ───────────────────────────────
+  const merged = new Map<string, { packageId: string; startDate: Date | null }>();
+  for (const [id, val] of bestByPkgId) merged.set(id, val);
+  for (const [id, val] of bestByDuration) {
+    if (!merged.has(id) && val !== null) merged.set(id, val);
+  }
+
   let fixed = 0;
-  const updates = Array.from(bestPayment.entries());
+  const updates = Array.from(merged.entries());
 
   for (let i = 0; i < updates.length; i += 50) {
     await Promise.all(
-      updates.slice(i, i + 50).map(([memberId, p]) =>
+      updates.slice(i, i + 50).map(([memberId, { packageId, startDate }]) =>
         prisma.member.update({
           where: { id: memberId },
           data: {
-            currentPackageId: p.packageId!,
-            ...(p.startDate ? { startDate: p.startDate } : {}),
+            currentPackageId: packageId,
+            ...(startDate ? { startDate } : {}),
           },
         })
       )
