@@ -49,3 +49,6 @@ yarn-error.log*
 
 .vercel
 .env*.local
+.env.neon
+.env.prod.tmp
+.env.temp
