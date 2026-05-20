@@ -13,109 +13,103 @@ export async function POST(req: NextRequest) {
     select: { id: true, durationDays: true, company: true, name: true },
   });
 
-  // Find all members with no currentPackageId
+  // Find all members with no currentPackageId but with an expiryDate set
+  // (expiryDate was set by the original run-full import or status syncs)
   const membersToFix = await prisma.member.findMany({
-    where: { currentPackageId: null },
-    select: { id: true },
+    where: {
+      currentPackageId: null,
+      expiryDate: { not: null },
+    },
+    select: { id: true, expiryDate: true, primaryCompany: true },
   });
-  const memberIds = membersToFix.map((m) => m.id);
 
-  if (memberIds.length === 0) {
-    return NextResponse.json({ fixed: 0, noPackageFound: 0 });
+  if (membersToFix.length === 0) {
+    // Also count members with currentPackageId=null but no expiryDate
+    const noExpiry = await prisma.member.count({ where: { currentPackageId: null } });
+    return NextResponse.json({ fixed: 0, noPackageFound: noExpiry });
   }
 
-  // ── Strategy 1: payment already has packageId (future-proof) ──────────────
-  const paymentsWithPkg = await prisma.payment.findMany({
-    where: { memberId: { in: memberIds }, packageId: { not: null } },
-    select: { memberId: true, packageId: true, startDate: true, date: true },
+  const memberIds = membersToFix.map((m) => m.id);
+
+  // Build a lookup: memberId → { expiryDate, primaryCompany }
+  const memberMap = new Map(
+    membersToFix.map((m) => [m.id, { expiryDate: m.expiryDate!, company: m.primaryCompany }])
+  );
+
+  // Get the most recent payment date for each of these members
+  // (payment.date = actual receipt date; payment with latest date ≈ start of current membership)
+  const recentPayments = await prisma.payment.findMany({
+    where: { memberId: { in: memberIds } },
+    select: { memberId: true, date: true, company: true },
     orderBy: { date: "desc" },
   });
 
-  const bestByPkgId = new Map<string, { packageId: string; startDate: Date | null }>();
-  for (const p of paymentsWithPkg) {
-    if (!bestByPkgId.has(p.memberId)) {
-      bestByPkgId.set(p.memberId, { packageId: p.packageId!, startDate: p.startDate });
+  // Keep only the most-recent payment per member
+  const latestPayment = new Map<string, { date: Date; company: string }>();
+  for (const p of recentPayments) {
+    if (!latestPayment.has(p.memberId)) {
+      latestPayment.set(p.memberId, { date: p.date, company: p.company });
     }
   }
 
-  // ── Strategy 2: duration match using payment startDate + expiryDate ────────
-  // (set by the Backfill step which reads START/END columns from Excel)
-  const paymentsWithDates = await prisma.payment.findMany({
-    where: {
-      memberId: { in: memberIds },
-      packageId: null,
-      startDate: { not: null },
-      expiryDate: { not: null },
-    },
-    select: {
-      memberId: true,
-      startDate: true,
-      expiryDate: true,
-      company: true,
-      date: true,
-    },
-    orderBy: { date: "desc" },
-  });
+  // For each member, calculate duration and find a matching package
+  const updates: { memberId: string; packageId: string }[] = [];
+  let noPackageFound = 0;
 
-  // Keep only the most-recent payment per member for duration matching
-  const bestByDuration = new Map<
-    string,
-    { packageId: string; startDate: Date | null } | null
-  >();
+  for (const [memberId, { expiryDate, company }] of memberMap) {
+    const latest = latestPayment.get(memberId);
+    if (!latest) { noPackageFound++; continue; }
 
-  for (const p of paymentsWithDates) {
-    if (bestByDuration.has(p.memberId) || bestByPkgId.has(p.memberId)) continue;
-
+    // duration = days from last payment date to expiry date
     const durationDays = Math.round(
-      (p.expiryDate!.getTime() - p.startDate!.getTime()) / (1000 * 60 * 60 * 24)
+      (expiryDate.getTime() - latest.date.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    // Find packages matching company + duration (±5 days tolerance)
+    // Skip nonsensical durations (negative or > 2 years)
+    if (durationDays < 0 || durationDays > 730) { noPackageFound++; continue; }
+
+    // Find packages: right company, closest duration (±10 days tolerance)
+    // Use member's primaryCompany for matching (more reliable than payment company)
+    const paymentCompany = latest.company as string;
     const candidates = allPackages.filter((pkg) => {
-      const durationMatch = Math.abs(pkg.durationDays - durationDays) <= 5;
-      const companyMatch = pkg.company === null || pkg.company === p.company;
+      const durationMatch = Math.abs(pkg.durationDays - durationDays) <= 10;
+      const companyMatch =
+        pkg.company === null ||
+        pkg.company === paymentCompany ||
+        pkg.company === company;
       return durationMatch && companyMatch;
     });
 
-    if (candidates.length === 0) {
-      bestByDuration.set(p.memberId, null); // no match
-      continue;
-    }
+    if (candidates.length === 0) { noPackageFound++; continue; }
 
-    // Prefer exact company match over null/"BOTH" company packages
-    // (e.g. "1 Month - Yos Fitness" over "Personal Training - Monthly" for a YF payment)
-    const exactCompany = candidates.filter((pkg) => pkg.company === p.company);
-    const chosen = exactCompany.length > 0 ? exactCompany[0] : candidates[0];
+    // Prefer: exact company match > BOTH company > anything else
+    const exact = candidates.filter(
+      (pkg) => pkg.company === paymentCompany || pkg.company === company
+    );
+    const chosen = exact.length > 0 ? exact[0] : candidates[0];
 
-    bestByDuration.set(p.memberId, { packageId: chosen.id, startDate: p.startDate });
+    updates.push({ memberId, packageId: chosen.id });
   }
 
-  // ── Merge both strategies and update members ───────────────────────────────
-  const merged = new Map<string, { packageId: string; startDate: Date | null }>();
-  for (const [id, val] of bestByPkgId) merged.set(id, val);
-  for (const [id, val] of bestByDuration) {
-    if (!merged.has(id) && val !== null) merged.set(id, val);
-  }
+  // Also count members with no expiryDate at all (truly unresolvable)
+  const totalNoPackage = await prisma.member.count({
+    where: { currentPackageId: null },
+  });
+  noPackageFound += totalNoPackage - membersToFix.length;
 
+  // Batch-update in chunks of 50
   let fixed = 0;
-  const updates = Array.from(merged.entries());
-
   for (let i = 0; i < updates.length; i += 50) {
     await Promise.all(
-      updates.slice(i, i + 50).map(([memberId, { packageId, startDate }]) =>
+      updates.slice(i, i + 50).map(({ memberId, packageId }) =>
         prisma.member.update({
           where: { id: memberId },
-          data: {
-            currentPackageId: packageId,
-            ...(startDate ? { startDate } : {}),
-          },
+          data: { currentPackageId: packageId },
         })
       )
     );
     fixed += Math.min(50, updates.length - i);
   }
-
-  const noPackageFound = memberIds.length - fixed;
 
   return NextResponse.json({ fixed, noPackageFound });
 }
