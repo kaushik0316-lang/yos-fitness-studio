@@ -20,7 +20,9 @@ function calcAge(dob: Date | null | undefined): number | string {
 
 export async function GET() {
   const session = await auth();
-  if (!session) return new Response("Unauthorized", { status: 401 });
+  if (!session?.user || !["ADMIN", "ACCOUNTANT"].includes(session.user.role)) {
+    return new Response("Forbidden", { status: 403 });
+  }
 
   const members = await prisma.member.findMany({
     orderBy: { memberId: "asc" },

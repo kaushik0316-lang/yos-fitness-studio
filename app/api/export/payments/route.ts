@@ -24,7 +24,9 @@ function mapPaymentMode(mode: string): string {
 
 export async function GET(request: Request) {
   const session = await auth();
-  if (!session) return new Response("Unauthorized", { status: 401 });
+  if (!session?.user || !["ADMIN", "ACCOUNTANT"].includes(session.user.role)) {
+    return new Response("Forbidden", { status: 403 });
+  }
 
   const { searchParams } = new URL(request.url);
   const company = searchParams.get("company") ?? "ALL";
