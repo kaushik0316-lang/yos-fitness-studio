@@ -80,22 +80,19 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
         <div className="space-y-4">
           {/* Identity card */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            {/* Orange header band */}
-            <div className="h-20 bg-gradient-to-br from-orange-400 to-orange-600 relative">
-              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 70% 50%, white 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
-            </div>
             {/* Avatar */}
-            <div className="px-6 pb-5">
-              <div className="-mt-8 mb-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center text-white text-xl font-extrabold shadow-xl shadow-orange-300/40 border-4 border-white">
+            <div className="px-6 pt-6 pb-5">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center text-white text-lg font-extrabold shadow-lg shadow-orange-200/60 flex-shrink-0">
                   {getInitials(member.fullName)}
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-gray-900">{member.fullName}</h2>
+                  <p className="text-sm text-gray-400 font-mono mt-0.5">{member.memberId}</p>
                 </div>
               </div>
 
-              <h2 className="text-xl font-extrabold text-gray-900">{member.fullName}</h2>
-              <p className="text-sm text-gray-400 font-mono mt-0.5">{member.memberId}</p>
-
-              <div className="flex items-center gap-2 mt-3 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className={cn("px-2.5 py-1 rounded-lg text-xs font-bold", MEMBER_STATUS_COLORS[member.status as MemberStatus])}>
                   {member.status}
                 </span>
