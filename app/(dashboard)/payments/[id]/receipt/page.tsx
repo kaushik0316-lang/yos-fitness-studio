@@ -8,7 +8,7 @@ import { PrintButton } from "@/components/receipts/PrintButton";
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: { id: string } };
+type Props = { params: { id: string }; searchParams: { from?: string } };
 
 const PAYMENT_MODE_LABELS: Record<string, string> = {
   CASH: "Cash",
@@ -73,14 +73,14 @@ const value = {
 };
 const divider = { borderTop: "1px solid #f3f4f6", margin: "0" };
 
-export default async function ReceiptPage({ params }: Props) {
+export default async function ReceiptPage({ params, searchParams }: Props) {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const payment = await prisma.payment.findUnique({
     where: { id: params.id },
     include: {
-      member: { select: { memberId: true, fullName: true, phone: true } },
+      member: { select: { id: true, memberId: true, fullName: true, phone: true } },
       package: { select: { name: true, durationDays: true } },
       collectedBy: { select: { name: true } },
     },
@@ -114,10 +114,10 @@ export default async function ReceiptPage({ params }: Props) {
       {/* ── Toolbar ── */}
       <div className="no-print flex items-center gap-3 px-6 py-4 bg-white border-b border-gray-100 shadow-sm">
         <Link
-          href="/payments"
+          href={searchParams.from === "member" ? `/members/${payment.member.id}` : "/payments"}
           className="flex items-center gap-2 px-4 py-2 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors"
         >
-          ← Back
+          ← {searchParams.from === "member" ? "Back to Member" : "Back"}
         </Link>
         <PrintButton />
         <span className="text-xs text-gray-400 ml-auto font-mono">

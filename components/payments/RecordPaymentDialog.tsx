@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Loader2, CreditCard } from "lucide-react";
+import { Loader2, CreditCard, Receipt } from "lucide-react";
+import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { recordPayment } from "@/lib/actions/payments";
@@ -19,6 +20,7 @@ type Props = {
 
 export function RecordPaymentDialog({ open, onClose, member, packages, userId }: Props) {
   const [loading, setLoading] = useState(false);
+  const [successPaymentId, setSuccessPaymentId] = useState<string | null>(null);
   const { register, handleSubmit, reset } = useForm({
     defaultValues: {
       amount: "",
@@ -34,6 +36,7 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId }:
 
   function handleClose() {
     reset();
+    setSuccessPaymentId(null);
     onClose();
   }
 
@@ -44,7 +47,7 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId }:
     }
     setLoading(true);
     try {
-      await recordPayment({
+      const result = await recordPayment({
         memberId: member.id,
         amount: Number(data.amount),
         discount: Number(data.discount) || 0,
@@ -56,8 +59,7 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId }:
         notes: data.notes || undefined,
         createMembership: false,
       });
-      toast({ title: "Payment recorded!", description: `₹${Number(data.amount).toLocaleString("en-IN")} collected` });
-      handleClose();
+      setSuccessPaymentId(result.paymentId);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -75,7 +77,32 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId }:
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+        {successPaymentId && (
+          <div className="py-6 flex flex-col items-center gap-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+              <CreditCard className="h-8 w-8 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-gray-900">Payment Recorded!</p>
+              <p className="text-sm text-gray-500 mt-1">{member.fullName}</p>
+            </div>
+            <div className="flex gap-3 w-full">
+              <Link
+                href={`/payments/${successPaymentId}/receipt?from=member`}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-bold transition-colors shadow-md shadow-orange-200"
+                onClick={handleClose}
+              >
+                <Receipt className="h-4 w-4" />
+                View Receipt
+              </Link>
+              <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {!successPaymentId && <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="font-semibold text-gray-900">{member.fullName}</p>
             <p className="text-xs text-gray-400">{member.memberId}</p>
@@ -139,7 +166,7 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId }:
               Record Payment
             </Button>
           </DialogFooter>
-        </form>
+        </form>}
       </DialogContent>
     </Dialog>
   );

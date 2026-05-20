@@ -185,7 +185,7 @@ export async function renewMembership(input: {
   const startDate = new Date(input.startDate);
   const expiryDate = addDays(startDate, pkg.durationDays);
 
-  await prisma.$transaction(async (tx) => {
+  const { paymentId } = await prisma.$transaction(async (tx) => {
     const payment = await tx.payment.create({
       data: {
         memberId: input.memberId,
@@ -234,6 +234,8 @@ export async function renewMembership(input: {
         newValues: { packageId: input.packageId, expiryDate: expiryDate.toISOString(), amount: input.amount },
       },
     });
+
+    return { paymentId: payment.id };
   });
 
   revalidatePath(`/members/${input.memberId}`);
@@ -241,5 +243,5 @@ export async function renewMembership(input: {
   revalidatePath("/renewals");
   revalidatePath("/");
 
-  return { success: true, expiryDate };
+  return { success: true, expiryDate, paymentId };
 }

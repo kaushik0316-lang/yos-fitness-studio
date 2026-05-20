@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "New Receipt" };
 
-export default async function NewReceiptPage() {
+export default async function NewReceiptPage({ searchParams }: { searchParams: { memberId?: string; paymentType?: string } }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
   const { role } = session.user;
@@ -33,7 +33,13 @@ export default async function NewReceiptPage() {
     <>
       <Header title="New Receipt" subtitle="Create a digital receipt for a member payment" />
       <div className="flex-1 p-6">
-        <NewReceiptClient members={members as any} employees={employees} userId={session.user.id} />
+        <NewReceiptClient
+          members={members as any}
+          employees={employees}
+          userId={session.user.id}
+          initialMemberId={searchParams.memberId}
+          initialPaymentType={searchParams.paymentType as any}
+        />
       </div>
     </>
   );

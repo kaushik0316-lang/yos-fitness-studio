@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createReceipt } from "@/lib/actions/receipts";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ type Props = {
   members: Member[];
   employees: Employee[];
   userId: string;
+  initialMemberId?: string;
+  initialPaymentType?: "ADMISSION" | "RENEWAL" | "BALANCE";
 };
 
 const CATEGORIES = [
@@ -54,7 +56,7 @@ function todayStr(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-export function NewReceiptClient({ members, employees }: Props) {
+export function NewReceiptClient({ members, employees, initialMemberId, initialPaymentType }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +66,18 @@ export function NewReceiptClient({ members, employees }: Props) {
   const [memberSearch, setMemberSearch] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
-  const [paymentType, setPaymentType] = useState<"ADMISSION" | "RENEWAL" | "BALANCE">("ADMISSION");
+  const [paymentType, setPaymentType] = useState<"ADMISSION" | "RENEWAL" | "BALANCE">(initialPaymentType ?? "ADMISSION");
+
+  // Pre-fill member if initialMemberId was passed via URL
+  useEffect(() => {
+    if (!initialMemberId) return;
+    const member = members.find((m) => m.id === initialMemberId);
+    if (member) {
+      setSelectedMemberId(member.id);
+      setMemberSearch(`${member.memberId} — ${member.fullName}`);
+      setCompany(member.primaryCompany);
+    }
+  }, [initialMemberId, members]);
   const [categoryInput, setCategoryInput] = useState("General Fitness");
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [periodInput, setPeriodInput] = useState("1 Month");

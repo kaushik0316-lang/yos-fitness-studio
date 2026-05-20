@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, UserCog, Phone, DollarSign } from "lucide-react";
+import { Plus, UserCog, Phone, DollarSign, BarChart2 } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AddEmployeeDialog } from "@/components/employees/AddEmployeeDialog";
 import { formatDate, formatCurrency } from "@/lib/utils";
@@ -92,6 +93,23 @@ export function EmployeesClient({ employees, userRole }: Props) {
                 <p className="text-xs text-gray-400">{emp.user.email}</p>
               </div>
             )}
+
+            <div className="mt-3 pt-3 border-t flex gap-2">
+              <Link
+                href={`/employee-attendance?emp=${emp.employeeId}`}
+                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold text-gray-500 border border-gray-200 hover:border-blue-300 hover:text-blue-600 transition-colors"
+              >
+                <UserCog className="h-3 w-3" />
+                Attendance
+              </Link>
+              <Link
+                href={`/payroll`}
+                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold text-gray-500 border border-gray-200 hover:border-emerald-300 hover:text-emerald-600 transition-colors"
+              >
+                <BarChart2 className="h-3 w-3" />
+                Payroll
+              </Link>
+            </div>
           </div>
         ))}
       </div>

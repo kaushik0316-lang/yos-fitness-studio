@@ -299,7 +299,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                 {member.payments.map((p: any) => (
-                  <Link key={p.id} href={`/payments/${p.id}/receipt`} className="flex items-center justify-between p-3.5 bg-gray-50 hover:bg-violet-50 hover:border-violet-100 border border-transparent rounded-xl transition-colors group">
+                  <Link key={p.id} href={`/payments/${p.id}/receipt?from=member`} className="flex items-center justify-between p-3.5 bg-gray-50 hover:bg-violet-50 hover:border-violet-100 border border-transparent rounded-xl transition-colors group">
                     <div>
                       <p className="font-bold text-gray-900 text-sm group-hover:text-violet-700 transition-colors">{formatCurrency(Number(p.amount))}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{p.package?.name ?? "General"} · {p.paymentMode}</p>

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Search, CheckCircle2, Users, Clock, CalendarCheck } from "lucide-react";
+import Link from "next/link";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import { formatTime, COMPANY_COLORS, daysAgo } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -153,7 +154,9 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold text-gray-900">{m.fullName}</p>
+                          <Link href={`/members/${m.id}`} className="font-semibold text-gray-900 hover:text-orange-600 transition-colors">
+                            {m.fullName}
+                          </Link>
                           <span className={cn("text-[11px] px-1.5 py-0.5 rounded-md font-bold", COMPANY_COLORS[m.primaryCompany])}>
                             {m.primaryCompany === "YOS_FITNESS" ? "YF" : "YFS"}
                           </span>
@@ -201,7 +204,9 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                       <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-gray-900">{a.member.fullName}</p>
+                      <Link href={`/members/${a.member.id}`} className="font-semibold text-gray-900 hover:text-orange-600 transition-colors">
+                        {a.member.fullName}
+                      </Link>
                       <p className="text-xs text-gray-400 mt-0.5">{a.member.memberId} · {a.member.currentPackage?.name ?? "—"}</p>
                     </div>
                   </div>
