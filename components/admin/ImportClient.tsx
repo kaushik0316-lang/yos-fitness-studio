@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap, UserCheck, Building2, CalendarX, GitMerge, Type, ReceiptText } from "lucide-react";
+import { Upload, Users, CreditCard, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Wand2, UserX, RefreshCw, Zap, UserCheck, Building2, CalendarX, GitMerge, Type, ReceiptText, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ImportResult = {
@@ -259,6 +259,7 @@ function ReceiptsImport() {
       {result && <ResultCard result={result} type="receipts" />}
 
       <FixReceiptDatesPanel />
+      <FixCurrentPackagePanel />
       <FixNamesPanel />
       <FuzzyMergePanel />
       <RematchPanel />
@@ -325,6 +326,62 @@ function FixReceiptDatesPanel() {
           <StatPill icon={CheckCircle}   label="Ghosts sorted"  value={result.ghostJoinFixed}  color="text-slate-600 bg-slate-50" />
           <StatPill icon={CheckCircle}   label="Set ACTIVE"     value={result.setActive}       color="text-green-600 bg-green-50" />
           <StatPill icon={AlertTriangle} label="Set EXPIRED"    value={result.setExpired}      color="text-amber-600 bg-amber-50" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Backfill currentPackageId from most-recent payment ────────────────── */
+
+function FixCurrentPackagePanel() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult]   = useState<{ fixed: number; noPackageFound: number } | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+
+  async function run() {
+    setLoading(true); setResult(null); setError(null);
+    try {
+      const res  = await fetch("/api/import/fix-current-package", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setResult(data);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-violet-200 p-5 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <Link2 className="h-4 w-4 text-violet-500" />
+            Link Current Package
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Members imported from Excel have their status and expiry synced, but their
+            <code className="bg-gray-100 px-1 rounded text-[11px] mx-1">currentPackageId</code>
+            may still be null — so their profile shows "No active membership" even when they're ACTIVE.
+            This scans every such member, finds their most recent payment with a package, and links it.
+          </p>
+        </div>
+        <button
+          onClick={run} disabled={loading}
+          className={cn(
+            "flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+            loading ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-violet-500 hover:bg-violet-600 text-white shadow-md shadow-violet-200"
+          )}
+        >
+          <Link2 className="h-3.5 w-3.5" />
+          {loading ? "Linking…" : "Link Packages"}
+        </button>
+      </div>
+      {error && <ErrorBanner message={error} />}
+      {result && (
+        <div className="grid grid-cols-2 gap-3">
+          <StatPill icon={CheckCircle}   label="Packages linked"   value={result.fixed}          color="text-violet-600 bg-violet-50" />
+          <StatPill icon={AlertTriangle} label="No package found"  value={result.noPackageFound} color="text-amber-600 bg-amber-50" />
         </div>
       )}
     </div>

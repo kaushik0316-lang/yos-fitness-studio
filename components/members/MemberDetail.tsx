@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, Phone, User, Calendar, Package, CreditCard,
-  Clock, RotateCcw, CheckCircle, MessageSquare, AlertTriangle, MapPin,
+  Clock, RotateCcw, CheckCircle, MessageSquare, AlertTriangle, MapPin, Link2Off,
 } from "lucide-react";
 import { RenewMembershipDialog } from "@/components/members/RenewMembershipDialog";
 import { RecordPaymentDialog } from "@/components/payments/RecordPaymentDialog";
@@ -173,6 +173,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
             </p>
 
             {member.currentPackage ? (
+              /* ── Normal: package linked ── */
               <div className="space-y-3">
                 <div className="bg-orange-50 border border-orange-100 rounded-xl p-3">
                   <p className="font-bold text-gray-900 text-sm">{member.currentPackage.name}</p>
@@ -200,7 +201,42 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                   </div>
                 )}
               </div>
+            ) : member.expiryDate || member.startDate ? (
+              /* ── Package not linked yet, but dates exist ── */
+              <div className="space-y-3">
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
+                  <Link2Off className="h-3.5 w-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-bold text-amber-700">Package name not linked</p>
+                    {member.startDate && (
+                      <p className="text-xs text-amber-600 mt-0.5">Started {formatDate(member.startDate)}</p>
+                    )}
+                  </div>
+                </div>
+                {member.expiryDate && (
+                  <div className={cn("rounded-xl p-3 border",
+                    expiryStatus === "expired" ? "bg-red-50 border-red-200" :
+                    expiryStatus === "critical" ? "bg-red-50 border-red-200" :
+                    expiryStatus === "soon" ? "bg-amber-50 border-amber-200" :
+                    "bg-gray-50 border-gray-200"
+                  )}>
+                    <p className="text-xs text-gray-500 mb-1">Expiry date</p>
+                    <p className="font-bold text-gray-900 text-sm">{formatDate(member.expiryDate)}</p>
+                    {daysLeft !== null && (
+                      <p className={cn("text-xs font-semibold mt-1",
+                        daysLeft < 0 ? "text-red-600" :
+                        daysLeft <= 7 ? "text-orange-600" : "text-emerald-600"
+                      )}>
+                        {daysLeft < 0 ? `Expired ${Math.abs(daysLeft)}d ago` :
+                         daysLeft === 0 ? "Expires today!" :
+                         `${daysLeft} days remaining`}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             ) : (
+              /* ── No membership data at all ── */
               <p className="text-sm text-gray-400">No active membership</p>
             )}
 
@@ -267,18 +303,21 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                 {member.payments.map((p: any) => (
-                  <div key={p.id} className="flex items-center justify-between p-3.5 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors">
+                  <Link key={p.id} href={`/payments/${p.id}/receipt`} className="flex items-center justify-between p-3.5 bg-gray-50 hover:bg-violet-50 hover:border-violet-100 border border-transparent rounded-xl transition-colors group">
                     <div>
-                      <p className="font-bold text-gray-900 text-sm">{formatCurrency(Number(p.amount))}</p>
+                      <p className="font-bold text-gray-900 text-sm group-hover:text-violet-700 transition-colors">{formatCurrency(Number(p.amount))}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{p.package?.name ?? "General"} · {p.paymentMode}</p>
                       <p className="text-xs text-gray-400">{formatDate(p.date)} · {p.collectedBy?.name}</p>
                     </div>
-                    <span className={cn("text-xs px-2.5 py-1 rounded-lg font-bold flex-shrink-0",
-                      p.company === "YOS_FITNESS" ? "bg-orange-100 text-orange-700" : "bg-indigo-100 text-indigo-700"
-                    )}>
-                      {p.company === "YOS_FITNESS" ? "YF" : "YFS"}
-                    </span>
-                  </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={cn("text-xs px-2.5 py-1 rounded-lg font-bold",
+                        p.company === "YOS_FITNESS" ? "bg-orange-100 text-orange-700" : "bg-indigo-100 text-indigo-700"
+                      )}>
+                        {p.company === "YOS_FITNESS" ? "YF" : "YFS"}
+                      </span>
+                      <CreditCard className="h-3.5 w-3.5 text-gray-300 group-hover:text-violet-400 transition-colors" />
+                    </div>
+                  </Link>
                 ))}
               </div>
             )}
