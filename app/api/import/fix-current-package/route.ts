@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const updates: { memberId: string; packageId: string }[] = [];
   let noPackageFound = 0;
 
-  for (const [memberId, { expiryDate, company }] of memberMap) {
+  for (const [memberId, { expiryDate, company }] of Array.from(memberMap.entries())) {
     const latest = latestPayment.get(memberId);
     if (!latest) { noPackageFound++; continue; }
 
