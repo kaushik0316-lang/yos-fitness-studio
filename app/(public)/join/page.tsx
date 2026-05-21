@@ -197,7 +197,7 @@ export default function JoinPage() {
 
         <p className="text-center text-gray-600 text-xs mt-6">
           Already registered?{" "}
-          <Link href="/checkin" className="text-gray-400 hover:text-white transition-colors">Check in →</Link>
+          <Link href="/checkin" className="text-gray-400 hover:text-white transition-colors">Sign In →</Link>
         </p>
       </div>
     </div>
