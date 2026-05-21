@@ -214,7 +214,7 @@ export default function StaffDashboardPage() {
                 {todayLabel()}
               </p>
               <h1 className="text-2xl font-extrabold text-white uppercase tracking-wide">
-                Staff Check-In
+                Staff Login
               </h1>
               <p className="text-gray-500 text-sm mt-1.5">Enter your 4-digit PIN</p>
             </div>
