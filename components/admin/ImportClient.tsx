@@ -268,6 +268,7 @@ function ReceiptsImport() {
       <SyncExpiryPanel />
       <FixNoPaymentPanel />
       <FixDatesPanel />
+      <FixSundayAbsencesPanel />
     </div>
   );
 }
@@ -961,6 +962,56 @@ function FixDatesPanel() {
           <StatPill icon={CheckCircle}   label="Payments fixed" value={result.paymentsFixed} color="text-green-600 bg-green-50" />
           <StatPill icon={CheckCircle}   label="Members fixed"  value={result.membersFixed}  color="text-blue-600 bg-blue-50" />
           <StatPill icon={AlertTriangle} label="Errors"         value={result.errors}         color="text-red-600 bg-red-50" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FixSundayAbsencesPanel() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult]   = useState<{ deleted: number; message: string } | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+
+  async function run() {
+    setLoading(true); setError(null);
+    try {
+      const res  = await fetch("/api/admin/fix-sunday-absences", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setResult(data);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-orange-200 p-5 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <CalendarX className="h-4 w-4 text-orange-500" />
+            Remove Sunday Absences
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Deletes all ABSENT attendance records that fall on a Sunday. Sundays are no longer tracked, so these entries are invalid.
+          </p>
+        </div>
+        <button
+          onClick={run} disabled={loading}
+          className={cn(
+            "flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+            loading ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-200"
+          )}
+        >
+          <CalendarX className="h-3.5 w-3.5" />
+          {loading ? "Removing…" : "Remove"}
+        </button>
+      </div>
+      {error && <ErrorBanner message={error} />}
+      {result && (
+        <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+          <p className="text-sm font-semibold text-green-700">{result.message}</p>
         </div>
       )}
     </div>
