@@ -53,18 +53,18 @@ export default function LoginPage() {
               <Dumbbell className="h-7 w-7 text-white" />
             </div>
             <div>
-              <p className="text-white font-extrabold text-xl leading-none">Yos Fitness Studio</p>
-              <p className="text-gray-500 text-xs mt-0.5">Mylapore, Chennai</p>
+              <p className="text-white font-extrabold text-xl leading-none uppercase tracking-wide">Yos Fitness Studio</p>
+              <p className="text-gray-500 text-xs mt-0.5 uppercase tracking-widest">Mylapore, Chennai</p>
             </div>
           </div>
 
           {/* Headline */}
           <div className="mt-auto">
-            <h1 className="text-5xl font-extrabold text-white leading-[1.1] tracking-tight">
+            <h1 className="text-5xl font-extrabold text-white leading-[1.1] tracking-tight uppercase">
               Your gym,<br />
               <span className="text-orange-400">fully in control.</span>
             </h1>
-            <p className="text-gray-400 mt-5 text-base leading-relaxed max-w-sm">
+            <p className="text-gray-400 mt-5 text-base leading-relaxed max-w-sm uppercase">
               Members, attendance, renewals, payments and payroll — all in one streamlined dashboard.
             </p>
 
@@ -76,8 +76,8 @@ export default function LoginPage() {
                     <Icon className="h-4 w-4 text-orange-400" />
                   </div>
                   <div>
-                    <p className="text-white text-sm font-semibold">{title}</p>
-                    <p className="text-gray-500 text-xs mt-0.5">{desc}</p>
+                    <p className="text-white text-sm font-semibold uppercase tracking-wide">{title}</p>
+                    <p className="text-gray-500 text-xs mt-0.5 uppercase">{desc}</p>
                   </div>
                 </div>
               ))}
@@ -86,7 +86,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <div className="mt-auto pt-12">
-            <p className="text-gray-700 text-xs">© 2026 Yos Fitness Studio · Mylapore, Chennai</p>
+            <p className="text-gray-700 text-xs uppercase tracking-widest">© 2026 Yos Fitness Studio · Mylapore, Chennai</p>
           </div>
         </div>
       </div>
@@ -100,14 +100,14 @@ export default function LoginPage() {
             <div className="bg-orange-500 rounded-xl p-2.5">
               <Dumbbell className="h-6 w-6 text-white" />
             </div>
-            <span className="text-gray-900 font-extrabold text-2xl">Yos Fitness Studio</span>
+            <span className="text-gray-900 font-extrabold text-2xl uppercase tracking-wide">Yos Fitness Studio</span>
           </div>
 
           {/* Card */}
           <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/80 border border-gray-100 p-8">
             <div className="mb-8">
-              <h2 className="text-2xl font-extrabold text-gray-900">Sign in</h2>
-              <p className="text-gray-500 text-sm mt-1">Welcome back — enter your credentials below</p>
+              <h2 className="text-2xl font-extrabold text-gray-900 uppercase tracking-wide">Sign in</h2>
+              <p className="text-gray-500 text-sm mt-1 uppercase">Welcome back — enter your credentials below</p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -121,7 +121,7 @@ export default function LoginPage() {
               )}
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-semibold text-gray-800">Email</label>
+                <label className="block text-sm font-semibold text-gray-800 uppercase tracking-wide">Email</label>
                 <input
                   {...register("email")}
                   type="email"
@@ -133,7 +133,7 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-semibold text-gray-800">Password</label>
+                <label className="block text-sm font-semibold text-gray-800 uppercase tracking-wide">Password</label>
                 <div className="relative">
                   <input
                     {...register("password")}
@@ -156,20 +156,20 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 disabled:opacity-60 text-white font-bold rounded-xl py-3.5 text-sm transition-all shadow-lg shadow-orange-200 mt-2"
+                className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 disabled:opacity-60 text-white font-bold rounded-xl py-3.5 text-sm transition-all shadow-lg shadow-orange-200 mt-2 uppercase tracking-widest"
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-                {isSubmitting ? "Signing in..." : "Sign in to dashboard"}
+                {isSubmitting ? "Signing in..." : "Sign in to Dashboard"}
               </button>
             </form>
 
-            <p className="text-center text-xs text-gray-400 mt-6">
+            <p className="text-center text-xs text-gray-400 mt-6 uppercase">
               Forgot your password?{" "}
               <a
                 href="https://wa.me/919840690418?text=Hi%2C+I+need+help+resetting+my+Yos+CRM+login+password."
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-orange-500 hover:text-orange-600 font-semibold"
+                className="text-orange-500 hover:text-orange-600 font-semibold uppercase"
               >
                 Contact admin on WhatsApp
               </a>
