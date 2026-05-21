@@ -107,7 +107,10 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
   function getSummary(empId: string) {
     const dates = localMap[empId] ?? {};
     const c: Record<string, number> = { PRESENT: 0, ABSENT: 0, HALF_DAY: 0, WEEKLY_OFF: 0, LEAVE: 0, PAID_LEAVE: 0 };
-    for (const s of Object.values(dates)) c[s] = (c[s] ?? 0) + 1;
+    for (const [dateStr, s] of Object.entries(dates)) {
+      if (new Date(dateStr).getDay() === 0) continue; // skip Sundays
+      c[s] = (c[s] ?? 0) + 1;
+    }
     return c;
   }
 
@@ -220,8 +223,8 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                     )}
                   </div>
 
-                  {/* Edit button — admins only, not future dates */}
-                  {canEdit && !isFuture && (
+                  {/* Edit button — admins only, not future dates, not Sundays */}
+                  {canEdit && !isFuture && !isSunday && (
                     <button
                       onClick={() => setEditDay({ dateStr, displayDate })}
                       title="Edit attendance"
@@ -352,9 +355,9 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                             <td key={dateStr} className="px-1 py-1 text-center align-top">
                               {/* Status badge — click to cycle */}
                               <button
-                                onClick={() => !isFuture && cycleStatus(emp.id, dateStr)}
-                                disabled={!canEdit || isFuture}
-                                title={STATUS_OPTIONS.find((s) => s.value === status)?.title ?? "Not marked"}
+                                onClick={() => !isFuture && !isSunday && cycleStatus(emp.id, dateStr)}
+                                disabled={!canEdit || isFuture || isSunday}
+                                title={isSunday ? "Sunday — not tracked" : STATUS_OPTIONS.find((s) => s.value === status)?.title ?? "Not marked"}
                                 className={cn(
                                   "w-full rounded text-[10px] font-bold transition-colors px-1 py-0.5 mb-0.5",
                                   status ? STATUS_COLOR[status] : isSunday ? "bg-gray-100 text-gray-300" : "bg-gray-100 text-gray-400 hover:bg-gray-200",
