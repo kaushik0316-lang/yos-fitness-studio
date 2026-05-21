@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
-import { Dumbbell, Delete, ArrowLeft, CheckCircle2, XCircle, LogIn, LogOut } from "lucide-react";
+import { Dumbbell, Delete, ArrowLeft, LogIn, LogOut } from "lucide-react";
 
-type Phase = "input" | "locating" | "loading" | "success" | "error" | "cooldown";
+type Phase = "input" | "locating" | "loading" | "success" | "error";
 
 interface SuccessData {
   action: "checkin" | "checkout";
@@ -13,9 +13,9 @@ interface SuccessData {
   shiftNumber?: number;
 }
 
-const TOTAL_DIGITS   = 4;
-const COOLDOWN_SECS  = 120;
-const NUMPAD_KEYS    = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
+const TOTAL_DIGITS  = 4;
+const NUMPAD_KEYS   = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
+const AUTO_RESET_MS = 5000;
 
 function todayLabel() {
   return new Date().toLocaleDateString("en-IN", {
@@ -30,14 +30,12 @@ function Screen({ children }: { children: React.ReactNode }) {
       className="min-h-screen flex flex-col relative overflow-hidden"
       style={{ background: "linear-gradient(150deg, #0c0c0c 0%, #110800 55%, #1a0c00 100%)" }}
     >
-      {/* Glow blobs */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-40 -left-40 w-[560px] h-[560px] rounded-full opacity-[0.18]"
           style={{ background: "radial-gradient(circle, #f97316 0%, transparent 65%)" }} />
         <div className="absolute -bottom-48 -right-24 w-[440px] h-[440px] rounded-full opacity-[0.13]"
           style={{ background: "radial-gradient(circle, #ea580c 0%, transparent 65%)" }} />
       </div>
-      {/* Dot-grid */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.05]"
         style={{
           backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.9) 1px, transparent 1px)",
@@ -54,13 +52,11 @@ function LogoBar() {
   return (
     <div className="flex items-center justify-center pt-10 pb-2">
       <div className="flex items-center gap-3">
-        <div
-          className="rounded-2xl p-2.5 shadow-xl"
+        <div className="rounded-2xl p-2.5 shadow-xl"
           style={{
             background: "linear-gradient(135deg, #f97316, #ea580c)",
             boxShadow: "0 6px 24px -4px rgba(249,115,22,0.5)",
-          }}
-        >
+          }}>
           <Dumbbell className="h-6 w-6 text-white" />
         </div>
         <div>
@@ -81,7 +77,6 @@ export default function CheckInPage() {
   const [phase, setPhase]         = useState<Phase>("input");
   const [successData, setSuccess] = useState<SuccessData | null>(null);
   const [errorMsg, setErrorMsg]   = useState("");
-  const [countdown, setCountdown] = useState(0);
   const [shaking, setShaking]     = useState(false);
   const deviceId                  = useRef<string>("");
   const submittingRef             = useRef(false);
@@ -92,13 +87,12 @@ export default function CheckInPage() {
     deviceId.current = id;
   }, []);
 
-  // Cooldown ticker
+  // Auto-reset after success
   useEffect(() => {
-    if (phase !== "cooldown") return;
-    if (countdown <= 0) { resetForm(); return; }
-    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    if (phase !== "success") return;
+    const t = setTimeout(() => resetForm(), AUTO_RESET_MS);
     return () => clearTimeout(t);
-  }, [phase, countdown]);
+  }, [phase]);
 
   // Physical keyboard support
   useEffect(() => {
@@ -114,7 +108,7 @@ export default function CheckInPage() {
 
   function resetForm() {
     setPin(""); setPhase("input"); setSuccess(null);
-    setErrorMsg(""); setCountdown(0); submittingRef.current = false;
+    setErrorMsg(""); submittingRef.current = false;
   }
 
   function pressKey(key: string) {
@@ -169,7 +163,6 @@ export default function CheckInPage() {
               shiftNumber: data.shiftNumber,
             });
             setPhase("success");
-            setCountdown(COOLDOWN_SECS);
           }
         } catch {
           setErrorMsg("Network error. Check your connection and try again.");
@@ -201,9 +194,7 @@ export default function CheckInPage() {
         <div className="flex-1 flex flex-col items-center justify-center px-6 pb-10">
           <div className="w-full max-w-sm text-center">
 
-            {/* Icon */}
-            <div
-              className="w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl"
+            <div className="w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl"
               style={{
                 background: isIn
                   ? "linear-gradient(135deg, #16a34a, #15803d)"
@@ -211,22 +202,17 @@ export default function CheckInPage() {
                 boxShadow: isIn
                   ? "0 8px 32px -4px rgba(22,163,74,0.5)"
                   : "0 8px 32px -4px rgba(249,115,22,0.5)",
-              }}
-            >
-              {isIn
-                ? <LogIn  className="h-10 w-10 text-white" />
-                : <LogOut className="h-10 w-10 text-white" />}
+              }}>
+              {isIn ? <LogIn className="h-10 w-10 text-white" /> : <LogOut className="h-10 w-10 text-white" />}
             </div>
 
-            {/* Badge */}
             <span
               className="inline-block px-4 py-1 rounded-full text-xs font-extrabold uppercase tracking-widest mb-4"
               style={{
                 background: isIn ? "rgba(22,163,74,0.15)" : "rgba(249,115,22,0.15)",
                 color: isIn ? "#4ade80" : "#fb923c",
                 border: `1px solid ${isIn ? "rgba(22,163,74,0.3)" : "rgba(249,115,22,0.3)"}`,
-              }}
-            >
+              }}>
               {isIn ? "Checked In" : "Checked Out"}
             </span>
 
@@ -240,79 +226,37 @@ export default function CheckInPage() {
             )}
             <p className="text-gray-400 text-xl mb-10">{successData.time}</p>
 
-            <Link
-              href="/my-attendance"
-              className="block w-full py-3.5 rounded-2xl font-semibold text-sm mb-3 transition-colors uppercase tracking-wide"
-              style={{ background: "#1e1e1e", color: "#6b7280", border: "1px solid #2a2a2a" }}
-            >
+            <Link href="/my-attendance"
+              className="block w-full py-3.5 rounded-2xl font-semibold text-sm mb-3 uppercase tracking-wide"
+              style={{ background: "#1e1e1e", color: "#6b7280", border: "1px solid #2a2a2a" }}>
               View My Attendance →
             </Link>
-            <button
-              onClick={() => setPhase("cooldown")}
+            <button onClick={resetForm}
               className="w-full py-4 rounded-2xl font-bold text-white text-sm uppercase tracking-widest"
               style={{
                 background: "linear-gradient(135deg, #f97316, #ea580c)",
                 boxShadow: "0 8px 24px -4px rgba(249,115,22,0.4)",
-              }}
-            >
-              Done · Next Person
+              }}>
+              Done
             </button>
-          </div>
-        </div>
-      </Screen>
-    );
-  }
-
-  // ── COOLDOWN ───────────────────────────────────────────────────────────────
-  if (phase === "cooldown") {
-    const pct = Math.round((countdown / COOLDOWN_SECS) * 283);
-    return (
-      <Screen>
-        <LogoBar />
-        <div className="flex-1 flex flex-col items-center justify-center px-6 pb-10">
-          <div className="w-full max-w-sm text-center">
-            <div className="relative w-36 h-36 mx-auto mb-8">
-              <svg className="w-36 h-36 -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="45" fill="none" stroke="#1e1e1e" strokeWidth="7" />
-                <circle cx="50" cy="50" r="45" fill="none" stroke="#f97316" strokeWidth="7"
-                  strokeDasharray="283" strokeDashoffset={283 - pct} strokeLinecap="round"
-                  style={{ transition: "stroke-dashoffset 1s linear" }} />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-4xl font-extrabold text-white">{countdown}</span>
-              </div>
-            </div>
-            <h2 className="text-xl font-extrabold text-white uppercase tracking-wide mb-3">
-              Next person, please wait
-            </h2>
-            <p className="text-gray-500 text-sm mb-10 leading-relaxed">
-              This ensures each staff member checks in themselves.
+            <p className="text-gray-700 text-xs mt-4 uppercase tracking-widest">
+              Resets automatically in 5 seconds
             </p>
-            <button
-              onClick={resetForm}
-              className="w-full py-4 rounded-2xl font-semibold text-sm uppercase tracking-wide"
-              style={{ background: "#1e1e1e", color: "#6b7280", border: "1px solid #2a2a2a" }}
-            >
-              Skip ({countdown}s)
-            </button>
           </div>
         </div>
       </Screen>
     );
   }
 
-  // ── INPUT (+ locating + loading + error) ───────────────────────────────────
+  // ── INPUT / LOCATING / LOADING / ERROR ─────────────────────────────────────
   const isProcessing = phase === "locating" || phase === "loading";
 
   return (
     <Screen>
-      {/* Logo */}
       <LogoBar />
-
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-6">
         <div className="w-full max-w-[300px]">
 
-          {/* Heading */}
           <div className="text-center mb-8">
             <p className="text-orange-400/70 text-[11px] font-bold uppercase tracking-[0.2em] mb-2">
               {todayLabel()}
@@ -324,22 +268,18 @@ export default function CheckInPage() {
           </div>
 
           {/* PIN dots */}
-          <div
-            className="flex gap-3.5 justify-center mb-2"
-            style={{ animation: shaking ? "shake 0.45s ease-in-out" : "none" }}
-          >
+          <div className="flex gap-3.5 justify-center mb-2"
+            style={{ animation: shaking ? "shake 0.45s ease-in-out" : "none" }}>
             {Array.from({ length: TOTAL_DIGITS }).map((_, i) => {
               const filled = i < pin.length;
               return (
-                <div
-                  key={i}
+                <div key={i}
                   className="w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all duration-150"
                   style={{
                     background: filled ? "rgba(249,115,22,0.12)" : "#161616",
                     borderColor: filled ? "#f97316" : i === pin.length ? "#3a3a3a" : "#222222",
                     boxShadow: filled ? "0 0 20px rgba(249,115,22,0.2)" : "none",
-                  }}
-                >
+                  }}>
                   {filled && (
                     <div className="w-3.5 h-3.5 rounded-full"
                       style={{ background: "linear-gradient(135deg, #fb923c, #f97316)" }} />
@@ -349,7 +289,7 @@ export default function CheckInPage() {
             })}
           </div>
 
-          {/* Status / error line */}
+          {/* Status line */}
           <div className="h-10 flex items-center justify-center mb-3">
             {phase === "error" && (
               <p className="text-red-400 text-sm font-medium text-center">{errorMsg}</p>
@@ -374,8 +314,7 @@ export default function CheckInPage() {
               if (key === "") return <div key={i} />;
               const isBackspace = key === "⌫";
               return (
-                <button
-                  key={i}
+                <button key={i}
                   onClick={() => pressKey(key)}
                   disabled={isProcessing}
                   className="h-[68px] rounded-2xl flex items-center justify-center font-bold text-2xl transition-all duration-100 active:scale-90 disabled:opacity-30"
@@ -384,21 +323,17 @@ export default function CheckInPage() {
                     color: isBackspace ? "#6b7280" : "#ffffff",
                     border: isBackspace ? "none" : "1px solid #2e2e2e",
                     boxShadow: isBackspace ? "none" : "0 2px 8px rgba(0,0,0,0.4)",
-                  }}
-                >
+                  }}>
                   {isBackspace ? <Delete className="h-5 w-5" /> : key}
                 </button>
               );
             })}
           </div>
 
-          {/* Back link */}
           <div className="mt-8 text-center">
-            <Link
-              href="/staff-dashboard"
+            <Link href="/staff-dashboard"
               className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest transition-colors"
-              style={{ color: "#374151" }}
-            >
+              style={{ color: "#374151" }}>
               <ArrowLeft className="h-3 w-3" />
               Staff Dashboard
             </Link>
