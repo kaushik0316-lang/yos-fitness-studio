@@ -68,7 +68,7 @@ export function MobileNav() {
             ))}
           </div>
 
-          {/* Staff Portal section */}
+          {/* Manager Portal section */}
           <div>
             <button
               onClick={() => setStaffOpen((v) => !v)}
@@ -76,7 +76,7 @@ export function MobileNav() {
             >
               <span className="flex items-center gap-2">
                 <span className="text-base">👤</span>
-                Staff Portal
+                Manager Portal
               </span>
               <ChevronDown
                 className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${staffOpen ? "rotate-180" : ""}`}

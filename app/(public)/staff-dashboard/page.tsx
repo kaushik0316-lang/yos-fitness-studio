@@ -361,7 +361,7 @@ export default function StaffDashboardPage() {
               </div>
               <div>
                 <p className="text-white text-sm font-semibold">Not checked in yet</p>
-                <p className="text-xs" style={{ color: "#6b7280" }}>Use Sign In from the Staff Portal menu</p>
+                <p className="text-xs" style={{ color: "#6b7280" }}>Use Sign In from the Manager Portal menu</p>
               </div>
             </div>
           ) : (

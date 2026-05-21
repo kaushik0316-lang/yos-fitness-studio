@@ -276,10 +276,10 @@ export default function MarketingPage() {
               <a href="#location" className="hover:text-red-600 transition-colors">Find Us</a>
               <a href="#faq" className="hover:text-red-600 transition-colors">FAQ</a>
 
-              {/* Staff Portal dropdown */}
+              {/* Manager Portal dropdown */}
               <div className="relative group">
                 <button className="flex items-center gap-1 hover:text-red-600 transition-colors select-none">
-                  Staff Portal
+                  Manager Portal
                   <ChevronDown className="h-3.5 w-3.5 transition-transform duration-200 group-hover:rotate-180" aria-hidden="true" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50 overflow-hidden">
@@ -1026,7 +1026,7 @@ export default function MarketingPage() {
                 </ul>
               </div>
               <div>
-                <p className="text-white font-bold text-sm mb-4">Staff Portal</p>
+                <p className="text-white font-bold text-sm mb-4">Manager Portal</p>
                 <ul className="space-y-2 text-sm">
                   {[
                     { label: "Staff Dashboard", href: "/staff-dashboard" },
