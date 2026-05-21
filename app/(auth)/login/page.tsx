@@ -106,7 +106,7 @@ export default function LoginPage() {
             <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 rounded-full px-3 py-1 mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
               <span className="text-orange-400 text-xs font-bold uppercase tracking-widest">
-                Staff Management System
+                Built for Yos Fitness
               </span>
             </div>
 
@@ -120,7 +120,7 @@ export default function LoginPage() {
               </span>
             </h1>
             <p className="text-gray-400 mt-5 text-[0.95rem] leading-relaxed max-w-[340px]">
-              Members, attendance, renewals, payments and payroll — all in one streamlined dashboard.
+              Everything your gym runs on — in one place.
             </p>
 
             {/* Feature list */}
@@ -182,7 +182,7 @@ export default function LoginPage() {
                 Sign In
               </h2>
               <p className="text-gray-400 text-sm mt-2">
-                Welcome back — enter your credentials below
+                Good to see you. Let's get to work.
               </p>
             </div>
 
