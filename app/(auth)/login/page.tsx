@@ -175,7 +175,7 @@ export default function LoginPage() {
               <div className="inline-flex items-center gap-1.5 bg-orange-50 border border-orange-100 rounded-full px-3 py-1 mb-5">
                 <Zap className="h-3 w-3 text-orange-500 fill-orange-500" />
                 <span className="text-orange-600 text-[10px] font-extrabold uppercase tracking-[0.18em]">
-                  Manager Portal
+                  Staff Portal
                 </span>
               </div>
               <h2 className="text-3xl font-extrabold text-gray-900 uppercase tracking-tight leading-none">
