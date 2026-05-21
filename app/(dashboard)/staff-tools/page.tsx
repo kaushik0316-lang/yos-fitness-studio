@@ -29,6 +29,7 @@ export default async function StaffToolsPage() {
     expiredMembers,
     recentAttendance,
     inactiveMembersList,
+    staffCheckedIn,
   ] = await Promise.all([
     // Today's collections
     prisma.payment.aggregate({
@@ -95,6 +96,21 @@ export default async function StaffToolsPage() {
       orderBy: { lastAttendanceDate: "asc" },
       take: 8,
     }),
+    // Staff still checked in (no checkout today)
+    prisma.attendanceShift.findMany({
+      where: {
+        checkOutTime: null,
+        checkInTime: { gte: startOfDay(today), lte: endOfDay(today) },
+      },
+      include: {
+        attendance: {
+          include: {
+            employee: { select: { id: true, fullName: true, employeeId: true, role: true } },
+          },
+        },
+      },
+      orderBy: { checkInTime: "asc" },
+    }),
   ]);
 
   // Members expiring soon (for the list)
@@ -135,6 +151,13 @@ export default async function StaffToolsPage() {
             count: Number(r.count),
           }))}
           inactiveMembers={inactiveMembersList}
+          staffCheckedIn={staffCheckedIn.map((s) => ({
+            shiftId: s.id,
+            employeeId: s.attendance.employee.employeeId,
+            fullName: s.attendance.employee.fullName,
+            role: s.attendance.employee.role,
+            checkInTime: s.checkInTime.toISOString(),
+          }))}
         />
       </div>
     </>

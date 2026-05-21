@@ -7,6 +7,7 @@ import {
   Receipt, Copy, Check, Printer, ExternalLink, QrCode,
   MessageCircle, Users, RotateCcw, CreditCard, AlertTriangle,
   IndianRupee, CalendarX, UserX, ClipboardList, FileUp, ArrowRight,
+  LogOut, Clock,
 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import { TodayAttendanceWidget } from "@/components/dashboard/TodayAttendanceWidget";
@@ -22,6 +23,11 @@ type InactiveMember = {
   id: string; memberId: string; fullName: string; phone: string;
   lastAttendanceDate: Date | null; expiryDate: Date | null;
   trainer: { fullName: string } | null;
+};
+
+type StaffCheckedIn = {
+  shiftId: string; employeeId: string; fullName: string;
+  role: string; checkInTime: string;
 };
 
 type Props = {
@@ -41,6 +47,7 @@ type Props = {
   expiringSoonList: ExpiringSoon[];
   attendanceTrend: { date: string; count: number }[];
   inactiveMembers: InactiveMember[];
+  staffCheckedIn: StaffCheckedIn[];
 };
 
 function daysUntil(iso: string | null) {
@@ -56,7 +63,7 @@ export function StaffToolsClient({
   yosFitnessMonthly, yosStudioMonthly,
   expiringThisWeek, expiringToday,
   activeMembers, expiredMembers, expiringSoonList,
-  attendanceTrend, inactiveMembers,
+  attendanceTrend, inactiveMembers, staffCheckedIn,
 }: Props) {
   const [copied, setCopied] = useState(false);
   const hasForm = !!formUrl;
@@ -339,6 +346,58 @@ export function StaffToolsClient({
         </div>
 
       </div>
+
+      {/* ── Staff still checked in alert ── */}
+      {staffCheckedIn.length > 0 && (
+        <div className="bg-white rounded-2xl border-2 border-amber-200 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-amber-100 bg-amber-50">
+            <div className="flex items-center gap-2.5">
+              <div className="bg-amber-100 rounded-xl p-1.5">
+                <LogOut className="h-4 w-4 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm">Staff Forgot to Check Out</h3>
+                <p className="text-[11px] text-amber-600">Auto-checkout at 12 PM / 9:30 PM</p>
+              </div>
+              <span className="ml-1 bg-amber-200 text-amber-800 text-xs font-bold rounded-full px-2 py-0.5">
+                {staffCheckedIn.length}
+              </span>
+            </div>
+            <Link href="/employee-attendance" className="text-xs text-amber-600 hover:text-amber-800 font-semibold flex items-center gap-0.5">
+              View all →
+            </Link>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {staffCheckedIn.map((s) => {
+              const checkedInAt = new Date(s.checkInTime);
+              const hoursIn = Math.floor((Date.now() - checkedInAt.getTime()) / 3600000);
+              const minsIn = Math.floor(((Date.now() - checkedInAt.getTime()) % 3600000) / 60000);
+              return (
+                <div key={s.shiftId} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700 flex-shrink-0">
+                      {s.fullName.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{s.fullName}</p>
+                      <p className="text-xs text-gray-400">{s.role.replace(/_/g, " ")} · {s.employeeId}</p>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0 ml-4">
+                    <div className="flex items-center gap-1 text-amber-600 font-bold text-xs">
+                      <Clock className="h-3 w-3" />
+                      {hoursIn > 0 ? `${hoursIn}h ${minsIn}m` : `${minsIn}m`} in
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      since {checkedInAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Dashboard widgets ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
