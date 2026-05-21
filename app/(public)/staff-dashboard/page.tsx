@@ -1,12 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import QRCode from "react-qr-code";
-import { useState, useRef, useEffect, ChangeEvent, KeyboardEvent } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Copy, Check, MessageCircle, Printer,
   Receipt, CalendarCheck, LogOut, ChevronRight,
+  Delete, Dumbbell,
 } from "lucide-react";
 import { REGISTRATION_FORM_URL } from "@/lib/site-config";
 
@@ -18,18 +18,17 @@ interface EmployeeData {
 interface Shift { checkInTime: string; checkOutTime: string | null; }
 interface AttendanceData { status: string; shifts: Shift[]; }
 
-const TOTAL_BOXES = 4;
+const TOTAL_DIGITS = 4;
+const NUMPAD_KEYS = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleTimeString("en-IN", {
     hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata",
   });
 }
-
 function roleLabel(role: string) {
   return role.replace(/_/g, " ").toUpperCase();
 }
-
 function todayLabel() {
   return new Date().toLocaleDateString("en-IN", {
     weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Kolkata",
@@ -38,19 +37,18 @@ function todayLabel() {
 
 export default function StaffDashboardPage() {
   const [phase, setPhase]           = useState<Phase>("input");
-  const [digits, setDigits]         = useState<string[]>(Array(TOTAL_BOXES).fill(""));
+  const [pin, setPin]               = useState("");
   const [errorMsg, setErrorMsg]     = useState("");
   const [employee, setEmployee]     = useState<EmployeeData | null>(null);
   const [attendance, setAttendance] = useState<AttendanceData | null>(null);
   const [copied, setCopied]         = useState(false);
-  const [pin, setPin]               = useState("");
-  const inputs = useRef<(HTMLInputElement | null)[]>([]);
+  const [shaking, setShaking]       = useState(false);
+  const submittingRef               = useRef(false);
 
+  // Restore session on mount
   useEffect(() => {
     const stored = sessionStorage.getItem("staff_pin");
     if (stored) {
-      // Already authenticated — restore session silently
-      setDigits(stored.split(""));
       setPhase("loading");
       fetch("/api/staff/ping", {
         method: "POST",
@@ -65,41 +63,20 @@ export default function StaffDashboardPage() {
             setPin(stored);
             setPhase("dashboard");
           } else {
-            // Stored PIN no longer valid — clear and show input
             sessionStorage.removeItem("staff_pin");
-            setDigits(Array(TOTAL_BOXES).fill(""));
             setPhase("input");
-            setTimeout(() => inputs.current[0]?.focus(), 100);
           }
         })
         .catch(() => {
           sessionStorage.removeItem("staff_pin");
-          setDigits(Array(TOTAL_BOXES).fill(""));
           setPhase("input");
-          setTimeout(() => inputs.current[0]?.focus(), 100);
         });
-    } else {
-      setTimeout(() => inputs.current[0]?.focus(), 100);
     }
   }, []);
 
-  function handleChange(i: number, e: ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value.replace(/\D/g, "").slice(-1);
-    const next = [...digits]; next[i] = val; setDigits(next);
-    if (val && i < TOTAL_BOXES - 1) inputs.current[i + 1]?.focus();
-  }
-
-  function handleKeyDown(i: number, e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Backspace") {
-      if (digits[i]) { const n = [...digits]; n[i] = ""; setDigits(n); }
-      else if (i > 0) { inputs.current[i - 1]?.focus(); const n = [...digits]; n[i - 1] = ""; setDigits(n); }
-    }
-    if (e.key === "Enter" && digits.every((d) => d)) handleSubmit();
-  }
-
-  async function handleSubmit() {
-    const enteredPin = digits.join("");
-    if (enteredPin.length < TOTAL_BOXES) return;
+  async function submit(enteredPin: string) {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setPhase("loading");
     try {
       const res = await fetch("/api/staff/ping", {
@@ -108,25 +85,63 @@ export default function StaffDashboardPage() {
         body: JSON.stringify({ pin: enteredPin }),
       });
       const data = await res.json();
-      if (!res.ok) { setErrorMsg(data.error ?? "Invalid PIN."); setPhase("error"); return; }
+      if (!res.ok) {
+        setErrorMsg(data.error ?? "Invalid PIN. Try again.");
+        setPin("");
+        setShaking(true);
+        setTimeout(() => setShaking(false), 500);
+        setPhase("error");
+        return;
+      }
       setEmployee(data.employee);
       setAttendance(data.todayAttendance);
       setPin(enteredPin);
-      // Save PIN to sessionStorage so My Attendance auto-loads
       sessionStorage.setItem("staff_pin", enteredPin);
       setPhase("dashboard");
     } catch {
       setErrorMsg("Network error. Please try again.");
+      setPin("");
       setPhase("error");
+    } finally {
+      submittingRef.current = false;
     }
   }
 
+  function pressKey(key: string) {
+    if (phase === "loading") return;
+    if (key === "⌫") {
+      setPin((p) => p.slice(0, -1));
+      if (phase === "error") setPhase("input");
+      setErrorMsg("");
+      return;
+    }
+    setPin((prev) => {
+      if (prev.length >= TOTAL_DIGITS) return prev;
+      const next = prev + key;
+      if (next.length === TOTAL_DIGITS) {
+        setTimeout(() => submit(next), 60);
+      }
+      return next;
+    });
+    if (phase === "error") { setPhase("input"); setErrorMsg(""); }
+  }
+
+  // Physical keyboard support
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (phase === "loading" || phase === "dashboard") return;
+      if (e.key >= "0" && e.key <= "9") pressKey(e.key);
+      if (e.key === "Backspace") pressKey("⌫");
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
   function signOut() {
     sessionStorage.removeItem("staff_pin");
-    setDigits(Array(TOTAL_BOXES).fill(""));
-    setEmployee(null); setAttendance(null);
-    setErrorMsg(""); setPin(""); setPhase("input");
-    setTimeout(() => inputs.current[0]?.focus(), 100);
+    setPin(""); setEmployee(null); setAttendance(null);
+    setErrorMsg(""); setPhase("input"); submittingRef.current = false;
   }
 
   function copyLink() {
@@ -135,7 +150,6 @@ export default function StaffDashboardPage() {
       setCopied(true); setTimeout(() => setCopied(false), 2000);
     });
   }
-
   function shareWhatsApp() {
     const msg = encodeURIComponent(
       `Hi! Please fill in this quick registration form for Yos Fitness Studio:\n${REGISTRATION_FORM_URL}`
@@ -143,72 +157,152 @@ export default function StaffDashboardPage() {
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   }
 
-  const pinComplete = digits.every((d) => d !== "");
   const hasForm = !!REGISTRATION_FORM_URL;
 
-  // ── PIN Entry ──────────────────────────────────────────────────────────────
-  if (phase === "input" || phase === "loading" || phase === "error") {
+  // ── PIN ENTRY ─────────────────────────────────────────────────────────────
+  if (phase !== "dashboard") {
     return (
-      <div className="min-h-screen flex flex-col" style={{ background: "#0a0a0a" }}>
-        {/* Top bar */}
-        <div className="flex items-center justify-center pt-10 pb-2">
-          <Image src="/Logo.png" alt="Yos Fitness Studio" width={140} height={36}
-            className="h-9 w-auto object-contain" priority />
+      <div
+        className="min-h-screen flex flex-col relative overflow-hidden select-none"
+        style={{ background: "linear-gradient(150deg, #0c0c0c 0%, #110800 55%, #1a0c00 100%)" }}
+      >
+        {/* Mesh glow blobs */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-40 -left-40 w-[560px] h-[560px] rounded-full opacity-[0.18]"
+            style={{ background: "radial-gradient(circle, #f97316 0%, transparent 65%)" }} />
+          <div className="absolute -bottom-48 -right-24 w-[440px] h-[440px] rounded-full opacity-[0.14]"
+            style={{ background: "radial-gradient(circle, #ea580c 0%, transparent 65%)" }} />
+        </div>
+        {/* Dot-grid texture */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.05]"
+          style={{
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.9) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+        />
+
+        {/* Logo bar */}
+        <div className="relative flex items-center justify-center pt-10 pb-2">
+          <div className="flex items-center gap-3">
+            <div
+              className="rounded-2xl p-2.5 shadow-xl"
+              style={{
+                background: "linear-gradient(135deg, #f97316, #ea580c)",
+                boxShadow: "0 6px 24px -4px rgba(249,115,22,0.5)",
+              }}
+            >
+              <Dumbbell className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <p className="text-white font-extrabold text-lg leading-none uppercase tracking-wide">
+                Yos Fitness Studio
+              </p>
+              <p className="text-orange-400/50 text-[10px] mt-0.5 uppercase tracking-[0.2em]">
+                Mylapore, Chennai
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="flex-1 flex flex-col items-center justify-center px-6 pb-16">
-          <div className="w-full max-w-xs">
+        {/* Main content */}
+        <div className="relative flex-1 flex flex-col items-center justify-center px-6 pb-6">
+          <div className="w-full max-w-[300px]">
+
             {/* Heading */}
-            <div className="text-center mb-10">
-              <h1 className="text-2xl font-extrabold text-white">Staff Dashboard</h1>
-              <p className="text-gray-500 text-sm mt-1">Enter your PIN to continue</p>
+            <div className="text-center mb-8">
+              <p className="text-orange-400/70 text-[11px] font-bold uppercase tracking-[0.2em] mb-2">
+                {todayLabel()}
+              </p>
+              <h1 className="text-2xl font-extrabold text-white uppercase tracking-wide">
+                Staff Check-In
+              </h1>
+              <p className="text-gray-500 text-sm mt-1.5">Enter your 4-digit PIN</p>
+            </div>
+
+            {/* PIN dots */}
+            <div
+              className="flex gap-3.5 justify-center mb-2"
+              style={{
+                animation: shaking ? "shake 0.45s ease-in-out" : "none",
+              }}
+            >
+              {Array.from({ length: TOTAL_DIGITS }).map((_, i) => {
+                const filled = i < pin.length;
+                return (
+                  <div
+                    key={i}
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all duration-150"
+                    style={{
+                      background: filled ? "rgba(249,115,22,0.12)" : "#161616",
+                      borderColor: filled ? "#f97316" : i === pin.length ? "#3a3a3a" : "#222222",
+                      boxShadow: filled ? "0 0 20px rgba(249,115,22,0.2)" : "none",
+                    }}
+                  >
+                    {filled && (
+                      <div className="w-3.5 h-3.5 rounded-full"
+                        style={{ background: "linear-gradient(135deg, #fb923c, #f97316)" }} />
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Error */}
-            {phase === "error" && (
-              <div className="mb-6 px-4 py-3 rounded-2xl text-center border"
-                style={{ background: "rgba(220,38,38,0.08)", borderColor: "rgba(220,38,38,0.2)" }}>
-                <p className="text-red-400 text-sm font-medium">{errorMsg}</p>
-              </div>
-            )}
-
-            {/* PIN boxes */}
-            <div className="flex gap-3 justify-center mb-8">
-              {digits.map((digit, i) => (
-                <input key={i}
-                  ref={(el) => { inputs.current[i] = el; }}
-                  type="tel" inputMode="numeric" maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleChange(i, e)}
-                  onKeyDown={(e) => handleKeyDown(i, e)}
-                  disabled={phase === "loading"}
-                  className="h-16 w-16 text-center text-3xl font-bold rounded-2xl border-2 outline-none text-white transition-all"
-                  style={{
-                    background: "#1c1c1c",
-                    borderColor: digit ? "#f97316" : "#2a2a2a",
-                    caretColor: "#f97316",
-                  }}
-                  onFocus={(e) => e.target.select()}
-                />
-              ))}
+            <div className="h-10 flex items-center justify-center mb-3">
+              {(phase === "error") && (
+                <p className="text-red-400 text-sm font-medium text-center">{errorMsg}</p>
+              )}
+              {phase === "loading" && (
+                <div className="flex items-center gap-2">
+                  <Spinner />
+                  <span className="text-gray-500 text-sm">Verifying…</span>
+                </div>
+              )}
             </div>
 
-            {/* Submit */}
-            <button onClick={handleSubmit}
-              disabled={!pinComplete || phase === "loading"}
-              className="w-full py-4 rounded-2xl font-bold text-white text-base flex items-center justify-center gap-2 disabled:opacity-30 transition-opacity"
-              style={{ background: "#f97316" }}>
-              {phase === "loading" ? <><Spinner /> Verifying...</> : "Continue →"}
-            </button>
+            {/* Numpad */}
+            <div className="grid grid-cols-3 gap-2.5">
+              {NUMPAD_KEYS.map((key, i) => {
+                if (key === "") return <div key={i} />;
+                const isBackspace = key === "⌫";
+                return (
+                  <button
+                    key={i}
+                    onClick={() => pressKey(key)}
+                    disabled={phase === "loading"}
+                    className="h-[68px] rounded-2xl flex items-center justify-center font-bold text-2xl transition-all duration-100 active:scale-90 disabled:opacity-30"
+                    style={{
+                      background: isBackspace ? "transparent" : "#1e1e1e",
+                      color: isBackspace ? "#6b7280" : "#ffffff",
+                      border: isBackspace ? "none" : "1px solid #2e2e2e",
+                      boxShadow: isBackspace ? "none" : "0 2px 8px rgba(0,0,0,0.4)",
+                    }}
+                  >
+                    {isBackspace ? <Delete className="h-5 w-5" /> : key}
+                  </button>
+                );
+              })}
+            </div>
+
           </div>
         </div>
+
+        <style>{`
+          @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            20% { transform: translateX(-8px); }
+            40% { transform: translateX(8px); }
+            60% { transform: translateX(-6px); }
+            80% { transform: translateX(6px); }
+          }
+        `}</style>
       </div>
     );
   }
 
-  // ── Dashboard ──────────────────────────────────────────────────────────────
-  const lastShift = attendance?.shifts?.[attendance.shifts.length - 1] ?? null;
-  const isCheckedIn = !!lastShift && !lastShift.checkOutTime;
+  // ── DASHBOARD ──────────────────────────────────────────────────────────────
+  const lastShift     = attendance?.shifts?.[attendance.shifts.length - 1] ?? null;
+  const isCheckedIn   = !!lastShift && !lastShift.checkOutTime;
   const hasAttendance = attendance && attendance.shifts.length > 0;
 
   return (
@@ -216,11 +310,17 @@ export default function StaffDashboardPage() {
 
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "#1c1c1c" }}>
-        <Image src="/Logo.png" alt="Yos Fitness Studio" width={110} height={28}
-          className="h-7 w-auto object-contain" priority />
-        <button onClick={signOut}
+        <div className="flex items-center gap-2">
+          <div className="bg-orange-500 rounded-lg p-1.5">
+            <Dumbbell className="h-4 w-4 text-white" />
+          </div>
+          <span className="text-white font-bold text-sm uppercase tracking-wide">Yos Fitness</span>
+        </div>
+        <button
+          onClick={signOut}
           className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-          style={{ color: "#6b7280", background: "#1c1c1c" }}>
+          style={{ color: "#6b7280", background: "#1c1c1c" }}
+        >
           <LogOut className="h-3 w-3" />
           Sign out
         </button>
@@ -229,8 +329,10 @@ export default function StaffDashboardPage() {
       <div className="flex-1 w-full max-w-md mx-auto px-4 py-5 flex flex-col gap-4">
 
         {/* Welcome card */}
-        <div className="rounded-3xl p-6 relative overflow-hidden" style={{ background: "#f97316" }}>
-          {/* Background pattern */}
+        <div
+          className="rounded-3xl p-6 relative overflow-hidden"
+          style={{ background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)" }}
+        >
           <div className="absolute right-4 top-4 text-8xl opacity-10 select-none font-black">YOS</div>
           <p className="text-orange-100 text-xs font-semibold uppercase tracking-widest">{todayLabel()}</p>
           <h2 className="text-2xl font-extrabold text-white mt-1 leading-tight">
@@ -290,7 +392,6 @@ export default function StaffDashboardPage() {
             </div>
           )}
 
-          {/* Status pill */}
           <div className="flex items-center gap-2">
             <div className={`w-1.5 h-1.5 rounded-full ${isCheckedIn ? "bg-green-400" : "bg-gray-600"}`} />
             <p className="text-xs" style={{ color: "#6b7280" }}>
@@ -319,7 +420,7 @@ export default function StaffDashboardPage() {
             <ChevronRight className="h-4 w-4 self-end" style={{ color: "#374151" }} />
           </Link>
 
-          <Link href={`/my-attendance`}
+          <Link href="/my-attendance"
             className="flex flex-col gap-3 rounded-3xl p-5 transition-opacity active:opacity-70"
             style={{ background: "#1c1c1c" }}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
@@ -363,7 +464,7 @@ export default function StaffDashboardPage() {
                 </button>
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={copyLink}
-                    className="flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-semibold transition-colors"
+                    className="flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-semibold"
                     style={{ background: "#111", color: "#9ca3af" }}>
                     {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
                     {copied ? "Copied!" : "Copy Link"}
@@ -387,7 +488,7 @@ export default function StaffDashboardPage() {
 
 function Spinner() {
   return (
-    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <svg className="animate-spin h-4 w-4 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
     </svg>
