@@ -43,7 +43,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-white">
+    <div className="min-h-screen flex" style={{ background: "#0c0c0c" }}>
 
       {/* ── LEFT BRAND PANEL ── */}
       <div
@@ -149,39 +149,46 @@ export default function LoginPage() {
       </div>
 
       {/* ── RIGHT SIGN-IN PANEL ── */}
-      <div
-        className="flex-1 flex items-center justify-center p-8"
-        style={{ background: "linear-gradient(160deg, #fafafa 0%, #fff8f4 45%, #fafafa 100%)" }}
-      >
-        <div className="w-full max-w-[400px]">
+      <div className="flex-1 flex items-center justify-center p-8 relative">
+        {/* Subtle orange glow behind form */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 70%)" }} />
+
+        <div className="w-full max-w-[400px] relative">
 
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-10 justify-center">
             <div className="rounded-xl p-2.5" style={{ background: "linear-gradient(135deg,#f97316,#ea580c)" }}>
               <Dumbbell className="h-6 w-6 text-white" />
             </div>
-            <span className="text-gray-900 font-extrabold text-2xl uppercase tracking-wide">
+            <span className="text-white font-extrabold text-2xl uppercase tracking-wide">
               Yos Fitness Studio
             </span>
           </div>
 
           {/* Card */}
-          <div className="bg-white rounded-3xl border border-gray-100 p-8"
-            style={{ boxShadow: "0 24px 64px -12px rgba(0,0,0,0.1), 0 4px 16px -4px rgba(249,115,22,0.08)" }}
+          <div
+            className="rounded-3xl p-8"
+            style={{
+              background: "linear-gradient(160deg, #161616 0%, #1a1008 100%)",
+              border: "1px solid rgba(249,115,22,0.12)",
+              boxShadow: "0 32px 80px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.06)",
+            }}
           >
 
             {/* Card header */}
             <div className="mb-8">
-              <div className="inline-flex items-center gap-1.5 bg-orange-50 border border-orange-100 rounded-full px-3 py-1 mb-5">
-                <Zap className="h-3 w-3 text-orange-500 fill-orange-500" />
-                <span className="text-orange-600 text-[10px] font-extrabold uppercase tracking-[0.18em]">
+              <div className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 mb-5"
+                style={{ background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.2)" }}>
+                <Zap className="h-3 w-3 text-orange-400 fill-orange-400" />
+                <span className="text-orange-400 text-[10px] font-extrabold uppercase tracking-[0.18em]">
                   Staff Portal
                 </span>
               </div>
-              <h2 className="text-3xl font-extrabold text-gray-900 uppercase tracking-tight leading-none">
+              <h2 className="text-3xl font-extrabold text-white uppercase tracking-tight leading-none">
                 Sign In
               </h2>
-              <p className="text-gray-400 text-sm mt-2">
+              <p className="text-gray-500 text-sm mt-2">
                 Good to see you. Let's get to work.
               </p>
             </div>
@@ -189,11 +196,12 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 
               {error && (
-                <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                <div className="flex items-center gap-3 rounded-xl px-4 py-3"
+                  style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)" }}>
                   <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
                     <span className="text-white text-[10px] font-black">!</span>
                   </div>
-                  <p className="text-red-700 text-sm">{error}</p>
+                  <p className="text-red-400 text-sm">{error}</p>
                 </div>
               )}
 
@@ -203,16 +211,28 @@ export default function LoginPage() {
                   Email
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 pointer-events-none" />
                   <input
                     {...register("email")}
                     type="email"
                     placeholder="admin@yosfitness.in"
                     autoComplete="email"
-                    className="w-full border-2 border-gray-100 bg-gray-50/80 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-orange-400 focus:bg-white transition-all duration-200 placeholder:text-gray-300"
+                    className="w-full rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:outline-none transition-all duration-200 placeholder:text-gray-700"
+                    style={{
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1.5px solid rgba(255,255,255,0.08)",
+                    }}
+                    onFocus={e => {
+                      e.currentTarget.style.border = "1.5px solid rgba(249,115,22,0.5)";
+                      e.currentTarget.style.background = "rgba(249,115,22,0.05)";
+                    }}
+                    onBlur={e => {
+                      e.currentTarget.style.border = "1.5px solid rgba(255,255,255,0.08)";
+                      e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                    }}
                   />
                 </div>
-                {errors.email && <p className="text-xs text-red-600">{errors.email.message}</p>}
+                {errors.email && <p className="text-xs text-red-400">{errors.email.message}</p>}
               </div>
 
               {/* Password */}
@@ -221,23 +241,35 @@ export default function LoginPage() {
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 pointer-events-none" />
                   <input
                     {...register("password")}
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     autoComplete="current-password"
-                    className="w-full border-2 border-gray-100 bg-gray-50/80 rounded-xl pl-10 pr-12 py-3 text-sm focus:outline-none focus:border-orange-400 focus:bg-white transition-all duration-200 placeholder:text-gray-300"
+                    className="w-full rounded-xl pl-10 pr-12 py-3 text-sm text-white focus:outline-none transition-all duration-200 placeholder:text-gray-700"
+                    style={{
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1.5px solid rgba(255,255,255,0.08)",
+                    }}
+                    onFocus={e => {
+                      e.currentTarget.style.border = "1.5px solid rgba(249,115,22,0.5)";
+                      e.currentTarget.style.background = "rgba(249,115,22,0.05)";
+                    }}
+                    onBlur={e => {
+                      e.currentTarget.style.border = "1.5px solid rgba(255,255,255,0.08)";
+                      e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                    }}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400 p-1.5 rounded-lg transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {errors.password && <p className="text-xs text-red-600">{errors.password.message}</p>}
+                {errors.password && <p className="text-xs text-red-400">{errors.password.message}</p>}
               </div>
 
               {/* Submit */}
@@ -246,10 +278,8 @@ export default function LoginPage() {
                 disabled={isSubmitting}
                 className="w-full flex items-center justify-center gap-2 text-white font-extrabold rounded-xl py-3.5 text-sm transition-all mt-2 uppercase tracking-widest disabled:opacity-60"
                 style={{
-                  background: isSubmitting
-                    ? "#f97316"
-                    : "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
-                  boxShadow: "0 8px 24px -4px rgba(249,115,22,0.45), 0 2px 8px -2px rgba(234,88,12,0.3)",
+                  background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+                  boxShadow: "0 8px 32px -4px rgba(249,115,22,0.5), 0 2px 8px -2px rgba(234,88,12,0.3)",
                 }}
               >
                 {isSubmitting
@@ -260,13 +290,13 @@ export default function LoginPage() {
 
             </form>
 
-            <p className="text-center text-[11px] text-gray-400 mt-6 uppercase tracking-wide">
+            <p className="text-center text-[11px] text-gray-600 mt-6 uppercase tracking-wide">
               Forgot your password?{" "}
               <a
                 href="https://wa.me/919840690418?text=Hi%2C+I+need+help+resetting+my+Yos+CRM+login+password."
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-orange-500 hover:text-orange-600 font-bold uppercase transition-colors"
+                className="text-orange-500 hover:text-orange-400 font-bold uppercase transition-colors"
               >
                 Contact admin on WhatsApp
               </a>
