@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import type { UserRole } from "@prisma/client";
@@ -14,6 +14,12 @@ type Props = {
 
 export function CrmShell({ userRole, userName, userEmail, children }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Apply dark class to <html> so Radix portals (dialogs, popovers) also use dark CSS variables
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+    return () => document.documentElement.classList.remove("dark");
+  }, []);
 
   return (
     <div className="dark flex h-screen overflow-hidden" style={{ background: "#0e0e0e" }}>
