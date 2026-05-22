@@ -10,11 +10,12 @@ import { AddEmployeeDialog } from "./AddEmployeeDialog";
 import { EditEmployeeDialog } from "./EditEmployeeDialog";
 import { useRouter } from "next/navigation";
 
+type Shift = { start: string; end: string };
 type Employee = {
   id: string; employeeId: string; fullName: string; role: string;
   phone: string; salaryType: string; monthlySalary: number | null;
   perDaySalary: number | null; pin: string | null; shiftEndTime: string | null;
-  notes: string | null; isActive: boolean; joinDate: Date;
+  shifts: Shift[] | null; notes: string | null; isActive: boolean; joinDate: Date;
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -170,7 +171,15 @@ function StaffRow({ emp, idx, salesThisMonth, pinRevealed, onTogglePin, onEdit, 
         </div>
         <div className="flex items-center gap-3 mt-0.5">
           <p className="text-xs text-gray-500">{emp.phone}</p>
-          {emp.shiftEndTime ? (
+          {emp.shifts && Array.isArray(emp.shifts) && emp.shifts.length > 0 ? (
+            <div className="flex items-center gap-1 flex-wrap">
+              {(emp.shifts as Shift[]).filter(s => s.start && s.end).map((s, i) => (
+                <span key={i} className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-orange-500/10 text-orange-500">
+                  {s.start}–{s.end}
+                </span>
+              ))}
+            </div>
+          ) : emp.shiftEndTime ? (
             <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-orange-500/10 text-orange-500">
               Ends {emp.shiftEndTime}
             </span>

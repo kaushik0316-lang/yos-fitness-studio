@@ -1,68 +1,79 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { Loader2, Save } from "lucide-react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { Loader2, Save, Plus, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { updateEmployee } from "@/lib/actions/employees";
 import { toast } from "@/hooks/use-toast";
 
+type Shift = { start: string; end: string };
+
 type Employee = {
-  id: string;
-  employeeId: string;
-  fullName: string;
-  role: string;
-  phone: string;
-  salaryType: string;
-  monthlySalary: number | null;
-  perDaySalary: number | null;
-  pin: string | null;
-  shiftEndTime: string | null;
-  notes: string | null;
+  id: string; employeeId: string; fullName: string; role: string;
+  phone: string; salaryType: string; monthlySalary: number | null;
+  perDaySalary: number | null; pin: string | null; shiftEndTime: string | null;
+  shifts: Shift[] | null; notes: string | null;
 };
 
 type Props = { employee: Employee | null; onClose: () => void };
 
+type FormValues = {
+  fullName: string; role: string; phone: string;
+  salaryType: string; monthlySalary: string; perDaySalary: string;
+  pin: string; shifts: Shift[]; notes: string;
+};
+
+const inputCls = "w-full rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500";
+const labelCls = "block text-xs font-medium text-gray-500 mb-1";
+
+function parseShifts(emp: Employee): Shift[] {
+  if (emp.shifts && Array.isArray(emp.shifts) && emp.shifts.length > 0) return emp.shifts as Shift[];
+  if (emp.shiftEndTime) return [{ start: "", end: emp.shiftEndTime }];
+  return [{ start: "", end: "" }];
+}
+
 export function EditEmployeeDialog({ employee, onClose }: Props) {
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
-    defaultValues: {
-      fullName: "", role: "FRONT_DESK", phone: "",
-      salaryType: "FIXED_MONTHLY", monthlySalary: "", perDaySalary: "",
-      pin: "", shiftEndTime: "", notes: "",
-    },
+  const { register, handleSubmit, reset, watch, control, formState: { errors } } = useForm<FormValues>({
+    defaultValues: { fullName: "", role: "FRONT_DESK", phone: "", salaryType: "FIXED_MONTHLY", monthlySalary: "", perDaySalary: "", pin: "", shifts: [{ start: "", end: "" }], notes: "" },
   });
 
+  const { fields, append, remove } = useFieldArray({ control, name: "shifts" });
   const salaryType = watch("salaryType");
 
   useEffect(() => {
     if (employee) {
       reset({
-        fullName: employee.fullName,
-        role: employee.role,
-        phone: employee.phone,
-        salaryType: employee.salaryType,
+        fullName:      employee.fullName,
+        role:          employee.role,
+        phone:         employee.phone,
+        salaryType:    employee.salaryType,
         monthlySalary: employee.monthlySalary?.toString() ?? "",
-        perDaySalary: employee.perDaySalary?.toString() ?? "",
-        pin: employee.pin ?? "",
-        shiftEndTime: employee.shiftEndTime ?? "",
-        notes: employee.notes ?? "",
+        perDaySalary:  employee.perDaySalary?.toString() ?? "",
+        pin:           employee.pin ?? "",
+        shifts:        parseShifts(employee),
+        notes:         employee.notes ?? "",
       });
     }
   }, [employee, reset]);
 
-  async function onSubmit(data: any) {
+  async function onSubmit(data: FormValues) {
     if (!employee) return;
     setLoading(true);
     try {
+      const validShifts = data.shifts.filter(s => s.start && s.end);
       await updateEmployee({
-        id: employee.id,
-        ...data,
-        fullName: data.fullName.toUpperCase(),
+        id:            employee.id,
+        fullName:      data.fullName,
+        role:          data.role as any,
+        phone:         data.phone,
+        salaryType:    data.salaryType as any,
         monthlySalary: data.monthlySalary ? Number(data.monthlySalary) : undefined,
-        perDaySalary: data.perDaySalary ? Number(data.perDaySalary) : undefined,
-        shiftEndTime: data.shiftEndTime || null,
+        perDaySalary:  data.perDaySalary  ? Number(data.perDaySalary)  : undefined,
+        pin:           data.pin,
+        shifts:        validShifts,
+        notes:         data.notes,
       });
       toast({ title: "Saved!", description: `${data.fullName}'s profile updated.` });
       onClose();
@@ -75,22 +86,23 @@ export function EditEmployeeDialog({ employee, onClose }: Props) {
 
   return (
     <Dialog open={!!employee} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit Staff — {employee?.employeeId}</DialogTitle>
         </DialogHeader>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+          {/* Name */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Full Name *</label>
-            <input
-              {...register("fullName", { required: true })}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none uppercase"
-            />
+            <label className={labelCls}>Full Name *</label>
+            <input {...register("fullName", { required: true })} className={inputCls} style={{ textTransform: "uppercase" }} />
           </div>
+
+          {/* Role + Phone */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Role</label>
-              <select {...register("role")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none">
+              <label className={labelCls}>Role</label>
+              <select {...register("role")} className={inputCls}>
                 <option value="FRONT_DESK">Front Desk</option>
                 <option value="TRAINER">Trainer</option>
                 <option value="CLEANER">Cleaner</option>
@@ -99,67 +111,95 @@ export function EditEmployeeDialog({ employee, onClose }: Props) {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Phone *</label>
-              <input {...register("phone", { required: true })} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none" />
+              <label className={labelCls}>Phone *</label>
+              <input {...register("phone", { required: true })} className={inputCls} />
             </div>
           </div>
 
+          {/* PIN */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Check-in PIN * <span className="text-gray-400 font-normal">(4 digits)</span></label>
-            <input
-              {...register("pin", {
-                required: "PIN is required",
-                pattern: { value: /^\d{4}$/, message: "Must be exactly 4 digits" },
-              })}
-              type="text"
-              inputMode="numeric"
-              maxLength={4}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none font-mono tracking-widest"
-            />
-            {errors.pin && <p className="text-xs text-red-600 mt-1">{errors.pin.message as string}</p>}
+            <label className={labelCls}>Check-in PIN * <span className="text-gray-600 font-normal">(4 digits)</span></label>
+            <input {...register("pin", { required: "PIN required", pattern: { value: /^\d{4}$/, message: "Must be 4 digits" } })}
+              type="text" inputMode="numeric" maxLength={4} className={`${inputCls} font-mono tracking-widest`} />
+            {errors.pin && <p className="text-xs text-red-400 mt-1">{errors.pin.message}</p>}
           </div>
 
+          {/* Shifts */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Shift End Time <span className="text-gray-400 font-normal">(IST, 24-h — e.g. 14:00 for 2 PM)</span>
-            </label>
-            <input
-              {...register("shiftEndTime")}
-              type="time"
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className={labelCls + " mb-0"}>Shift Schedule <span className="text-gray-600 font-normal">(IST, 24-h)</span></label>
+              {fields.length < 4 && (
+                <button type="button" onClick={() => append({ start: "", end: "" })}
+                  className="flex items-center gap-1 text-xs font-semibold text-orange-400 hover:text-orange-300 transition-colors">
+                  <Plus className="h-3 w-3" /> Add Shift
+                </button>
+              )}
+            </div>
+            <div className="space-y-2">
+              {fields.map((field, idx) => (
+                <div key={field.id} className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600 font-bold w-14 flex-shrink-0">
+                    {idx === 0 ? "Shift 1" : idx === 1 ? "Shift 2" : idx === 2 ? "Shift 3" : "Shift 4"}
+                  </span>
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="flex-1">
+                      <input {...register(`shifts.${idx}.start`)} type="time" placeholder="Start"
+                        className={inputCls} />
+                    </div>
+                    <span className="text-gray-600 text-xs font-bold">→</span>
+                    <div className="flex-1">
+                      <input {...register(`shifts.${idx}.end`)} type="time" placeholder="End"
+                        className={inputCls} />
+                    </div>
+                  </div>
+                  {fields.length > 1 && (
+                    <button type="button" onClick={() => remove(idx)}
+                      className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 transition-colors flex-shrink-0"
+                      style={{ background: "rgba(255,255,255,0.04)" }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
+          {/* Salary */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Salary Type</label>
-              <select {...register("salaryType")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none">
+              <label className={labelCls}>Salary Type</label>
+              <select {...register("salaryType")} className={inputCls}>
                 <option value="FIXED_MONTHLY">Fixed Monthly</option>
                 <option value="PER_DAY">Per Day</option>
               </select>
             </div>
-            {salaryType === "FIXED_MONTHLY" ? (
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Monthly Salary (₹)</label>
-                <input {...register("monthlySalary")} type="number" className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none" />
-              </div>
-            ) : (
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Per Day (₹)</label>
-                <input {...register("perDaySalary")} type="number" className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none" />
-              </div>
-            )}
+            <div>
+              <label className={labelCls}>{salaryType === "FIXED_MONTHLY" ? "Monthly Salary (₹)" : "Per Day (₹)"}</label>
+              {salaryType === "FIXED_MONTHLY"
+                ? <input {...register("monthlySalary")} type="number" className={inputCls} />
+                : <input {...register("perDaySalary")}  type="number" className={inputCls} />
+              }
+            </div>
           </div>
+
+          {/* Notes */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-            <textarea {...register("notes")} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none resize-none" />
+            <label className={labelCls}>Notes</label>
+            <textarea {...register("notes")} rows={2} className={`${inputCls} resize-none`} />
           </div>
+
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
-            <Button type="submit" disabled={loading}>
+            <button type="button" onClick={onClose} disabled={loading}
+              className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-400 hover:text-white transition-colors"
+              style={{ background: "rgba(255,255,255,0.06)" }}>
+              Cancel
+            </button>
+            <button type="submit" disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Save Changes
-            </Button>
+            </button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -28,36 +28,78 @@ function shiftEndUTC(checkInTime: Date, shiftEndTime: string): Date {
 }
 
 
-const MORNING_DEFAULT = "12:00";  // default morning shift end (noon)
-const EVENING_DEFAULT = "21:30";  // default evening shift end (9:30 PM)
+const MORNING_DEFAULT = "12:00";  // fallback morning shift end (noon)
+const EVENING_DEFAULT = "21:30";  // fallback evening shift end (9:30 PM)
+
+type ShiftDef = { start: string; end: string };
+
+function timeToMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
 
 /**
- * Determine auto-checkout time (IST HH:MM) based purely on check-in window.
+ * Determine auto-checkout time (IST HH:MM) given check-in time and optional shifts array.
  *
- * Morning arrival (before noon):
- *   → use shiftEndTime if it is a morning time (hour < 12), else MORNING_DEFAULT
- * Evening arrival (noon or after):
- *   → use shiftEndTime if it is an evening time (hour >= 12), else EVENING_DEFAULT
+ * If the employee has defined shifts (e.g. [{start:"07:00",end:"12:00"},{start:"16:00",end:"21:30"}]):
+ *   → Find the shift whose start is closest to (and before) the check-in time.
+ *     "Before" means within a 2-hour early window to handle early arrivals.
+ *   → Use that shift's end time.
  *
- * Examples:
- *   Morning person (shiftEndTime="12:00") checks in at 7 AM  → "12:00" ✓
- *   Morning person (shiftEndTime="12:00") checks in at 6 PM  → "21:30" ✓
- *   Evening person (shiftEndTime="21:30") checks in at 7 AM  → "12:00" ✓
- *   Evening person (shiftEndTime="21:30") checks in at 6 PM  → "21:30" ✓
+ * Fallback (no shifts defined):
+ *   → Morning check-in (before noon) → MORNING_DEFAULT
+ *   → Evening check-in (noon or after) → EVENING_DEFAULT
  */
-function resolveCheckoutTime(checkInTime: Date, shiftEndTime: string | null): string {
+function resolveCheckoutTime(
+  checkInTime: Date,
+  shifts: ShiftDef[] | null,
+  shiftEndTime: string | null,
+): string {
   const checkInIST = new Date(checkInTime.getTime() + IST_OFFSET_MS);
-  const istHour = checkInIST.getUTCHours() + checkInIST.getUTCMinutes() / 60;
-  const isMorning = istHour < 12;
+  const checkInMinutes = checkInIST.getUTCHours() * 60 + checkInIST.getUTCMinutes();
 
+  // ── Use shifts array if available ──────────────────────────────────────────
+  if (shifts && shifts.length > 0) {
+    // Find the best matching shift:
+    // A shift matches if the employee checked in within 2 hours before the shift start,
+    // or any time between shift start and shift end.
+    let bestShift: ShiftDef | null = null;
+    let bestDiff = Infinity;
+
+    for (const s of shifts) {
+      if (!s.start || !s.end) continue;
+      const startMin = timeToMinutes(s.start);
+      const endMin   = timeToMinutes(s.end);
+
+      // Check-in is "in window" if it's within [start - 120 min, end]
+      const windowStart = startMin - 120;
+      if (checkInMinutes >= windowStart && checkInMinutes <= endMin) {
+        const diff = Math.abs(checkInMinutes - startMin);
+        if (diff < bestDiff) { bestDiff = diff; bestShift = s; }
+      }
+    }
+
+    if (bestShift) return bestShift.end;
+
+    // No shift matched window — pick the shift with the nearest start time
+    let nearest: ShiftDef = shifts[0];
+    let nearestDiff = Infinity;
+    for (const s of shifts) {
+      if (!s.start) continue;
+      const diff = Math.abs(checkInMinutes - timeToMinutes(s.start));
+      if (diff < nearestDiff) { nearestDiff = diff; nearest = s; }
+    }
+    return nearest.end || MORNING_DEFAULT;
+  }
+
+  // ── Legacy fallback: use shiftEndTime + check-in window ───────────────────
+  const isMorning = checkInMinutes < 12 * 60;
   if (shiftEndTime) {
     const [h] = shiftEndTime.split(":").map(Number);
     const isShiftMorning = h < 12;
-    // Only use shiftEndTime when it belongs to the same window as check-in
     if (isMorning && isShiftMorning) return shiftEndTime;
     if (!isMorning && !isShiftMorning) return shiftEndTime;
   }
-
   return isMorning ? MORNING_DEFAULT : EVENING_DEFAULT;
 }
 
@@ -77,14 +119,15 @@ async function runAutoCheckout() {
     include: {
       attendance: {
         include: {
-          employee: { select: { id: true, fullName: true, employeeId: true, shiftEndTime: true } },
+          employee: { select: { id: true, fullName: true, employeeId: true, shiftEndTime: true, shifts: true } },
         },
       },
     },
   });
 
   const toClose = openShifts.filter((s) => {
-    const endTimeStr = resolveCheckoutTime(s.checkInTime, s.attendance.employee.shiftEndTime);
+    const emp = s.attendance.employee;
+    const endTimeStr = resolveCheckoutTime(s.checkInTime, emp.shifts as ShiftDef[] | null, emp.shiftEndTime);
     return now >= shiftEndUTC(s.checkInTime, endTimeStr);
   });
 
@@ -93,7 +136,8 @@ async function runAutoCheckout() {
   }
 
   for (const s of toClose) {
-    const endTimeStr = resolveCheckoutTime(s.checkInTime, s.attendance.employee.shiftEndTime);
+    const emp = s.attendance.employee;
+    const endTimeStr = resolveCheckoutTime(s.checkInTime, emp.shifts as ShiftDef[] | null, emp.shiftEndTime);
     await prisma.attendanceShift.update({
       where: { id: s.id },
       data: { checkOutTime: shiftEndUTC(s.checkInTime, endTimeStr) },
@@ -107,8 +151,9 @@ async function runAutoCheckout() {
   });
 
   const employees = toClose.map((s) => {
-    const end = resolveCheckoutTime(s.checkInTime, s.attendance.employee.shiftEndTime);
-    return `${s.attendance.employee.fullName} → ${end}`;
+    const emp = s.attendance.employee;
+    const end = resolveCheckoutTime(s.checkInTime, emp.shifts as ShiftDef[] | null, emp.shiftEndTime);
+    return `${emp.fullName} → ${end}`;
   });
 
   return { checkedOut: toClose.length, employees };
