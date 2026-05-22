@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     // Add shifts column if it doesn't exist
     await prisma.$executeRawUnsafe(
-      `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "shifts" JSONB;`
+      `ALTER TABLE "employees" ADD COLUMN IF NOT EXISTS "shifts" JSONB;`
     );
     return NextResponse.json({ success: true, message: "shifts column added" });
   } catch (err: any) {
