@@ -72,6 +72,32 @@ select {
 }
 
 
+/* ── Dark-mode form controls ─────────────────────────────────────────────
+   Browser default input/select/textarea background is white.
+   Override globally so every dialog, form, and dropdown in the CRM
+   inherits the dark palette without touching individual components.       */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #e5e7eb;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #4b5563;
+}
+/* Keep date/time browser chrome readable */
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+}
+/* Select option background */
+.dark select option {
+  background-color: #1c1c1c;
+  color: #e5e7eb;
+}
+
 /* Better focus rings */
 *:focus-visible {
   outline: 2px solid #f97316;
