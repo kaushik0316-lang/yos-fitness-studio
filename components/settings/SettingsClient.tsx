@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Package, Users, Loader2, Check, X } from "lucide-react";
+import { Plus, Package, Users, Loader2, Check, X, Shield, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, COMPANY_LABELS, COMPANY_COLORS } from "@/lib/utils";
@@ -25,10 +25,48 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export function SettingsClient({ packages, users }: Props) {
-  const [activeTab, setActiveTab] = useState<"packages" | "users">("packages");
+  const [activeTab, setActiveTab] = useState<"packages" | "users" | "security">("packages");
   const [showAddPkg, setShowAddPkg] = useState(false);
   const [savingPkg, setSavingPkg] = useState(false);
   const [newPkg, setNewPkg] = useState({ name: "", durationDays: "30", price: "", company: "YOS_FITNESS", notes: "" });
+
+  // Password change state
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+  const [showPw, setShowPw] = useState({ current: false, next: false, confirm: false });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState(false);
+
+  async function changePassword() {
+    setPwError("");
+    setPwSuccess(false);
+    if (!pwForm.current || !pwForm.next || !pwForm.confirm) {
+      setPwError("All fields are required."); return;
+    }
+    if (pwForm.next.length < 8) {
+      setPwError("New password must be at least 8 characters."); return;
+    }
+    if (pwForm.next !== pwForm.confirm) {
+      setPwError("New passwords don't match."); return;
+    }
+    setPwSaving(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.next }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setPwError(data.error ?? "Something went wrong."); return; }
+      setPwSuccess(true);
+      setPwForm({ current: "", next: "", confirm: "" });
+      toast({ title: "Password changed successfully!" });
+    } catch {
+      setPwError("Network error. Please try again.");
+    } finally {
+      setPwSaving(false);
+    }
+  }
 
   async function savePackage() {
     if (!newPkg.name || !newPkg.price) {
@@ -63,8 +101,9 @@ export function SettingsClient({ packages, users }: Props) {
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
         {[
-          { key: "packages", label: `Packages (${packages.length})`, icon: Package },
-          { key: "users",    label: `Users (${users.length})`,    icon: Users },
+          { key: "packages",  label: `Packages (${packages.length})`, icon: Package },
+          { key: "users",     label: `Users (${users.length})`,       icon: Users   },
+          { key: "security",  label: "Security",                       icon: Shield  },
         ].map((t) => (
           <button
             key={t.key}
@@ -168,6 +207,82 @@ export function SettingsClient({ packages, users }: Props) {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Security tab */}
+      {activeTab === "security" && (
+        <div className="max-w-md space-y-4">
+          <div className="rounded-xl border overflow-hidden" style={{ background: "#161616", borderColor: "rgba(255,255,255,0.08)" }}>
+            <div className="px-5 py-4 flex items-center gap-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="rounded-xl p-2" style={{ background: "rgba(249,115,22,0.12)" }}>
+                <Shield className="h-4 w-4 text-orange-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-sm">Change Password</h3>
+                <p className="text-xs text-gray-500">Use a strong, unique password</p>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {pwError && (
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm text-red-400"
+                  style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                  <X className="h-4 w-4 flex-shrink-0" />
+                  {pwError}
+                </div>
+              )}
+              {pwSuccess && (
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm text-green-400"
+                  style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}>
+                  <Check className="h-4 w-4 flex-shrink-0" />
+                  Password changed successfully!
+                </div>
+              )}
+
+              {(["current", "next", "confirm"] as const).map((field) => {
+                const labels = { current: "Current Password", next: "New Password", confirm: "Confirm New Password" };
+                return (
+                  <div key={field} className="space-y-1.5">
+                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+                      {labels[field]}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPw[field] ? "text" : "password"}
+                        value={pwForm[field]}
+                        onChange={(e) => setPwForm(p => ({ ...p, [field]: e.target.value }))}
+                        placeholder="••••••••"
+                        className="w-full rounded-xl pr-10 pl-4 py-2.5 text-sm text-white placeholder:text-gray-700 focus:outline-none transition-all"
+                        style={{ background: "rgba(255,255,255,0.05)", border: "1.5px solid rgba(255,255,255,0.08)" }}
+                        onFocus={e => { e.currentTarget.style.border = "1.5px solid rgba(249,115,22,0.5)"; }}
+                        onBlur={e => { e.currentTarget.style.border = "1.5px solid rgba(255,255,255,0.08)"; }}
+                      />
+                      <button type="button"
+                        onClick={() => setShowPw(p => ({ ...p, [field]: !p[field] }))}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400 transition-colors">
+                        {showPw[field] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <button
+                onClick={changePassword}
+                disabled={pwSaving}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-all mt-2 disabled:opacity-60"
+                style={{ background: "linear-gradient(135deg, #f97316, #ea580c)", boxShadow: "0 4px 16px rgba(249,115,22,0.3)" }}
+              >
+                {pwSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+                {pwSaving ? "Updating..." : "Update Password"}
+              </button>
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-600 px-1">
+            Use at least 8 characters. Avoid using this password anywhere else.
+          </p>
         </div>
       )}
 
