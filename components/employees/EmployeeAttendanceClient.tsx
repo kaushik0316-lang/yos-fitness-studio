@@ -283,16 +283,17 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
       {/* ── Attendance grid ── */}
       {tab === "attendance" && (
         <>
+          {/* Controls row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-gray-100 border"><ChevronLeft className="h-4 w-4" /></button>
               <span className="font-semibold text-gray-900 min-w-[140px] text-center">{format(new Date(year, month - 1, 1), "MMMM yyyy")}</span>
               <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-gray-100 border"><ChevronRight className="h-4 w-4" /></button>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 text-xs flex-wrap">
                 {STATUS_OPTIONS.map((s) => (
-                  <span key={s.value} className={cn("px-2 py-0.5 rounded font-medium", s.color)}>{s.label}</span>
+                  <span key={s.value} className={cn("px-2 py-0.5 rounded font-bold", s.color)}>{s.label}</span>
                 ))}
               </div>
               {canEdit && (
@@ -304,7 +305,29 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
             </div>
           </div>
 
-          {canEdit && <p className="text-xs text-gray-500">Click a cell to cycle status · Click employee name for full detail</p>}
+          {/* Today's summary bar */}
+          {(() => {
+            const todayStr = format(new Date(), "yyyy-MM-dd");
+            const isCurrentMonth = month === new Date().getMonth() + 1 && year === new Date().getFullYear();
+            if (!isCurrentMonth) return null;
+            const present    = employees.filter(e => localMap[e.id]?.[todayStr] === "PRESENT").length;
+            const absent     = employees.filter(e => localMap[e.id]?.[todayStr] === "ABSENT").length;
+            const halfDay    = employees.filter(e => localMap[e.id]?.[todayStr] === "HALF_DAY").length;
+            const notMarked  = employees.filter(e => !localMap[e.id]?.[todayStr]).length;
+            const stillIn    = employees.filter(e => (attendanceMap[e.id]?.[todayStr]?.shifts ?? []).some((s: any) => !s.checkOutTime)).length;
+            return (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Today:</span>
+                <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-full">{present} Present</span>
+                {absent > 0 && <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full">{absent} Absent</span>}
+                {halfDay > 0 && <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 text-xs font-bold px-2.5 py-1 rounded-full">{halfDay} Half Day</span>}
+                {notMarked > 0 && <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 text-xs font-bold px-2.5 py-1 rounded-full">{notMarked} Not Marked</span>}
+                {stillIn > 0 && <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full">● {stillIn} Still In</span>}
+              </div>
+            );
+          })()}
+
+          {canEdit && <p className="text-xs text-gray-400">Click a cell to cycle status · Click employee name for full detail</p>}
 
           {employees.length === 0 ? (
             <div className="bg-white rounded-xl border p-12 text-center">
@@ -321,14 +344,22 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
               <table className="text-xs min-w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="text-left px-3 py-2 font-semibold text-gray-600 sticky left-0 bg-gray-50 min-w-[160px]">Employee</th>
-                    {days.map((day) => (
-                      <th key={day.toISOString()} className={cn("px-1 py-2 font-medium text-center min-w-[80px]", day.getDay() === 0 ? "text-red-400" : "text-gray-500")}>
-                        <div>{format(day, "d")}</div>
-                        <div className="text-[10px] text-gray-400">{format(day, "EEE")}</div>
-                      </th>
-                    ))}
-                    <th className="px-3 py-2 font-semibold text-gray-600 text-center min-w-[140px]">Summary</th>
+                    <th className="text-left px-3 py-2.5 font-semibold text-gray-600 sticky left-0 bg-gray-50 min-w-[170px] z-10">Employee</th>
+                    <th className="px-3 py-2.5 font-semibold text-gray-600 text-center min-w-[130px] bg-gray-50">Summary</th>
+                    {days.map((day) => {
+                      const isToday = format(day, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+                      const isSun   = day.getDay() === 0;
+                      return (
+                        <th key={day.toISOString()}
+                          className={cn(
+                            "px-1 py-2 font-medium text-center min-w-[80px]",
+                            isToday ? "bg-orange-50 text-orange-600" : isSun ? "text-red-400" : "text-gray-500"
+                          )}>
+                          <div className={cn("font-bold", isToday && "text-orange-600")}>{format(day, "d")}</div>
+                          <div className={cn("text-[10px]", isToday ? "text-orange-400 font-semibold" : "text-gray-400")}>{isToday ? "Today" : format(day, "EEE")}</div>
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -336,24 +367,35 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                     const summary = getSummary(emp.id);
                     return (
                       <tr key={emp.id} className="hover:bg-gray-50/50">
-                        <td className="px-3 py-2 sticky left-0 bg-white">
+                        {/* Employee name — sticky */}
+                        <td className="px-3 py-2 sticky left-0 bg-white z-10 border-r border-gray-100">
                           <button onClick={() => setDetailEmp(emp)} className="text-left hover:text-orange-600 transition-colors group">
-                            <p className="font-medium text-gray-900 group-hover:text-orange-600 flex items-center gap-1">
-                              {emp.fullName}
+                            <p className="font-semibold text-gray-900 group-hover:text-orange-600 flex items-center gap-1">
+                              {emp.fullName || <span className="text-gray-400 italic">No name</span>}
                               <Clock className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </p>
-                            <p className="text-gray-400 font-normal text-[10px]">{emp.role.replace("_"," ")}</p>
+                            <p className="text-gray-400 font-normal text-[10px]">{emp.role.replace(/_/g," ")}</p>
                           </button>
                         </td>
+                        {/* Summary — second column, always visible */}
+                        <td className="px-2 py-2 border-r border-gray-100">
+                          <div className="flex items-center gap-1 flex-wrap justify-center">
+                            <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-bold">{summary.PRESENT}P</span>
+                            <span className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-[10px] font-bold">{summary.ABSENT}A</span>
+                            {summary.HALF_DAY > 0 && <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-bold">{summary.HALF_DAY}H</span>}
+                            {(summary.LEAVE + summary.PAID_LEAVE) > 0 && <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">{summary.LEAVE + summary.PAID_LEAVE}L</span>}
+                          </div>
+                        </td>
+                        {/* Day cells */}
                         {days.map((day) => {
-                          const dateStr = format(day, "yyyy-MM-dd");
-                          const status = localMap[emp.id]?.[dateStr] ?? "";
-                          const shifts = attendanceMap[emp.id]?.[dateStr]?.shifts ?? [];
+                          const dateStr  = format(day, "yyyy-MM-dd");
+                          const status   = localMap[emp.id]?.[dateStr] ?? "";
+                          const shifts   = attendanceMap[emp.id]?.[dateStr]?.shifts ?? [];
                           const isSunday = day.getDay() === 0;
                           const isFuture = day > new Date();
+                          const isToday  = dateStr === format(new Date(), "yyyy-MM-dd");
                           return (
-                            <td key={dateStr} className="px-1 py-1 text-center align-top">
-                              {/* Status badge — click to cycle */}
+                            <td key={dateStr} className={cn("px-1 py-1 text-center align-top", isToday && "bg-orange-50/40")}>
                               <button
                                 onClick={() => !isFuture && !isSunday && cycleStatus(emp.id, dateStr)}
                                 disabled={!canEdit || isFuture || isSunday}
@@ -361,12 +403,11 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                                 className={cn(
                                   "w-full rounded text-[10px] font-bold transition-colors px-1 py-0.5 mb-0.5",
                                   status ? STATUS_COLOR[status] : isSunday ? "bg-gray-100 text-gray-300" : "bg-gray-100 text-gray-400 hover:bg-gray-200",
-                                  canEdit && !isFuture && "cursor-pointer"
+                                  canEdit && !isFuture && !isSunday && "cursor-pointer"
                                 )}
                               >
                                 {status ? STATUS_OPTIONS.find((s) => s.value === status)?.label : (isSunday ? "—" : "")}
                               </button>
-                              {/* Shift times */}
                               {shifts.length > 0 && (
                                 <div className="space-y-1">
                                   {shifts.map((s) => (
@@ -374,16 +415,11 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                                       {shifts.length > 1 && (
                                         <div className="text-[9px] text-gray-400 font-medium">S{s.shiftIndex}</div>
                                       )}
-                                      <div className="text-[10px] font-medium text-green-600">
-                                        ▲ {fmtTime(s.checkInTime)}
-                                      </div>
-                                      {s.checkOutTime ? (
-                                        <div className="text-[10px] font-medium text-red-500">
-                                          ▼ {fmtTime(s.checkOutTime)}
-                                        </div>
-                                      ) : (
-                                        <div className="text-[9px] text-amber-500 italic">in…</div>
-                                      )}
+                                      <div className="text-[10px] font-medium text-green-600">▲ {fmtTime(s.checkInTime)}</div>
+                                      {s.checkOutTime
+                                        ? <div className="text-[10px] font-medium text-red-500">▼ {fmtTime(s.checkOutTime)}</div>
+                                        : <div className="text-[9px] text-amber-500 italic">in…</div>
+                                      }
                                     </div>
                                   ))}
                                 </div>
@@ -391,14 +427,6 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                             </td>
                           );
                         })}
-                        <td className="px-3 py-2">
-                          <div className="flex items-center gap-1 flex-wrap justify-center">
-                            <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-medium">{summary.PRESENT}P</span>
-                            <span className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-[10px] font-medium">{summary.ABSENT}A</span>
-                            <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-medium">{summary.HALF_DAY}H</span>
-                            <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-medium">{summary.LEAVE + summary.PAID_LEAVE}L</span>
-                          </div>
-                        </td>
                       </tr>
                     );
                   })}
