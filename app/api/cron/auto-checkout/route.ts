@@ -28,23 +28,37 @@ function shiftEndUTC(checkInTime: Date, shiftEndTime: string): Date {
 }
 
 
+const MORNING_DEFAULT = "12:00";  // default morning shift end (noon)
+const EVENING_DEFAULT = "21:30";  // default evening shift end (9:30 PM)
+
 /**
- * Determine the auto-checkout time string (IST HH:MM) for a shift.
+ * Determine auto-checkout time (IST HH:MM) based purely on check-in window.
  *
- * Rule:
- *   - Check-in BEFORE 12:00 PM IST → morning shift → always end at "12:00"
- *   - Check-in AT or AFTER 12:00 PM IST → evening shift → use employee's
- *     shiftEndTime if set, otherwise default to "22:00"
+ * Morning arrival (before noon):
+ *   → use shiftEndTime if it is a morning time (hour < 12), else MORNING_DEFAULT
+ * Evening arrival (noon or after):
+ *   → use shiftEndTime if it is an evening time (hour >= 12), else EVENING_DEFAULT
  *
- * This means shiftEndTime only applies to evening arrivals. A trainer whose
- * shiftEndTime is "22:00" but who checks in at 7 AM will still be auto-checked
- * out at 12:00 PM, not at 10 PM.
+ * Examples:
+ *   Morning person (shiftEndTime="12:00") checks in at 7 AM  → "12:00" ✓
+ *   Morning person (shiftEndTime="12:00") checks in at 6 PM  → "21:30" ✓
+ *   Evening person (shiftEndTime="21:30") checks in at 7 AM  → "12:00" ✓
+ *   Evening person (shiftEndTime="21:30") checks in at 6 PM  → "21:30" ✓
  */
 function resolveCheckoutTime(checkInTime: Date, shiftEndTime: string | null): string {
   const checkInIST = new Date(checkInTime.getTime() + IST_OFFSET_MS);
   const istHour = checkInIST.getUTCHours() + checkInIST.getUTCMinutes() / 60;
-  if (istHour < 12) return "12:00";           // morning arrival → noon cutoff
-  return shiftEndTime ?? "22:00";             // evening arrival → configured or 10 PM
+  const isMorning = istHour < 12;
+
+  if (shiftEndTime) {
+    const [h] = shiftEndTime.split(":").map(Number);
+    const isShiftMorning = h < 12;
+    // Only use shiftEndTime when it belongs to the same window as check-in
+    if (isMorning && isShiftMorning) return shiftEndTime;
+    if (!isMorning && !isShiftMorning) return shiftEndTime;
+  }
+
+  return isMorning ? MORNING_DEFAULT : EVENING_DEFAULT;
 }
 
 /**
