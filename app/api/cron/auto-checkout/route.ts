@@ -85,7 +85,7 @@ async function runAutoCheckout() {
   }
 
   // Ensure parent attendance rows are PRESENT
-  const attendanceIds = [...new Set(toClose.map((s) => s.attendanceId))];
+  const attendanceIds = Array.from(new Set(toClose.map((s) => s.attendanceId)));
   await prisma.employeeAttendance.updateMany({
     where: { id: { in: attendanceIds }, status: "ABSENT" },
     data: { status: "PRESENT" },
