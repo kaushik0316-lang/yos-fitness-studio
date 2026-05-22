@@ -455,15 +455,16 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                               className="px-0.5 py-1.5 align-top text-center"
                               style={{
                                 borderLeft: "1px solid rgba(255,255,255,0.04)",
-                                background: isToday ? "rgba(249,115,22,0.05)" : undefined,
+                                background: isToday ? "rgba(249,115,22,0.05)" : isFuture ? "rgba(0,0,0,0.15)" : undefined,
+                                opacity: isFuture ? 0.35 : 1,
                               }}>
                               <button
                                 onClick={() => !isFuture && !isSunday && cycleStatus(emp.id, dateStr)}
                                 disabled={!canEdit || isFuture || isSunday}
-                                title={isSunday ? "Sunday" : STATUS_OPTIONS.find(s => s.value === status)?.title ?? "Not marked"}
+                                title={isFuture ? "Future" : isSunday ? "Sunday" : STATUS_OPTIONS.find(s => s.value === status)?.title ?? "Not marked"}
                                 className={cn(
                                   "w-full rounded-md text-[10px] font-bold transition-all px-1 py-0.5 mb-0.5",
-                                  status ? style?.cell : isSunday
+                                  status ? style?.cell : (isSunday || isFuture)
                                     ? "text-gray-800 cursor-default"
                                     : "text-gray-800 hover:bg-white/5 hover:text-gray-600",
                                   canEdit && !isFuture && !isSunday && "cursor-pointer"
@@ -471,7 +472,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                               >
                                 {status
                                   ? STATUS_OPTIONS.find(s => s.value === status)?.label
-                                  : isSunday ? "—" : ""}
+                                  : (isSunday || isFuture) ? "—" : ""}
                               </button>
 
                               {/* Shift times */}

@@ -5,11 +5,35 @@ export async function GET(req: NextRequest) {
   const secret = req.headers.get("x-cron-secret");
   if (secret !== process.env.CRON_SECRET) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const all = await prisma.employee.findMany({
-    select: { id: true, employeeId: true, fullName: true, role: true, isActive: true },
+  // 1. Active employees with null/empty fullName
+  const allActive = await prisma.employee.findMany({
+    where: { isActive: true },
+    select: { id: true, fullName: true, employeeId: true },
     orderBy: { fullName: "asc" },
   });
-  return NextResponse.json({ total: all.length, employees: all });
+
+  const noName = allActive.filter(e => !e.fullName || e.fullName.trim() === "");
+
+  // 2. May 2026 attendance records for employees NOT in active list
+  const activeIds = allActive.map(e => e.id);
+  const may2026Start = new Date("2026-05-01");
+  const may2026End   = new Date("2026-05-31");
+
+  const orphaned = await prisma.employeeAttendance.findMany({
+    where: {
+      date: { gte: may2026Start, lte: may2026End },
+      employeeId: { notIn: activeIds },
+    },
+    include: { employee: { select: { id: true, fullName: true, isActive: true } } },
+    distinct: ["employeeId"],
+  });
+
+  return NextResponse.json({
+    activeCount: allActive.length,
+    activeEmployees: allActive,
+    noNameActive: noName,
+    orphanedAttendance: orphaned,
+  });
 }
 
 export async function DELETE(req: NextRequest) {
