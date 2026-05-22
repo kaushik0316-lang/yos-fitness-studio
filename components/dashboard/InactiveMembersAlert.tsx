@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { AlertTriangle, ChevronRight, Clock } from "lucide-react";
 import { daysAgo, formatDate } from "@/lib/utils";

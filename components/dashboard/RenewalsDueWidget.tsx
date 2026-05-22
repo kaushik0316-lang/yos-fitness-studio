@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { RotateCcw, ChevronRight, Phone } from "lucide-react";
 import { formatDate, daysUntil } from "@/lib/utils";
