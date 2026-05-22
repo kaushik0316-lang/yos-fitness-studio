@@ -460,7 +460,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                               <button
                                 onClick={() => !isFuture && !isSunday && cycleStatus(emp.id, dateStr)}
                                 disabled={!canEdit || isFuture || isSunday}
-                                title={isSunday ? "Sunday" : style?.title ?? STATUS_OPTIONS.find(s => s.value === status)?.title ?? "Not marked"}
+                                title={isSunday ? "Sunday" : STATUS_OPTIONS.find(s => s.value === status)?.title ?? "Not marked"}
                                 className={cn(
                                   "w-full rounded-md text-[10px] font-bold transition-all px-1 py-0.5 mb-0.5",
                                   status ? style?.cell : isSunday
