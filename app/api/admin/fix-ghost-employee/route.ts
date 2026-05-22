@@ -6,10 +6,10 @@ export async function GET(req: NextRequest) {
   if (secret !== process.env.CRON_SECRET) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const all = await prisma.employee.findMany({
-    select: { id: true, employeeId: true, fullName: true, role: true, phone: true, isActive: true },
+    select: { id: true, employeeId: true, fullName: true, role: true, isActive: true },
+    orderBy: { fullName: "asc" },
   });
-  const ghosts = all.filter(e => !e.fullName || e.fullName.trim() === "");
-  return NextResponse.json({ ghosts });
+  return NextResponse.json({ total: all.length, employees: all });
 }
 
 export async function DELETE(req: NextRequest) {
