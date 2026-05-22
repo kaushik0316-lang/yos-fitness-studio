@@ -18,8 +18,8 @@ type DayRecord = { status: string; shifts: Shift[] };
 type Employee = {
   id: string; employeeId: string; fullName: string; role: string;
   phone: string; salaryType: string; monthlySalary: number | null;
-  perDaySalary: number | null; pin: string | null; notes: string | null;
-  isActive: boolean; joinDate: Date;
+  perDaySalary: number | null; pin: string | null; shiftEndTime: string | null;
+  notes: string | null; isActive: boolean; joinDate: Date;
 };
 
 const STATUS_OPTIONS = [
