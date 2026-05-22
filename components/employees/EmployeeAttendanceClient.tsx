@@ -12,14 +12,15 @@ import { StaffTab } from "./StaffTab";
 import { ManualAttendanceDialog } from "./ManualAttendanceDialog";
 import type { UserRole } from "@prisma/client";
 
-type Shift = { id: string; shiftIndex: number; checkInTime: string; checkOutTime: string | null; deviceId: string | null };
-type DayRecord = { status: string; shifts: Shift[] };
+type AttendanceShift = { id: string; shiftIndex: number; checkInTime: string; checkOutTime: string | null; deviceId: string | null };
+type DayRecord = { status: string; shifts: AttendanceShift[] };
 
+type EmployeeShiftDef = { start: string; end: string };
 type Employee = {
   id: string; employeeId: string; fullName: string; role: string;
   phone: string; salaryType: string; monthlySalary: number | null;
   perDaySalary: number | null; pin: string | null; shiftEndTime: string | null;
-  notes: string | null; isActive: boolean; joinDate: Date;
+  shifts: EmployeeShiftDef[] | null; notes: string | null; isActive: boolean; joinDate: Date;
 };
 
 const STATUS_OPTIONS = [
