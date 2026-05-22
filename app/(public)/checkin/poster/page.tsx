@@ -57,12 +57,22 @@ export default function CheckinPosterPage() {
 
           {/* Heading */}
           <div>
-            <p className="text-orange-400 text-xs font-bold uppercase tracking-[0.3em] mb-2">
+            <p className="text-orange-400 text-xs font-bold uppercase tracking-[0.3em] mb-3">
               Staff Attendance
             </p>
             <h1 className="text-white font-black text-3xl uppercase tracking-tight leading-tight">
-              Scan to<br />Sign In
+              Scan to Sign In<br />& Sign Out
             </h1>
+            <div className="flex items-center justify-center gap-3 mt-4">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.2)" }}>
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                <span className="text-green-400 text-[11px] font-bold uppercase tracking-wider">Sign In</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.2)" }}>
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                <span className="text-orange-400 text-[11px] font-bold uppercase tracking-wider">Sign Out</span>
+              </div>
+            </div>
           </div>
 
           {/* QR Code */}
@@ -93,11 +103,11 @@ export default function CheckinPosterPage() {
           {/* Footer instruction */}
           <div className="space-y-1.5">
             <p className="text-gray-400 text-xs leading-relaxed">
-              Scan the QR code with your phone camera<br />
-              and enter your 4-digit PIN to sign in.
+              Scan with your phone camera and enter<br />
+              your 4-digit PIN at the start and end of every shift.
             </p>
             <p className="text-gray-600 text-[10px] uppercase tracking-widest">
-              Please sign in every shift
+              Do this every shift without fail
             </p>
           </div>
         </div>
