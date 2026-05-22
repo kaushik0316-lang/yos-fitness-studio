@@ -27,28 +27,37 @@ function shiftEndUTC(checkInTime: Date, shiftEndTime: string): Date {
   return new Date(istMidnightUTC + (hh * 60 + mm) * 60 * 1000);
 }
 
+
 /**
- * Fallback for employees without shiftEndTime:
- *   check-in before 12:00 PM IST → treat as morning → end 12:00 PM IST
- *   check-in at/after 12:00 PM  → treat as evening → end 22:00 IST
+ * Determine the auto-checkout time string (IST HH:MM) for a shift.
+ *
+ * Rule:
+ *   - Check-in BEFORE 12:00 PM IST → morning shift → always end at "12:00"
+ *   - Check-in AT or AFTER 12:00 PM IST → evening shift → use employee's
+ *     shiftEndTime if set, otherwise default to "22:00"
+ *
+ * This means shiftEndTime only applies to evening arrivals. A trainer whose
+ * shiftEndTime is "22:00" but who checks in at 7 AM will still be auto-checked
+ * out at 12:00 PM, not at 10 PM.
  */
-function fallbackShiftEnd(checkInTime: Date): string {
+function resolveCheckoutTime(checkInTime: Date, shiftEndTime: string | null): string {
   const checkInIST = new Date(checkInTime.getTime() + IST_OFFSET_MS);
   const istHour = checkInIST.getUTCHours() + checkInIST.getUTCMinutes() / 60;
-  return istHour < 12 ? "12:00" : "22:00";
+  if (istHour < 12) return "12:00";           // morning arrival → noon cutoff
+  return shiftEndTime ?? "22:00";             // evening arrival → configured or 10 PM
 }
 
 /**
  * GET/POST /api/cron/auto-checkout
  *
- * Called by Vercel Cron every hour (06:00–17:00 UTC = 11:30 AM–10:30 PM IST).
- * Closes any open shift whose employee's scheduled shiftEndTime has passed.
- * Employees without shiftEndTime fall back to the original morning/evening rule.
+ * Closes any open shift whose auto-checkout time has passed.
+ * Runs twice daily via Vercel Cron:
+ *   08:30 UTC (2:00 PM IST) — catches morning-shift checkouts
+ *   17:00 UTC (10:30 PM IST) — catches evening-shift checkouts
  */
 async function runAutoCheckout() {
   const now = new Date();
 
-  // All open shifts with employee info
   const openShifts = await prisma.attendanceShift.findMany({
     where: { checkOutTime: null },
     include: {
@@ -61,12 +70,8 @@ async function runAutoCheckout() {
   });
 
   const toClose = openShifts.filter((s) => {
-    const endTimeStr =
-      s.attendance.employee.shiftEndTime ?? fallbackShiftEnd(s.checkInTime);
-    const expectedCheckout = shiftEndUTC(s.checkInTime, endTimeStr);
-
-    // Only close if the expected checkout time has already passed
-    return now >= expectedCheckout;
+    const endTimeStr = resolveCheckoutTime(s.checkInTime, s.attendance.employee.shiftEndTime);
+    return now >= shiftEndUTC(s.checkInTime, endTimeStr);
   });
 
   if (toClose.length === 0) {
@@ -74,26 +79,23 @@ async function runAutoCheckout() {
   }
 
   for (const s of toClose) {
-    const endTimeStr =
-      s.attendance.employee.shiftEndTime ?? fallbackShiftEnd(s.checkInTime);
-    const checkOutTime = shiftEndUTC(s.checkInTime, endTimeStr);
-
+    const endTimeStr = resolveCheckoutTime(s.checkInTime, s.attendance.employee.shiftEndTime);
     await prisma.attendanceShift.update({
       where: { id: s.id },
-      data: { checkOutTime },
+      data: { checkOutTime: shiftEndUTC(s.checkInTime, endTimeStr) },
     });
   }
 
-  // Ensure parent attendance rows are PRESENT
   const attendanceIds = Array.from(new Set(toClose.map((s) => s.attendanceId)));
   await prisma.employeeAttendance.updateMany({
     where: { id: { in: attendanceIds }, status: "ABSENT" },
     data: { status: "PRESENT" },
   });
 
-  const employees = toClose.map(
-    (s) => `${s.attendance.employee.fullName} (${s.attendance.employee.shiftEndTime ?? "fallback"})`
-  );
+  const employees = toClose.map((s) => {
+    const end = resolveCheckoutTime(s.checkInTime, s.attendance.employee.shiftEndTime);
+    return `${s.attendance.employee.fullName} → ${end}`;
+  });
 
   return { checkedOut: toClose.length, employees };
 }
