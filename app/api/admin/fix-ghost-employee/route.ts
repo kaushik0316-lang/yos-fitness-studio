@@ -36,11 +36,35 @@ export async function GET(req: NextRequest) {
   });
 }
 
+/**
+ * DELETE /api/admin/fix-ghost-employee
+ * Body: { purgeOrphaned: true } — deletes ALL attendance records for inactive employees
+ * Body: { id: "employeeId" } — deletes a specific employee record
+ */
 export async function DELETE(req: NextRequest) {
   const secret = req.headers.get("x-cron-secret");
   if (secret !== process.env.CRON_SECRET) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = await req.json();
-  await prisma.employee.delete({ where: { id } });
-  return NextResponse.json({ success: true, deleted: id });
+  const body = await req.json();
+
+  if (body.purgeOrphaned) {
+    // Delete all attendance records belonging to inactive employees
+    const inactiveEmployees = await prisma.employee.findMany({
+      where: { isActive: false },
+      select: { id: true },
+    });
+    const inactiveIds = inactiveEmployees.map(e => e.id);
+
+    const result = await prisma.employeeAttendance.deleteMany({
+      where: { employeeId: { in: inactiveIds } },
+    });
+    return NextResponse.json({ success: true, deletedAttendanceRecords: result.count, forEmployees: inactiveIds.length });
+  }
+
+  if (body.id) {
+    await prisma.employee.delete({ where: { id: body.id } });
+    return NextResponse.json({ success: true, deleted: body.id });
+  }
+
+  return NextResponse.json({ error: "Provide purgeOrphaned: true or id: string" }, { status: 400 });
 }
