@@ -23,18 +23,22 @@ type Employee = {
 };
 
 const STATUS_OPTIONS = [
-  { value: "PRESENT",    label: "P",  color: "bg-green-500 text-white",   title: "Present" },
-  { value: "ABSENT",     label: "A",  color: "bg-red-500 text-white",     title: "Absent" },
-  { value: "HALF_DAY",   label: "H",  color: "bg-yellow-400 text-white",  title: "Half Day" },
-  { value: "WEEKLY_OFF", label: "WO", color: "bg-gray-200 text-gray-600", title: "Weekly Off" },
-  { value: "LEAVE",      label: "L",  color: "bg-blue-400 text-white",    title: "Leave" },
-  { value: "PAID_LEAVE", label: "PL", color: "bg-indigo-400 text-white",  title: "Paid Leave" },
+  { value: "PRESENT",    label: "P",  title: "Present" },
+  { value: "ABSENT",     label: "A",  title: "Absent" },
+  { value: "HALF_DAY",   label: "H",  title: "Half Day" },
+  { value: "WEEKLY_OFF", label: "WO", title: "Weekly Off" },
+  { value: "LEAVE",      label: "L",  title: "Leave" },
+  { value: "PAID_LEAVE", label: "PL", title: "Paid Leave" },
 ];
 
-const STATUS_COLOR: Record<string, string> = {
-  PRESENT: "bg-green-500 text-white", ABSENT: "bg-red-500 text-white",
-  HALF_DAY: "bg-yellow-400 text-white", WEEKLY_OFF: "bg-gray-200 text-gray-600",
-  LEAVE: "bg-blue-400 text-white", PAID_LEAVE: "bg-indigo-400 text-white",
+// Dark-mode status colours
+const STATUS_STYLE: Record<string, { cell: string; badge: string; dot: string }> = {
+  PRESENT:    { cell: "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30", badge: "bg-emerald-500/15 text-emerald-400", dot: "bg-emerald-400" },
+  ABSENT:     { cell: "bg-red-500/20 text-red-300 hover:bg-red-500/30",             badge: "bg-red-500/15 text-red-400",         dot: "bg-red-400" },
+  HALF_DAY:   { cell: "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30",       badge: "bg-amber-500/15 text-amber-400",     dot: "bg-amber-400" },
+  WEEKLY_OFF: { cell: "bg-white/5 text-gray-500 hover:bg-white/10",                 badge: "bg-white/5 text-gray-500",           dot: "bg-gray-500" },
+  LEAVE:      { cell: "bg-blue-500/20 text-blue-300 hover:bg-blue-500/30",          badge: "bg-blue-500/15 text-blue-400",       dot: "bg-blue-400" },
+  PAID_LEAVE: { cell: "bg-purple-500/20 text-purple-300 hover:bg-purple-500/30",    badge: "bg-purple-500/15 text-purple-400",   dot: "bg-purple-400" },
 };
 
 function fmtTime(iso: string | null): string {
@@ -59,7 +63,6 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
   const [detailEmp, setDetailEmp] = useState<Employee | null>(null);
   const [editDay, setEditDay] = useState<{ dateStr: string; displayDate: string } | null>(null);
   const [localMap, setLocalMap] = useState<Record<string, Record<string, string>>>(() => {
-    // Flatten to status-only for the grid
     const flat: Record<string, Record<string, string>> = {};
     for (const [empId, dates] of Object.entries(attendanceMap)) {
       flat[empId] = {};
@@ -68,6 +71,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
     return flat;
   });
   const [saving, setSaving] = useState(false);
+  const [, startTransition] = useTransition();
 
   const canEdit = userRole === "ADMIN" || userRole === "ACCOUNTANT";
   const monthStart = startOfMonth(new Date(year, month - 1, 1));
@@ -108,22 +112,19 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
     const dates = localMap[empId] ?? {};
     const c: Record<string, number> = { PRESENT: 0, ABSENT: 0, HALF_DAY: 0, WEEKLY_OFF: 0, LEAVE: 0, PAID_LEAVE: 0 };
     for (const [dateStr, s] of Object.entries(dates)) {
-      if (new Date(dateStr).getDay() === 0) continue; // skip Sundays
+      if (new Date(dateStr).getDay() === 0) continue;
       c[s] = (c[s] ?? 0) + 1;
     }
     return c;
   }
 
-  // ── Detail drill-down (per-employee day list with shifts) ─────────────────
-
+  // ── Detail view ───────────────────────────────────────────────────────────
   if (detailEmp) {
     const empRecords = attendanceMap[detailEmp.id] ?? {};
     const totalDays = new Date(year, month, 0).getDate();
     const todayStr = new Date().toISOString().split("T")[0];
     const isCurrentMonth = month === new Date().getMonth() + 1 && year === new Date().getFullYear();
 
-    // Build a map: deviceId → Set of employeeIds that used it this month
-    // so we can flag shared-device check-ins
     const deviceToEmployees: Record<string, Set<string>> = {};
     for (const [empId, dates] of Object.entries(attendanceMap)) {
       for (const rec of Object.values(dates)) {
@@ -139,14 +140,20 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => setDetailEmp(null)}>← Back to Grid</Button>
+          <button
+            onClick={() => setDetailEmp(null)}
+            className="flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-xl transition-colors"
+            style={{ background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}
+          >
+            <ChevronLeft className="h-4 w-4" /> Back
+          </button>
           <div>
-            <p className="font-bold text-gray-900">{detailEmp.fullName}</p>
+            <p className="font-bold text-white">{detailEmp.fullName}</p>
             <p className="text-xs text-gray-500">{detailEmp.role.replace("_"," ")} · {format(new Date(year, month-1, 1), "MMMM yyyy")}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border divide-y divide-gray-100">
+        <div className="rounded-2xl overflow-hidden" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
           {Array.from({ length: totalDays }, (_, i) => {
             const day = i + 1;
             const dateStr = `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
@@ -158,88 +165,82 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
             const displayDate = format(new Date(dateStr), "EEE, d MMM");
 
             return (
-              <div key={dateStr} className={cn("px-4 py-3", isToday && "bg-orange-50/50")}>
-                <div className="flex items-start gap-3">
-                  {/* Date */}
-                  <div className="w-10 flex-shrink-0 text-center pt-0.5">
-                    <p className={cn("text-sm font-bold", isSunday ? "text-red-500" : "text-gray-800")}>{day}</p>
-                    <p className={cn("text-[10px]", isSunday ? "text-red-400" : "text-gray-400")}>{dayName}</p>
-                  </div>
+              <div
+                key={dateStr}
+                className="px-5 py-3.5 flex items-start gap-4"
+                style={{
+                  borderBottom: "1px solid rgba(255,255,255,0.04)",
+                  background: isToday ? "rgba(249,115,22,0.06)" : isSunday ? "rgba(255,255,255,0.01)" : undefined,
+                }}
+              >
+                <div className="w-10 flex-shrink-0 text-center">
+                  <p className={cn("text-sm font-bold", isSunday ? "text-red-400" : isToday ? "text-orange-400" : "text-white")}>{day}</p>
+                  <p className={cn("text-[10px]", isSunday ? "text-red-500/60" : "text-gray-600")}>{dayName}</p>
+                </div>
 
-                  {/* Status + shifts */}
-                  <div className="flex-1 min-w-0">
-                    {rec ? (
-                      <>
-                        <span className={cn("text-[10px] px-2 py-0.5 rounded font-bold", STATUS_COLOR[rec.status])}>
-                          {STATUS_OPTIONS.find((s) => s.value === rec.status)?.title ?? rec.status}
-                        </span>
-                        {rec.shifts.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            {rec.shifts.map((s) => {
-                              const sharedWith = s.deviceId
-                                ? Array.from(deviceToEmployees[s.deviceId] ?? []).filter((id) => id !== detailEmp.id)
-                                : [];
-                              const sharedNames = sharedWith
-                                .map((id) => allEmployees.find((e) => e.id === id)?.fullName ?? "Unknown")
-                                .join(", ");
-                              return (
-                                <div key={s.shiftIndex} className="space-y-0.5">
-                                  <div className="flex items-center gap-3 text-xs text-gray-600">
-                                    {rec.shifts.length > 1 && (
-                                      <span className="text-gray-400 w-12 flex-shrink-0 font-medium">Shift {s.shiftIndex}</span>
-                                    )}
-                                    <span className="text-green-600 font-medium">▲ {fmtTime(s.checkInTime)}</span>
-                                    {s.checkOutTime
-                                      ? <span className="text-red-500 font-medium">▼ {fmtTime(s.checkOutTime)}</span>
-                                      : <span className="text-amber-500 italic text-xs">Still in</span>
-                                    }
-                                    {s.checkOutTime && (() => {
-                                      const mins = (new Date(s.checkOutTime).getTime() - new Date(s.checkInTime).getTime()) / 60000;
-                                      const h = Math.floor(mins / 60), m = Math.round(mins % 60);
-                                      return <span className="text-gray-400">({h > 0 ? `${h}h ${m}m` : `${m}m`})</span>;
-                                    })()}
-                                  </div>
-                                  {/* Device info row */}
-                                  {s.deviceId && (
-                                    <div className="flex items-center gap-1.5 pl-0.5">
-                                      <span className="text-[10px] text-gray-400 font-mono">
-                                        📱 Device ···{s.deviceId.slice(-6)}
-                                      </span>
-                                      {sharedWith.length > 0 && (
-                                        <span className="text-[10px] bg-red-100 text-red-600 font-semibold px-1.5 py-0.5 rounded-full">
-                                          ⚠ also used by {sharedNames}
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
+                <div className="flex-1 min-w-0">
+                  {rec ? (
+                    <>
+                      <span className={cn("text-[10px] px-2.5 py-0.5 rounded-full font-bold", STATUS_STYLE[rec.status]?.cell ?? "bg-white/5 text-gray-400")}>
+                        {STATUS_OPTIONS.find((s) => s.value === rec.status)?.title ?? rec.status}
+                      </span>
+                      {rec.shifts.length > 0 && (
+                        <div className="mt-2 space-y-2">
+                          {rec.shifts.map((s) => {
+                            const sharedWith = s.deviceId
+                              ? Array.from(deviceToEmployees[s.deviceId] ?? []).filter((id) => id !== detailEmp.id)
+                              : [];
+                            const sharedNames = sharedWith.map((id) => allEmployees.find((e) => e.id === id)?.fullName ?? "Unknown").join(", ");
+                            return (
+                              <div key={s.shiftIndex} className="space-y-0.5">
+                                <div className="flex items-center gap-3 text-xs">
+                                  {rec.shifts.length > 1 && <span className="text-gray-600 w-12 font-medium">Shift {s.shiftIndex}</span>}
+                                  <span className="text-emerald-400 font-semibold">▲ {fmtTime(s.checkInTime)}</span>
+                                  {s.checkOutTime
+                                    ? <span className="text-red-400 font-semibold">▼ {fmtTime(s.checkOutTime)}</span>
+                                    : <span className="text-amber-400 italic text-xs">still in</span>
+                                  }
+                                  {s.checkOutTime && (() => {
+                                    const mins = (new Date(s.checkOutTime).getTime() - new Date(s.checkInTime).getTime()) / 60000;
+                                    const h = Math.floor(mins / 60), m = Math.round(mins % 60);
+                                    return <span className="text-gray-600">({h > 0 ? `${h}h ${m}m` : `${m}m`})</span>;
+                                  })()}
                                 </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-xs text-gray-400">{isFuture ? "" : isSunday ? "Sunday" : "Not marked"}</span>
-                    )}
-                  </div>
-
-                  {/* Edit button — admins only, not future dates, not Sundays */}
-                  {canEdit && !isFuture && !isSunday && (
-                    <button
-                      onClick={() => setEditDay({ dateStr, displayDate })}
-                      title="Edit attendance"
-                      className="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 transition-colors"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
+                                {s.deviceId && (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] text-gray-700 font-mono">📱 ···{s.deviceId.slice(-6)}</span>
+                                    {sharedWith.length > 0 && (
+                                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "rgba(239,68,68,0.15)", color: "#f87171" }}>
+                                        ⚠ also {sharedNames}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-xs text-gray-700">{isFuture ? "" : isSunday ? "—" : "Not marked"}</span>
                   )}
                 </div>
+
+                {canEdit && !isFuture && !isSunday && (
+                  <button
+                    onClick={() => setEditDay({ dateStr, displayDate })}
+                    className="flex-shrink-0 p-1.5 rounded-lg text-gray-700 hover:text-orange-400 transition-colors"
+                    style={{ background: "rgba(255,255,255,0.04)" }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             );
           })}
         </div>
 
-        {/* Manual attendance edit dialog */}
         {editDay && detailEmp && (
           <ManualAttendanceDialog
             employeeId={detailEmp.id}
@@ -256,23 +257,36 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
     );
   }
 
-  // ── Main view ─────────────────────────────────────────────────────────────
+  // ── Main grid ─────────────────────────────────────────────────────────────
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const isCurrentMonth = month === new Date().getMonth() + 1 && year === new Date().getFullYear();
+
+  const present   = employees.filter(e => localMap[e.id]?.[todayStr] === "PRESENT").length;
+  const absent    = employees.filter(e => localMap[e.id]?.[todayStr] === "ABSENT").length;
+  const halfDay   = employees.filter(e => localMap[e.id]?.[todayStr] === "HALF_DAY").length;
+  const notMarked = employees.filter(e => !localMap[e.id]?.[todayStr]).length;
+  const stillIn   = employees.filter(e => (attendanceMap[e.id]?.[todayStr]?.shifts ?? []).some((s: any) => !s.checkOutTime)).length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+      <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: "rgba(255,255,255,0.05)" }}>
         {(["attendance", "staff"] as const).map((t) => (
           <button
-            key={t} onClick={() => setTab(t)}
-            className={cn("flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all",
-              tab === t ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            key={t}
+            onClick={() => setTab(t)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all",
+              tab === t ? "bg-orange-500 text-white shadow-lg" : "text-gray-500 hover:text-gray-300"
             )}
           >
             {t === "attendance" ? <CalendarDays className="h-4 w-4" /> : <Users className="h-4 w-4" />}
             {t === "attendance" ? "Attendance" : "Staff"}
             {t === "staff" && (
-              <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-bold", tab === "staff" ? "bg-orange-100 text-orange-700" : "bg-gray-200 text-gray-500")}>
+              <span className={cn(
+                "text-[10px] px-1.5 py-0.5 rounded-full font-bold",
+                tab === "staff" ? "bg-white/20 text-white" : "text-gray-600"
+              )}>
                 {allEmployees.filter(e => e.isActive).length}
               </span>
             )}
@@ -280,112 +294,152 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
         ))}
       </div>
 
-      {/* ── Attendance grid ── */}
       {tab === "attendance" && (
         <>
-          {/* Controls row */}
-          <div className="flex items-center justify-between">
+          {/* Controls */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            {/* Month nav */}
             <div className="flex items-center gap-2">
-              <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-gray-100 border"><ChevronLeft className="h-4 w-4" /></button>
-              <span className="font-semibold text-gray-900 min-w-[140px] text-center">{format(new Date(year, month - 1, 1), "MMMM yyyy")}</span>
-              <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-gray-100 border"><ChevronRight className="h-4 w-4" /></button>
+              <button
+                onClick={prevMonth}
+                className="p-2 rounded-xl transition-colors text-gray-400 hover:text-white"
+                style={{ background: "rgba(255,255,255,0.06)" }}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="font-bold text-white text-sm min-w-[130px] text-center">
+                {format(new Date(year, month - 1, 1), "MMMM yyyy")}
+              </span>
+              <button
+                onClick={nextMonth}
+                className="p-2 rounded-xl transition-colors text-gray-400 hover:text-white"
+                style={{ background: "rgba(255,255,255,0.06)" }}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
+
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 text-xs flex-wrap">
+              {/* Legend */}
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {STATUS_OPTIONS.map((s) => (
-                  <span key={s.value} className={cn("px-2 py-0.5 rounded font-bold", s.color)}>{s.label}</span>
+                  <span key={s.value} className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold", STATUS_STYLE[s.value]?.badge)}>
+                    {s.label}
+                  </span>
                 ))}
               </div>
               {canEdit && (
-                <Button size="sm" onClick={saveAll} disabled={saving}>
+                <button
+                  onClick={saveAll}
+                  disabled={saving}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-60"
+                  style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
+                >
                   {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                   Save
-                </Button>
+                </button>
               )}
             </div>
           </div>
 
-          {/* Today's summary bar */}
-          {(() => {
-            const todayStr = format(new Date(), "yyyy-MM-dd");
-            const isCurrentMonth = month === new Date().getMonth() + 1 && year === new Date().getFullYear();
-            if (!isCurrentMonth) return null;
-            const present    = employees.filter(e => localMap[e.id]?.[todayStr] === "PRESENT").length;
-            const absent     = employees.filter(e => localMap[e.id]?.[todayStr] === "ABSENT").length;
-            const halfDay    = employees.filter(e => localMap[e.id]?.[todayStr] === "HALF_DAY").length;
-            const notMarked  = employees.filter(e => !localMap[e.id]?.[todayStr]).length;
-            const stillIn    = employees.filter(e => (attendanceMap[e.id]?.[todayStr]?.shifts ?? []).some((s: any) => !s.checkOutTime)).length;
-            return (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Today:</span>
-                <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-full">{present} Present</span>
-                {absent > 0 && <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full">{absent} Absent</span>}
-                {halfDay > 0 && <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 text-xs font-bold px-2.5 py-1 rounded-full">{halfDay} Half Day</span>}
-                {notMarked > 0 && <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-500 text-xs font-bold px-2.5 py-1 rounded-full">{notMarked} Not Marked</span>}
-                {stillIn > 0 && <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full">● {stillIn} Still In</span>}
-              </div>
-            );
-          })()}
+          {/* Today summary bar */}
+          {isCurrentMonth && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Today</span>
+              {[
+                { count: present,   label: "Present",    style: { background: "rgba(34,197,94,0.12)", color: "#4ade80" } },
+                { count: absent,    label: "Absent",     style: { background: "rgba(239,68,68,0.12)", color: "#f87171" } },
+                { count: halfDay,   label: "Half Day",   style: { background: "rgba(245,158,11,0.12)", color: "#fbbf24" } },
+                { count: notMarked, label: "Not Marked", style: { background: "rgba(255,255,255,0.06)", color: "#6b7280" } },
+                { count: stillIn,   label: "Still In",  style: { background: "rgba(249,115,22,0.12)", color: "#fb923c" } },
+              ].filter(x => x.count > 0).map(({ count, label, style }) => (
+                <span key={label} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold" style={style}>
+                  {label === "Still In" && <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />}
+                  {count} {label}
+                </span>
+              ))}
+            </div>
+          )}
 
-          {canEdit && <p className="text-xs text-gray-400">Click a cell to cycle status · Click employee name for full detail</p>}
+          {canEdit && (
+            <p className="text-[11px] text-gray-700">Click a cell to cycle status · Click a name to see full shift detail</p>
+          )}
 
           {employees.length === 0 ? (
-            <div className="bg-white rounded-xl border p-12 text-center">
-              <Users className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">No active staff yet</p>
-              <p className="text-gray-400 text-sm mt-1">
-                Go to the{" "}
-                <button onClick={() => setTab("staff")} className="text-orange-500 hover:underline font-medium">Staff tab</button>{" "}
-                to add your team.
-              </p>
+            <div className="rounded-2xl p-12 text-center" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <Users className="h-10 w-10 text-gray-700 mx-auto mb-3" />
+              <p className="text-gray-400 font-medium">No active staff yet</p>
+              <button onClick={() => setTab("staff")} className="text-orange-400 hover:underline text-sm mt-1">Go to Staff tab →</button>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border overflow-x-auto">
-              <table className="text-xs min-w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="text-left px-3 py-2.5 font-semibold text-gray-600 sticky left-0 bg-gray-50 min-w-[170px] z-10">Employee</th>
-                    <th className="px-3 py-2.5 font-semibold text-gray-600 text-center min-w-[130px] bg-gray-50">Summary</th>
+            <div className="rounded-2xl overflow-hidden overflow-x-auto" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <table className="text-xs min-w-full border-collapse">
+                <thead>
+                  <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.03)" }}>
+                    <th className="text-left px-4 py-3 font-bold text-gray-500 uppercase tracking-wider text-[10px] sticky left-0 z-10 min-w-[160px]"
+                        style={{ background: "rgba(22,22,22,0.98)" }}>
+                      Employee
+                    </th>
+                    <th className="px-3 py-3 font-bold text-gray-500 uppercase tracking-wider text-[10px] text-center min-w-[100px]"
+                        style={{ borderLeft: "1px solid rgba(255,255,255,0.04)" }}>
+                      Month
+                    </th>
                     {days.map((day) => {
-                      const isToday = format(day, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+                      const isToday = format(day, "yyyy-MM-dd") === todayStr;
                       const isSun   = day.getDay() === 0;
                       return (
                         <th key={day.toISOString()}
-                          className={cn(
-                            "px-1 py-2 font-medium text-center min-w-[80px]",
-                            isToday ? "bg-orange-50 text-orange-600" : isSun ? "text-red-400" : "text-gray-500"
-                          )}>
-                          <div className={cn("font-bold", isToday && "text-orange-600")}>{format(day, "d")}</div>
-                          <div className={cn("text-[10px]", isToday ? "text-orange-400 font-semibold" : "text-gray-400")}>{isToday ? "Today" : format(day, "EEE")}</div>
+                          className="py-2 px-0.5 text-center min-w-[72px]"
+                          style={{
+                            borderLeft: "1px solid rgba(255,255,255,0.04)",
+                            background: isToday ? "rgba(249,115,22,0.08)" : undefined,
+                          }}>
+                          <div className={cn("text-sm font-bold", isToday ? "text-orange-400" : isSun ? "text-red-500/60" : "text-gray-400")}>
+                            {format(day, "d")}
+                          </div>
+                          <div className={cn("text-[9px] font-medium mt-0.5", isToday ? "text-orange-500/70" : isSun ? "text-red-500/40" : "text-gray-700")}>
+                            {isToday ? "Today" : format(day, "EEE")}
+                          </div>
                         </th>
                       );
                     })}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {employees.map((emp) => {
+                <tbody>
+                  {employees.map((emp, idx) => {
                     const summary = getSummary(emp.id);
                     return (
-                      <tr key={emp.id} className="hover:bg-gray-50/50">
-                        {/* Employee name — sticky */}
-                        <td className="px-3 py-2 sticky left-0 bg-white z-10 border-r border-gray-100">
-                          <button onClick={() => setDetailEmp(emp)} className="text-left hover:text-orange-600 transition-colors group">
-                            <p className="font-semibold text-gray-900 group-hover:text-orange-600 flex items-center gap-1">
-                              {emp.fullName || <span className="text-gray-400 italic">No name</span>}
-                              <Clock className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <tr key={emp.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+                          className="group hover:bg-white/[0.02] transition-colors">
+                        {/* Name — sticky */}
+                        <td className="px-4 py-2.5 sticky left-0 z-10"
+                            style={{ background: idx % 2 === 0 ? "#161616" : "#181818" }}>
+                          <button onClick={() => setDetailEmp(emp)} className="text-left group/name">
+                            <p className="font-bold text-white group-hover/name:text-orange-400 transition-colors flex items-center gap-1 text-[11px]">
+                              {emp.fullName || <span className="text-gray-700 italic text-[10px]">No name</span>}
+                              <Clock className="h-2.5 w-2.5 text-gray-600 opacity-0 group-hover/name:opacity-100 transition-opacity" />
                             </p>
-                            <p className="text-gray-400 font-normal text-[10px]">{emp.role.replace(/_/g," ")}</p>
+                            <p className="text-gray-700 text-[9px] font-medium mt-0.5">{emp.role.replace(/_/g," ")}</p>
                           </button>
                         </td>
-                        {/* Summary — second column, always visible */}
-                        <td className="px-2 py-2 border-r border-gray-100">
-                          <div className="flex items-center gap-1 flex-wrap justify-center">
-                            <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-bold">{summary.PRESENT}P</span>
-                            <span className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-[10px] font-bold">{summary.ABSENT}A</span>
-                            {summary.HALF_DAY > 0 && <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-bold">{summary.HALF_DAY}H</span>}
-                            {(summary.LEAVE + summary.PAID_LEAVE) > 0 && <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">{summary.LEAVE + summary.PAID_LEAVE}L</span>}
+
+                        {/* Summary */}
+                        <td className="px-2 py-2 text-center" style={{ borderLeft: "1px solid rgba(255,255,255,0.04)" }}>
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(34,197,94,0.12)", color: "#4ade80" }}>
+                              {summary.PRESENT}P
+                            </span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(239,68,68,0.12)", color: "#f87171" }}>
+                              {summary.ABSENT}A
+                            </span>
+                            {summary.HALF_DAY > 0 && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: "rgba(245,158,11,0.12)", color: "#fbbf24" }}>
+                                {summary.HALF_DAY}H
+                              </span>
+                            )}
                           </div>
                         </td>
+
                         {/* Day cells */}
                         {days.map((day) => {
                           const dateStr  = format(day, "yyyy-MM-dd");
@@ -393,32 +447,45 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                           const shifts   = attendanceMap[emp.id]?.[dateStr]?.shifts ?? [];
                           const isSunday = day.getDay() === 0;
                           const isFuture = day > new Date();
-                          const isToday  = dateStr === format(new Date(), "yyyy-MM-dd");
+                          const isToday  = dateStr === todayStr;
+                          const style    = STATUS_STYLE[status];
+
                           return (
-                            <td key={dateStr} className={cn("px-1 py-1 text-center align-top", isToday && "bg-orange-50/40")}>
+                            <td key={dateStr}
+                              className="px-0.5 py-1.5 align-top text-center"
+                              style={{
+                                borderLeft: "1px solid rgba(255,255,255,0.04)",
+                                background: isToday ? "rgba(249,115,22,0.05)" : undefined,
+                              }}>
                               <button
                                 onClick={() => !isFuture && !isSunday && cycleStatus(emp.id, dateStr)}
                                 disabled={!canEdit || isFuture || isSunday}
-                                title={isSunday ? "Sunday — not tracked" : STATUS_OPTIONS.find((s) => s.value === status)?.title ?? "Not marked"}
+                                title={isSunday ? "Sunday" : style?.title ?? STATUS_OPTIONS.find(s => s.value === status)?.title ?? "Not marked"}
                                 className={cn(
-                                  "w-full rounded text-[10px] font-bold transition-colors px-1 py-0.5 mb-0.5",
-                                  status ? STATUS_COLOR[status] : isSunday ? "bg-gray-100 text-gray-300" : "bg-gray-100 text-gray-400 hover:bg-gray-200",
+                                  "w-full rounded-md text-[10px] font-bold transition-all px-1 py-0.5 mb-0.5",
+                                  status ? style?.cell : isSunday
+                                    ? "text-gray-800 cursor-default"
+                                    : "text-gray-800 hover:bg-white/5 hover:text-gray-600",
                                   canEdit && !isFuture && !isSunday && "cursor-pointer"
                                 )}
                               >
-                                {status ? STATUS_OPTIONS.find((s) => s.value === status)?.label : (isSunday ? "—" : "")}
+                                {status
+                                  ? STATUS_OPTIONS.find(s => s.value === status)?.label
+                                  : isSunday ? "—" : ""}
                               </button>
+
+                              {/* Shift times */}
                               {shifts.length > 0 && (
-                                <div className="space-y-1">
+                                <div className="space-y-1 px-0.5">
                                   {shifts.map((s) => (
-                                    <div key={s.shiftIndex} className="text-left leading-tight">
+                                    <div key={s.shiftIndex} className="leading-tight">
                                       {shifts.length > 1 && (
-                                        <div className="text-[9px] text-gray-400 font-medium">S{s.shiftIndex}</div>
+                                        <div className="text-[8px] text-gray-700 font-semibold">S{s.shiftIndex}</div>
                                       )}
-                                      <div className="text-[10px] font-medium text-green-600">▲ {fmtTime(s.checkInTime)}</div>
+                                      <div className="text-[9px] font-semibold text-emerald-400">▲ {fmtTime(s.checkInTime)}</div>
                                       {s.checkOutTime
-                                        ? <div className="text-[10px] font-medium text-red-500">▼ {fmtTime(s.checkOutTime)}</div>
-                                        : <div className="text-[9px] text-amber-500 italic">in…</div>
+                                        ? <div className="text-[9px] font-semibold text-red-400">▼ {fmtTime(s.checkOutTime)}</div>
+                                        : <div className="text-[8px] text-amber-400 italic">in…</div>
                                       }
                                     </div>
                                   ))}
@@ -437,7 +504,6 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
         </>
       )}
 
-      {/* ── Staff tab ── */}
       {tab === "staff" && <StaffTab employees={allEmployees} salesMap={salesMap} />}
     </div>
   );
