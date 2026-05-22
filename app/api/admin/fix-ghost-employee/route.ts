@@ -61,10 +61,16 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ success: true, deletedAttendanceRecords: result.count, forEmployees: inactiveIds.length });
   }
 
+  if (body.deleteInactive) {
+    // Delete all inactive employees (attendance already purged)
+    const result = await prisma.employee.deleteMany({ where: { isActive: false } });
+    return NextResponse.json({ success: true, deletedEmployees: result.count });
+  }
+
   if (body.id) {
     await prisma.employee.delete({ where: { id: body.id } });
     return NextResponse.json({ success: true, deleted: body.id });
   }
 
-  return NextResponse.json({ error: "Provide purgeOrphaned: true or id: string" }, { status: 400 });
+  return NextResponse.json({ error: "Provide purgeOrphaned: true, deleteInactive: true, or id: string" }, { status: 400 });
 }
