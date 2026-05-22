@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import Image from "next/image";
 import {
   Dumbbell, Eye, EyeOff, Loader2, ArrowRight,
   Users, CalendarCheck, TrendingUp, Mail, Lock, Zap,
@@ -157,11 +158,9 @@ export default function LoginPage() {
         <div className="w-full max-w-[400px] relative">
 
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-10 justify-center">
-            <div className="rounded-xl p-2.5" style={{ background: "linear-gradient(135deg,#f97316,#ea580c)" }}>
-              <Dumbbell className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-white font-extrabold text-2xl uppercase tracking-wide">
+          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
+            <Image src="/Logo.png" alt="Yos Fitness Studio" width={40} height={40} className="h-10 w-auto object-contain" />
+            <span className="text-white font-extrabold text-lg uppercase tracking-wide">
               Yos Fitness Studio
             </span>
           </div>
@@ -185,7 +184,7 @@ export default function LoginPage() {
                   Staff Portal
                 </span>
               </div>
-              <h2 className="text-3xl font-extrabold text-white uppercase tracking-tight leading-none">
+              <h2 className="text-2xl font-extrabold text-white uppercase tracking-tight leading-none">
                 Sign In
               </h2>
               <p className="text-gray-500 text-sm mt-2">
