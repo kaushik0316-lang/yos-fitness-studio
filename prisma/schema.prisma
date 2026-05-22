@@ -338,6 +338,7 @@ model Employee {
   perDaySalary  Decimal?     @db.Decimal(10, 2)
   isActive      Boolean      @default(true)
   pin           String?      @unique
+  shiftEndTime  String?      // Expected shift end in IST, "HH:MM" 24-h (e.g. "14:00")
   notes         String?
 
   // Link to auth user (optional — not all employees need login access)

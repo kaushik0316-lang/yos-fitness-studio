@@ -1,105 +1,120 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// IST offset in minutes
-const IST_OFFSET = 5 * 60 + 30;
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // UTC+5:30
 
-function toIST(date: Date): Date {
-  return new Date(date.getTime() + IST_OFFSET * 60 * 1000);
-}
-
-function istHour(date: Date): number {
-  return toIST(date).getUTCHours() + toIST(date).getUTCMinutes() / 60;
-}
-
-// Expected checkout time for a given shift type on the day of check-in (in IST)
-function expectedCheckoutUTC(checkInTime: Date, shift: "morning" | "evening"): Date {
-  const ist = toIST(checkInTime);
-  // Get midnight IST of that day, then add hours
-  const istMidnight = new Date(Date.UTC(
-    ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate(), 0, 0, 0
-  ));
-  // morning → 12:00 PM IST, evening → 9:30 PM IST
-  const offsetMs = shift === "morning"
-    ? (12 * 60) * 60 * 1000
-    : (21 * 60 + 30) * 60 * 1000;
-  // Convert back to UTC
-  return new Date(istMidnight.getTime() + offsetMs - IST_OFFSET * 60 * 1000);
+/** Return current time in IST */
+function nowIST(): Date {
+  return new Date(Date.now() + IST_OFFSET_MS);
 }
 
 /**
- * POST /api/cron/auto-checkout?shift=morning|evening
- *
- * Called by Vercel Cron:
- *   - morning  → 06:30 UTC (12:00 PM IST) — checks out morning shift staff
- *   - evening  → 16:00 UTC (09:30 PM IST) — checks out evening shift staff
- *
- * Catches ALL open shifts of the correct type (not just today's),
- * so missed cron runs from previous days are also cleaned up.
+ * Given a checkInTime (UTC) and a shiftEndTime like "14:00" (IST),
+ * return the UTC Date of that shift end on the same IST calendar day as checkIn.
  */
-export async function POST(req: NextRequest) {
-  const secret = req.headers.get("x-cron-secret");
-  if (secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+function shiftEndUTC(checkInTime: Date, shiftEndTime: string): Date {
+  const [hh, mm] = shiftEndTime.split(":").map(Number);
 
-  const shift = req.nextUrl.searchParams.get("shift") as "morning" | "evening" | null;
-  if (!shift || !["morning", "evening"].includes(shift)) {
-    return NextResponse.json({ error: "Missing ?shift=morning|evening" }, { status: 400 });
-  }
+  // Get IST calendar date of the check-in
+  const checkInIST = new Date(checkInTime.getTime() + IST_OFFSET_MS);
+  const year  = checkInIST.getUTCFullYear();
+  const month = checkInIST.getUTCMonth();
+  const day   = checkInIST.getUTCDate();
 
+  // Build IST midnight for that day (as UTC)
+  const istMidnightUTC = Date.UTC(year, month, day, 0, 0, 0) - IST_OFFSET_MS;
+
+  return new Date(istMidnightUTC + (hh * 60 + mm) * 60 * 1000);
+}
+
+/**
+ * Fallback for employees without shiftEndTime:
+ *   check-in before 12:00 PM IST → treat as morning → end 12:00 PM IST
+ *   check-in at/after 12:00 PM  → treat as evening → end 22:00 IST
+ */
+function fallbackShiftEnd(checkInTime: Date): string {
+  const checkInIST = new Date(checkInTime.getTime() + IST_OFFSET_MS);
+  const istHour = checkInIST.getUTCHours() + checkInIST.getUTCMinutes() / 60;
+  return istHour < 12 ? "12:00" : "22:00";
+}
+
+/**
+ * GET/POST /api/cron/auto-checkout
+ *
+ * Called by Vercel Cron every hour (06:00–17:00 UTC = 11:30 AM–10:30 PM IST).
+ * Closes any open shift whose employee's scheduled shiftEndTime has passed.
+ * Employees without shiftEndTime fall back to the original morning/evening rule.
+ */
+async function runAutoCheckout() {
   const now = new Date();
 
-  // Find ALL open shifts (no date filter) — catches missed days too
+  // All open shifts with employee info
   const openShifts = await prisma.attendanceShift.findMany({
     where: { checkOutTime: null },
     include: {
-      attendance: { include: { employee: { select: { fullName: true, employeeId: true } } } },
+      attendance: {
+        include: {
+          employee: { select: { id: true, fullName: true, employeeId: true, shiftEndTime: true } },
+        },
+      },
     },
   });
 
-  // Filter to correct shift window AND only past expected checkout time
-  const targetShifts = openShifts.filter((s) => {
-    const h = istHour(s.checkInTime);
-    const isCorrectShift = shift === "morning" ? h < 12 : h >= 12;
-    if (!isCorrectShift) return false;
-    // Only auto-checkout if the expected checkout time has already passed
-    const expectedCheckout = expectedCheckoutUTC(s.checkInTime, shift);
+  const toClose = openShifts.filter((s) => {
+    const endTimeStr =
+      s.attendance.employee.shiftEndTime ?? fallbackShiftEnd(s.checkInTime);
+    const expectedCheckout = shiftEndUTC(s.checkInTime, endTimeStr);
+
+    // Only close if the expected checkout time has already passed
     return now >= expectedCheckout;
   });
 
-  if (targetShifts.length === 0) {
-    return NextResponse.json({
-      success: true,
-      shift,
-      checkedOut: 0,
-      message: "No open shifts found for this window",
-    });
+  if (toClose.length === 0) {
+    return { checkedOut: 0, employees: [], message: "No open shifts ready for auto-checkout" };
   }
 
-  // Set checkout to the expected time for each shift's day (not "now")
-  // so historical missed checkouts get the right time, not today's time
-  for (const s of targetShifts) {
-    const checkOutTime = expectedCheckoutUTC(s.checkInTime, shift);
+  for (const s of toClose) {
+    const endTimeStr =
+      s.attendance.employee.shiftEndTime ?? fallbackShiftEnd(s.checkInTime);
+    const checkOutTime = shiftEndUTC(s.checkInTime, endTimeStr);
+
     await prisma.attendanceShift.update({
       where: { id: s.id },
       data: { checkOutTime },
     });
   }
 
-  // Mark parent attendance records as PRESENT if still ABSENT
-  const attendanceIds = Array.from(new Set(targetShifts.map((s) => s.attendanceId)));
+  // Ensure parent attendance rows are PRESENT
+  const attendanceIds = [...new Set(toClose.map((s) => s.attendanceId))];
   await prisma.employeeAttendance.updateMany({
     where: { id: { in: attendanceIds }, status: "ABSENT" },
     data: { status: "PRESENT" },
   });
 
-  const names = targetShifts.map((s) => s.attendance.employee.fullName);
+  const employees = toClose.map(
+    (s) => `${s.attendance.employee.fullName} (${s.attendance.employee.shiftEndTime ?? "fallback"})`
+  );
 
-  return NextResponse.json({
-    success: true,
-    shift,
-    checkedOut: targetShifts.length,
-    employees: names,
-  });
+  return { checkedOut: toClose.length, employees };
+}
+
+function isAuthorized(req: NextRequest): boolean {
+  const secret = req.headers.get("x-cron-secret") ?? req.headers.get("authorization")?.replace("Bearer ", "");
+  return secret === process.env.CRON_SECRET;
+}
+
+export async function GET(req: NextRequest) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const result = await runAutoCheckout();
+  return NextResponse.json({ success: true, ...result });
+}
+
+export async function POST(req: NextRequest) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const result = await runAutoCheckout();
+  return NextResponse.json({ success: true, ...result });
 }

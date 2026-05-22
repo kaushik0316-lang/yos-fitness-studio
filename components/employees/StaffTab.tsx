@@ -21,6 +21,7 @@ type Employee = {
   monthlySalary: number | null;
   perDaySalary: number | null;
   pin: string | null;
+  shiftEndTime: string | null;
   notes: string | null;
   isActive: boolean;
   joinDate: Date;
@@ -179,7 +180,16 @@ function StaffRow({
             </span>
           )}
         </div>
-        <p className="text-xs text-gray-500 mt-0.5">{emp.phone}</p>
+        <div className="flex items-center gap-3 mt-0.5">
+          <p className="text-xs text-gray-500">{emp.phone}</p>
+          {emp.shiftEndTime ? (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-50 text-orange-600 font-semibold">
+              Ends {emp.shiftEndTime}
+            </span>
+          ) : (
+            <span className="text-[10px] text-gray-300">no shift set</span>
+          )}
+        </div>
       </div>
 
       {/* PIN */}

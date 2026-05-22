@@ -16,6 +16,7 @@ const employeeSchema = z.object({
   monthlySalary: z.number().optional(),
   perDaySalary: z.number().optional(),
   pin: z.string().regex(/^\d{4,6}$/, "PIN must be 4–6 digits"),
+  shiftEndTime: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
   notes: z.string().optional(),
 });
 
@@ -42,6 +43,7 @@ export async function createEmployee(input: z.infer<typeof employeeSchema>) {
       monthlySalary: data.monthlySalary,
       perDaySalary: data.perDaySalary,
       pin: data.pin,
+      shiftEndTime: data.shiftEndTime ?? null,
       notes: ucase(data.notes),
     },
   });
@@ -59,6 +61,7 @@ const updateSchema = z.object({
   monthlySalary: z.number().optional(),
   perDaySalary: z.number().optional(),
   pin: z.string().regex(/^\d{4,6}$/, "PIN must be 4–6 digits"),
+  shiftEndTime: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
   notes: z.string().optional(),
 });
 
@@ -84,6 +87,7 @@ export async function updateEmployee(input: z.infer<typeof updateSchema>) {
       monthlySalary: data.monthlySalary ?? null,
       perDaySalary: data.perDaySalary ?? null,
       pin: data.pin,
+      shiftEndTime: data.shiftEndTime ?? null,
       notes: ucase(data.notes),
     },
   });

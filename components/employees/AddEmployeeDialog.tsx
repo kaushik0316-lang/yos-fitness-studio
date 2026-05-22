@@ -18,7 +18,7 @@ export function AddEmployeeDialog({ open, onClose }: Props) {
       fullName: "", role: "FRONT_DESK", phone: "",
       joinDate: format(new Date(), "yyyy-MM-dd"),
       salaryType: "FIXED_MONTHLY", monthlySalary: "", perDaySalary: "",
-      pin: "", notes: "",
+      pin: "", shiftEndTime: "", notes: "",
     },
   });
 
@@ -34,6 +34,7 @@ export function AddEmployeeDialog({ open, onClose }: Props) {
         fullName: data.fullName.toUpperCase(),
         monthlySalary: data.monthlySalary ? Number(data.monthlySalary) : undefined,
         perDaySalary: data.perDaySalary ? Number(data.perDaySalary) : undefined,
+        shiftEndTime: data.shiftEndTime || null,
       });
       toast({ title: "Staff added!", description: `Registered as ${result.employeeId}. PIN: ${data.pin}` });
       handleClose();
@@ -95,6 +96,17 @@ export function AddEmployeeDialog({ open, onClose }: Props) {
               className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none font-mono tracking-widest"
             />
             {errors.pin && <p className="text-xs text-red-600 mt-1">{errors.pin.message as string}</p>}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Shift End Time <span className="text-gray-400 font-normal">(IST, 24-h — e.g. 14:00 for 2 PM)</span>
+            </label>
+            <input
+              {...register("shiftEndTime")}
+              type="time"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
