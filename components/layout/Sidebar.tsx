@@ -47,23 +47,38 @@ type Props = {
   userRole: UserRole;
   userName: string;
   userEmail: string;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 };
 
-export function Sidebar({ userRole, userName, userEmail }: Props) {
+export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onMobileClose }: Props) {
   const pathname = usePathname();
   const initials = userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 w-64 bg-gray-950 flex flex-col">
+    <aside className={cn(
+      "fixed inset-y-0 left-0 z-40 w-64 bg-gray-950 flex flex-col transition-transform duration-300",
+      // Mobile: slide in/out. Desktop: always visible.
+      "md:translate-x-0",
+      mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+    )}>
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 h-16 border-b border-white/10 flex-shrink-0">
         <div className="bg-orange-500 rounded-xl p-2 flex-shrink-0 shadow-lg shadow-orange-900/50">
           <Dumbbell className="h-5 w-5 text-white" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="font-bold text-white text-sm leading-tight">Yos CRM</p>
           <p className="text-xs text-gray-500 leading-tight">Gym Management</p>
         </div>
+        {/* Close button — mobile only */}
+        {onMobileClose && (
+          <button onClick={onMobileClose} className="md:hidden p-1.5 text-gray-500 hover:text-white transition-colors">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -83,6 +98,7 @@ export function Sidebar({ userRole, userName, userEmail }: Props) {
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={onMobileClose}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
                         isActive
