@@ -1,0 +1,21 @@
+name: Auto Checkout
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # Every 30 minutes, 24/7
+  workflow_dispatch:          # Allow manual trigger from GitHub UI
+
+jobs:
+  auto-checkout:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger auto-checkout
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X GET "https://yosfitnessstudio.in/api/cron/auto-checkout" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}")
+          echo "Response: $response"
+          if [ "$response" != "200" ]; then
+            echo "Unexpected status: $response"
+            exit 1
+          fi
