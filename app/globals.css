@@ -106,17 +106,24 @@ select {
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-muted;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-border rounded-full;
+  background: rgba(255,255,255,0.08);
+  border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground;
+  background: rgba(255,255,255,0.15);
+}
+
+/* Text selection */
+::selection {
+  background: rgba(249,115,22,0.25);
+  color: #fff;
 }
 
 /* Print styles */

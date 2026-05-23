@@ -15,29 +15,29 @@ const navGroups = [
   {
     label: "Main",
     items: [
-      { label: "Members", href: "/members", icon: Users, roles: ["ADMIN", "FRONT_DESK", "TRAINER", "ACCOUNTANT"] },
-      { label: "Attendance", href: "/attendance", icon: CalendarCheck, roles: ["ADMIN", "FRONT_DESK", "TRAINER"] },
-      { label: "Renewals", href: "/renewals", icon: RotateCcw, roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
-      { label: "Payments", href: "/payments", icon: CreditCard, roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
-      { label: "Operations", href: "/staff-tools", icon: Wrench, roles: ["ADMIN", "FRONT_DESK"] },
+      { label: "Members",      href: "/members",            icon: Users,        roles: ["ADMIN", "FRONT_DESK", "TRAINER", "ACCOUNTANT"] },
+      { label: "Attendance",   href: "/attendance",         icon: CalendarCheck, roles: ["ADMIN", "FRONT_DESK", "TRAINER"] },
+      { label: "Renewals",     href: "/renewals",           icon: RotateCcw,    roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
+      { label: "Payments",     href: "/payments",           icon: CreditCard,   roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
+      { label: "Operations",   href: "/staff-tools",        icon: Wrench,       roles: ["ADMIN", "FRONT_DESK"] },
     ],
   },
   {
     label: "Staff",
     items: [
-      { label: "Employees", href: "/employees", icon: UserCog, roles: ["ADMIN", "ACCOUNTANT"] },
-      { label: "Emp. Attendance", href: "/employee-attendance", icon: ClipboardList, roles: ["ADMIN", "ACCOUNTANT"] },
-      { label: "Payroll", href: "/payroll", icon: DollarSign, roles: ["ADMIN", "ACCOUNTANT"] },
+      { label: "Employees",        href: "/employees",          icon: UserCog,     roles: ["ADMIN", "ACCOUNTANT"] },
+      { label: "Emp. Attendance",  href: "/employee-attendance", icon: ClipboardList, roles: ["ADMIN", "ACCOUNTANT"] },
+      { label: "Payroll",          href: "/payroll",            icon: DollarSign,  roles: ["ADMIN", "ACCOUNTANT"] },
     ],
   },
   {
     label: "Insights",
     items: [
-      { label: "Reports", href: "/reports", icon: BarChart3, roles: ["ADMIN", "ACCOUNTANT"] },
-      { label: "Messages", href: "/messages", icon: MessageSquare, roles: ["ADMIN", "FRONT_DESK"] },
-      { label: "Automation", href: "/automation", icon: Zap, roles: ["ADMIN"] },
-      { label: "Settings", href: "/settings", icon: Settings, roles: ["ADMIN"] },
-      { label: "Import Data", href: "/admin/import", icon: FileUp, roles: ["ADMIN"] },
+      { label: "Reports",      href: "/reports",            icon: BarChart3,    roles: ["ADMIN", "ACCOUNTANT"] },
+      { label: "Messages",     href: "/messages",           icon: MessageSquare, roles: ["ADMIN", "FRONT_DESK"] },
+      { label: "Automation",   href: "/automation",         icon: Zap,          roles: ["ADMIN"] },
+      { label: "Settings",     href: "/settings",           icon: Settings,     roles: ["ADMIN"] },
+      { label: "Import Data",  href: "/admin/import",       icon: FileUp,       roles: ["ADMIN"] },
     ],
   },
 ];
@@ -56,23 +56,22 @@ export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onM
 
   return (
     <aside className={cn(
-      "fixed inset-y-0 left-0 z-40 w-64 bg-gray-950 flex flex-col transition-transform duration-300",
-      // Mobile: slide in/out. Desktop: always visible.
+      "fixed inset-y-0 left-0 z-40 w-60 flex flex-col transition-transform duration-300",
       "md:translate-x-0",
       mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-    )}>
+    )} style={{ background: "#0d0d0d", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
+
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 h-16 border-b border-white/10 flex-shrink-0">
-        <div className="bg-orange-500 rounded-xl p-2 flex-shrink-0 shadow-lg shadow-orange-900/50">
-          <Dumbbell className="h-5 w-5 text-white" />
+      <div className="flex items-center gap-3 px-4 h-14 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+        <div className="rounded-xl p-2 flex-shrink-0 shadow-lg" style={{ background: "linear-gradient(135deg, #f97316, #ea580c)", boxShadow: "0 4px 12px rgba(249,115,22,0.3)" }}>
+          <Dumbbell className="h-4 w-4 text-white" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-bold text-white text-sm leading-tight">Yos CRM</p>
-          <p className="text-xs text-gray-500 leading-tight">Gym Management</p>
+          <p className="text-[10px] leading-tight" style={{ color: "#4b5563" }}>Gym Management</p>
         </div>
-        {/* Close button — mobile only */}
         {onMobileClose && (
-          <button onClick={onMobileClose} className="md:hidden p-1.5 text-gray-500 hover:text-white transition-colors">
+          <button onClick={onMobileClose} className="md:hidden p-1.5 transition-colors" style={{ color: "#4b5563" }}>
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -81,13 +80,13 @@ export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onM
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
+      <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-4">
         {navGroups.map((group) => {
           const visible = group.items.filter((item) => item.roles.includes(userRole));
           if (visible.length === 0) return null;
           return (
             <div key={group.label}>
-              <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest px-3 mb-1.5">
+              <p className="text-[9px] font-bold uppercase tracking-[0.12em] px-2.5 mb-1" style={{ color: "#374151" }}>
                 {group.label}
               </p>
               <div className="space-y-0.5">
@@ -99,17 +98,29 @@ export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onM
                       href={item.href}
                       onClick={onMobileClose}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
+                        "flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-sm font-medium transition-all duration-150",
                         isActive
-                          ? "bg-orange-500 text-white shadow-lg shadow-orange-900/30"
-                          : "text-gray-400 hover:bg-white/5 hover:text-white"
+                          ? "text-white"
+                          : "hover:text-white"
                       )}
+                      style={isActive ? {
+                        background: "linear-gradient(135deg, rgba(249,115,22,0.2), rgba(234,88,12,0.12))",
+                        color: "#fb923c",
+                        border: "1px solid rgba(249,115,22,0.2)",
+                      } : {
+                        color: "#6b7280",
+                        border: "1px solid transparent",
+                      }}
+                      onMouseEnter={e => {
+                        if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                      }}
+                      onMouseLeave={e => {
+                        if (!isActive) e.currentTarget.style.background = "";
+                      }}
                     >
-                      <item.icon className={cn("h-4 w-4 flex-shrink-0 transition-transform", isActive ? "" : "group-hover:scale-110")} />
-                      <span className="flex-1 truncate">{item.label}</span>
-                      {isActive && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-white/70" />
-                      )}
+                      <item.icon className="h-4 w-4 flex-shrink-0" style={isActive ? { color: "#f97316" } : undefined} />
+                      <span className="flex-1 truncate text-[13px]">{item.label}</span>
+                      {isActive && <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: "#f97316" }} />}
                     </Link>
                   );
                 })}
@@ -120,18 +131,22 @@ export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onM
       </nav>
 
       {/* User section */}
-      <div className="border-t border-white/10 p-4 flex-shrink-0">
-        <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors group cursor-default">
-          <div className="bg-gradient-to-br from-orange-400 to-orange-600 rounded-full w-9 h-9 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-md">
+      <div className="p-3 flex-shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+        <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl" style={{ background: "rgba(255,255,255,0.03)" }}>
+          <div className="rounded-full w-8 h-8 flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+            style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}>
             {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-white truncate leading-tight">{userName}</p>
-            <p className="text-xs text-gray-500 truncate leading-tight">{userRole.replace("_", " ")}</p>
+            <p className="text-xs font-semibold text-white truncate leading-tight">{userName}</p>
+            <p className="text-[10px] leading-tight truncate" style={{ color: "#4b5563" }}>{userRole.replace("_", " ")}</p>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
+            className="p-1.5 rounded-lg transition-colors flex-shrink-0"
+            style={{ color: "#4b5563" }}
+            onMouseEnter={e => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.background = "rgba(239,68,68,0.08)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "#4b5563"; e.currentTarget.style.background = ""; }}
             title="Sign out"
           >
             <LogOut className="h-3.5 w-3.5" />

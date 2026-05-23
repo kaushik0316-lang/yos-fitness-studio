@@ -40,11 +40,11 @@ export function CrmShell({ userRole, userName, userEmail, children }: Props) {
       />
 
       {/* Main area */}
-      <div className="flex-1 flex flex-col overflow-hidden md:ml-64">
+      <div className="flex-1 flex flex-col overflow-hidden md:ml-60">
         {/* Mobile top bar with hamburger */}
         <div
           className="flex items-center gap-3 px-4 h-14 flex-shrink-0 md:hidden"
-          style={{ background: "#111111", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ background: "rgba(13,13,13,0.95)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
         >
           <button
             onClick={() => setSidebarOpen(true)}
