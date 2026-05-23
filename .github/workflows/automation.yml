@@ -1,0 +1,22 @@
+name: Daily Automation
+
+on:
+  schedule:
+    - cron: "0 4 * * *"    # 04:00 UTC = 9:30 AM IST every day
+  workflow_dispatch:         # Manual trigger from GitHub UI
+
+jobs:
+  run-automation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run renewal reminders & inactivity checks
+        run: |
+          response=$(curl -s -w "\n%{http_code}" \
+            -X POST "https://yosfitnessstudio.in/api/cron" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json")
+          body=$(echo "$response" | head -n -1)
+          status=$(echo "$response" | tail -n 1)
+          echo "Status: $status"
+          echo "Body: $body"
+          if [ "$status" != "200" ]; then exit 1; fi
