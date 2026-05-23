@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
-  LayoutDashboard, Users, CalendarCheck, RotateCcw, CreditCard,
+  Users, CalendarCheck, RotateCcw, CreditCard,
   UserCog, ClipboardList, DollarSign, BarChart3, MessageSquare,
   Zap, Settings, LogOut, Dumbbell, Wrench, FileUp,
 } from "lucide-react";
@@ -15,7 +15,6 @@ const navGroups = [
   {
     label: "Main",
     items: [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["ADMIN", "FRONT_DESK", "TRAINER", "ACCOUNTANT"] },
       { label: "Members", href: "/members", icon: Users, roles: ["ADMIN", "FRONT_DESK", "TRAINER", "ACCOUNTANT"] },
       { label: "Attendance", href: "/attendance", icon: CalendarCheck, roles: ["ADMIN", "FRONT_DESK", "TRAINER"] },
       { label: "Renewals", href: "/renewals", icon: RotateCcw, roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
@@ -93,7 +92,7 @@ export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onM
               </p>
               <div className="space-y-0.5">
                 {visible.map((item) => {
-                  const isActive = item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href);
+                  const isActive = pathname.startsWith(item.href);
                   return (
                     <Link
                       key={item.href}
