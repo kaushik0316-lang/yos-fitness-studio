@@ -82,12 +82,26 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
   function prevMonth() { const d = new Date(year, month - 2, 1); router.push(`/employee-attendance?month=${d.getMonth() + 1}&year=${d.getFullYear()}`); }
   function nextMonth() { const d = new Date(year, month, 1);     router.push(`/employee-attendance?month=${d.getMonth() + 1}&year=${d.getFullYear()}`); }
 
-  function cycleStatus(employeeId: string, dateStr: string) {
+  // For future dates: only cycle through leave-type statuses
+  const FUTURE_OPTIONS = ["WEEKLY_OFF", "LEAVE", "PAID_LEAVE"];
+
+  function cycleStatus(employeeId: string, dateStr: string, future = false) {
     if (!canEdit) return;
     const current = localMap[employeeId]?.[dateStr] ?? "";
-    const idx = STATUS_OPTIONS.findIndex((s) => s.value === current);
-    const next = STATUS_OPTIONS[(idx + 1) % STATUS_OPTIONS.length].value;
-    setLocalMap((prev) => ({ ...prev, [employeeId]: { ...(prev[employeeId] ?? {}), [dateStr]: next } }));
+    let next: string;
+    if (future) {
+      const idx = FUTURE_OPTIONS.indexOf(current);
+      // Cycle: empty → WEEKLY_OFF → LEAVE → PAID_LEAVE → empty
+      next = idx === -1 ? FUTURE_OPTIONS[0] : idx < FUTURE_OPTIONS.length - 1 ? FUTURE_OPTIONS[idx + 1] : "";
+    } else {
+      const idx = STATUS_OPTIONS.findIndex((s) => s.value === current);
+      next = STATUS_OPTIONS[(idx + 1) % STATUS_OPTIONS.length].value;
+    }
+    setLocalMap((prev) => {
+      const empDates = { ...(prev[employeeId] ?? {}), [dateStr]: next };
+      if (!next) delete empDates[dateStr];
+      return { ...prev, [employeeId]: empDates };
+    });
   }
 
   async function saveAll() {
@@ -262,11 +276,13 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const isCurrentMonth = month === new Date().getMonth() + 1 && year === new Date().getFullYear();
 
-  const present   = employees.filter(e => localMap[e.id]?.[todayStr] === "PRESENT").length;
-  const absent    = employees.filter(e => localMap[e.id]?.[todayStr] === "ABSENT").length;
-  const halfDay   = employees.filter(e => localMap[e.id]?.[todayStr] === "HALF_DAY").length;
-  const notMarked = employees.filter(e => !localMap[e.id]?.[todayStr]).length;
-  const stillIn   = employees.filter(e => (attendanceMap[e.id]?.[todayStr]?.shifts ?? []).some((s: any) => !s.checkOutTime)).length;
+  const present    = employees.filter(e => localMap[e.id]?.[todayStr] === "PRESENT").length;
+  const absent     = employees.filter(e => localMap[e.id]?.[todayStr] === "ABSENT").length;
+  const halfDay    = employees.filter(e => localMap[e.id]?.[todayStr] === "HALF_DAY").length;
+  const onLeave    = employees.filter(e => ["LEAVE", "PAID_LEAVE"].includes(localMap[e.id]?.[todayStr] ?? "")).length;
+  const weeklyOff  = employees.filter(e => localMap[e.id]?.[todayStr] === "WEEKLY_OFF").length;
+  const notMarked  = employees.filter(e => !localMap[e.id]?.[todayStr]).length;
+  const stillIn    = employees.filter(e => (attendanceMap[e.id]?.[todayStr]?.shifts ?? []).some((s: any) => !s.checkOutTime)).length;
 
   return (
     <div className="space-y-5">
@@ -348,11 +364,13 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Today</span>
               {[
-                { count: present,   label: "Present",    style: { background: "rgba(34,197,94,0.12)", color: "#4ade80" } },
-                { count: absent,    label: "Absent",     style: { background: "rgba(239,68,68,0.12)", color: "#f87171" } },
-                { count: halfDay,   label: "Half Day",   style: { background: "rgba(245,158,11,0.12)", color: "#fbbf24" } },
-                { count: notMarked, label: "Not Marked", style: { background: "rgba(255,255,255,0.06)", color: "#6b7280" } },
-                { count: stillIn,   label: "Still In",  style: { background: "rgba(249,115,22,0.12)", color: "#fb923c" } },
+                { count: present,    label: "Present",     style: { background: "rgba(34,197,94,0.12)",  color: "#4ade80" } },
+                { count: absent,     label: "Absent",      style: { background: "rgba(239,68,68,0.12)",  color: "#f87171" } },
+                { count: halfDay,    label: "Half Day",    style: { background: "rgba(245,158,11,0.12)", color: "#fbbf24" } },
+                { count: onLeave,    label: "On Leave",    style: { background: "rgba(59,130,246,0.12)", color: "#60a5fa" } },
+                { count: weeklyOff,  label: "Weekly Off",  style: { background: "rgba(255,255,255,0.06)", color: "#6b7280" } },
+                { count: notMarked,  label: "Not Marked",  style: { background: "rgba(255,255,255,0.06)", color: "#6b7280" } },
+                { count: stillIn,    label: "Still In",    style: { background: "rgba(249,115,22,0.12)", color: "#fb923c" } },
               ].filter(x => x.count > 0).map(({ count, label, style }) => (
                 <span key={label} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold" style={style}>
                   {label === "Still In" && <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />}
@@ -363,7 +381,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
           )}
 
           {canEdit && (
-            <p className="text-[11px] text-gray-700">Click a cell to cycle status · Click a name to see full shift detail</p>
+            <p className="text-[11px] text-gray-700">Click a cell to cycle status · Click future dates to plan leave · Click a name to see full shift detail</p>
           )}
 
           {employees.length === 0 ? (
@@ -457,23 +475,25 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                               style={{
                                 borderLeft: "1px solid rgba(255,255,255,0.04)",
                                 background: isToday ? "rgba(249,115,22,0.05)" : isFuture ? "rgba(0,0,0,0.15)" : undefined,
-                                opacity: isFuture ? 0.35 : 1,
+                                opacity: isFuture && !status ? 0.35 : 1,
                               }}>
                               <button
-                                onClick={() => !isFuture && !isSunday && cycleStatus(emp.id, dateStr)}
-                                disabled={!canEdit || isFuture || isSunday}
-                                title={isFuture ? "Future" : isSunday ? "Sunday" : STATUS_OPTIONS.find(s => s.value === status)?.title ?? "Not marked"}
+                                onClick={() => !isSunday && cycleStatus(emp.id, dateStr, isFuture)}
+                                disabled={!canEdit || isSunday}
+                                title={isSunday ? "Sunday" : isFuture ? (status ? STATUS_OPTIONS.find(s => s.value === status)?.title : "Click to plan leave") : STATUS_OPTIONS.find(s => s.value === status)?.title ?? "Not marked"}
                                 className={cn(
                                   "w-full rounded-md text-[10px] font-bold transition-all px-1 py-0.5 mb-0.5",
-                                  status ? style?.cell : (isSunday || isFuture)
+                                  status ? style?.cell : isSunday
                                     ? "text-gray-800 cursor-default"
+                                    : isFuture
+                                    ? "text-gray-700 hover:bg-white/5 hover:text-gray-500 cursor-pointer"
                                     : "text-gray-800 hover:bg-white/5 hover:text-gray-600",
-                                  canEdit && !isFuture && !isSunday && "cursor-pointer"
+                                  canEdit && !isSunday && "cursor-pointer"
                                 )}
                               >
                                 {status
                                   ? STATUS_OPTIONS.find(s => s.value === status)?.label
-                                  : (isSunday || isFuture) ? "—" : ""}
+                                  : isSunday ? "—" : ""}
                               </button>
 
                               {/* Shift times */}
