@@ -18,7 +18,7 @@ export default async function SettingsPage() {
 
   return (
     <>
-      <Header title="Settings" subtitle="Packages, users, and system configuration" />
+      <Header title="Settings" subtitle="System configuration" />
       <div className="flex-1 overflow-y-auto p-6">
         <SettingsClient packages={packages} users={users as any} />
       </div>

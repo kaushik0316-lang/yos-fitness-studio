@@ -48,7 +48,7 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
 
   const statCards = [
     { icon: CheckCircle2, label: "Checked In",   value: todayAttendance.length, accent: "#10b981", iconBg: "rgba(16,185,129,0.12)"  },
-    { icon: Clock,        label: "Not Yet",       value: notCheckedIn.length,    accent: "#f97316", iconBg: "rgba(249,115,22,0.12)"  },
+    { icon: Clock,        label: "Pending",       value: notCheckedIn.length,    accent: "#f97316", iconBg: "rgba(249,115,22,0.12)"  },
     { icon: Users,        label: "Total Active",  value: totalActive,            accent: "#3b82f6", iconBg: "rgba(59,130,246,0.12)"  },
   ];
 

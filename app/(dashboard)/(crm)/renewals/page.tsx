@@ -56,7 +56,7 @@ export default async function RenewalsPage() {
 
   return (
     <>
-      <Header title="Renewals" subtitle="Track and manage membership renewals" />
+      <Header title="Renewals" subtitle="Memberships expiring soon" />
       <div className="flex-1 overflow-y-auto p-6">
         <RenewalsClient
           expiredMembers={expiredMembers as any}

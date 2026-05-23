@@ -5,7 +5,7 @@ import { EmployeeAttendanceClient } from "@/components/employees/EmployeeAttenda
 import { startOfMonth, endOfMonth, format } from "date-fns";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Employee Attendance" };
+export const metadata = { title: "Staff Attendance" };
 
 type SearchParams = { month?: string; year?: string };
 
@@ -61,7 +61,7 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
 
   return (
     <>
-      <Header title="Employee Attendance" subtitle={format(monthStart, "MMMM yyyy")} />
+      <Header title="Staff Attendance" subtitle={format(monthStart, "MMMM yyyy")} />
       <div className="flex-1 overflow-y-auto p-6">
         <EmployeeAttendanceClient
           employees={activeEmployees as any}

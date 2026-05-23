@@ -28,7 +28,7 @@ export default async function AutomationPage() {
 
   return (
     <>
-      <Header title="Automation" subtitle="Scheduled jobs, message queue, and logs" />
+      <Header title="Automation" subtitle="Scheduled tasks & logs" />
       <div className="flex-1 overflow-y-auto p-6">
         <AutomationClient
           logs={logs as any}

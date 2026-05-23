@@ -20,7 +20,7 @@ export default async function MessagesPage() {
 
   return (
     <>
-      <Header title="Messages" subtitle="Templates and message history" />
+      <Header title="Messages" subtitle="Member communication" />
       <div className="flex-1 overflow-y-auto p-6">
         <MessagesClient
           templates={templates as any}

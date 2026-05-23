@@ -22,7 +22,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: Sear
 
   return (
     <>
-      <Header title="Payroll" subtitle={`Month: ${month}/${year}`} />
+      <Header title="Payroll" subtitle={new Date(year, month - 1).toLocaleString("en-IN", { month: "long", year: "numeric" })} />
       <div className="flex-1 overflow-y-auto p-6">
         <PayrollClient
           records={records as any}

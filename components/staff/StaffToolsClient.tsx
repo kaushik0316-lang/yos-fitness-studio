@@ -110,7 +110,7 @@ export function StaffToolsClient({
     {
       label: "Active Members",
       value: activeMembers.toString(),
-      sub: "currently active",
+      sub: "paid memberships",
       icon: Users, href: "/members?status=ACTIVE",
       strip: "#3b82f6", iconBg: "rgba(59,130,246,0.12)", iconColor: "#3b82f6",
     },
@@ -152,7 +152,9 @@ export function StaffToolsClient({
         <div className="relative z-10">
           <p className="text-sm font-medium" style={{ color: "rgba(253,186,116,0.8)" }}>{greeting},</p>
           <h2 className="text-2xl font-extrabold text-white mt-0.5 tracking-tight">{userName}</h2>
-          <p className="text-xs mt-1" style={{ color: "#6b7280" }}>{userRole.replace(/_/g, " ")} · YOS FITNESS STUDIO</p>
+          <p className="text-xs mt-1" style={{ color: "#6b7280" }}>
+            {userRole === "ADMIN" ? "Administrator" : userRole === "FRONT_DESK" ? "Front Desk" : userRole === "ACCOUNTANT" ? "Accountant" : "Trainer"} · Yos Fitness Studio
+          </p>
         </div>
         <div className="text-5xl opacity-[0.08] select-none absolute right-6 top-1/2 -translate-y-1/2">🏋️</div>
       </div>
@@ -192,7 +194,7 @@ export function StaffToolsClient({
 
           {/* Quick Actions */}
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: "#4b5563" }}>Quick Actions</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: "#4b5563" }}>Jump To</p>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
               {quickActions.map((a) => (
                 <Link key={a.href} href={a.href}
@@ -221,7 +223,7 @@ export function StaffToolsClient({
 
           {/* Registration Form */}
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: "#4b5563" }}>Member Registration Form</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: "#4b5563" }}>New Member Link</p>
             <div className="rounded-2xl p-5" style={CARD}>
               {!hasForm ? (
                 <div className="flex items-center gap-4 py-2">
@@ -347,8 +349,8 @@ export function StaffToolsClient({
                 <LogOut className="h-4 w-4" style={{ color: "#fbbf24" }} />
               </div>
               <div>
-                <h3 className="font-bold text-white text-sm">Staff Forgot to Check Out</h3>
-                <p className="text-[11px]" style={{ color: "#d97706" }}>Auto-checkout at 12 PM / 9:30 PM</p>
+                <h3 className="font-bold text-white text-sm">Staff Still Checked In</h3>
+                <p className="text-[11px]" style={{ color: "#d97706" }}>Shifts will auto-close at end time</p>
               </div>
               <span className="ml-1 text-xs font-bold rounded-full px-2 py-0.5" style={{ background: "rgba(245,158,11,0.15)", color: "#fbbf24" }}>
                 {staffCheckedIn.length}
@@ -411,7 +413,7 @@ export function StaffToolsClient({
 
       {/* ── Collections ── */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: "#4b5563" }}>Monthly Collections Breakdown</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: "#4b5563" }}>Revenue Breakdown</p>
         <CollectionsWidget yosFitness={yosFitnessMonthly} yosStudio={yosStudioMonthly} total={monthPaymentTotal} />
       </div>
 

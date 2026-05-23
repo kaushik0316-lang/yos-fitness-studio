@@ -9,7 +9,7 @@ import { Company, MemberStatus } from "@prisma/client";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Operations Dashboard" };
+export const metadata = { title: "Overview" };
 
 export default async function StaffToolsPage() {
   const session = await auth();
@@ -126,7 +126,7 @@ export default async function StaffToolsPage() {
 
   return (
     <>
-      <Header title="Operations Dashboard" subtitle="Quick actions, stats and member tools" />
+      <Header title="Overview" subtitle="Your gym at a glance" />
       <div className="flex-1 overflow-y-auto p-6">
         <StaffToolsClient
           formUrl={REGISTRATION_FORM_URL}

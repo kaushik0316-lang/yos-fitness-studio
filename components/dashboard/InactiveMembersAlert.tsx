@@ -39,7 +39,7 @@ export function InactiveMembersAlert({ members }: Props) {
         <div className="flex flex-col items-center justify-center py-10 gap-2">
           <AlertTriangle className="h-8 w-8 text-gray-700" />
           <p className="text-sm text-gray-500 font-medium">No inactive members</p>
-          <p className="text-xs text-gray-600">Great retention! 🎉</p>
+          <p className="text-xs text-gray-600">Great retention.</p>
         </div>
       ) : (
         <div>

@@ -72,7 +72,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
 
   return (
     <>
-      <Header title="Payments" subtitle="All transactions across both companies" />
+      <Header title="Payments" subtitle="Complete payment history" />
       <div className="flex-1 overflow-y-auto p-6">
         <div className="flex justify-end items-center gap-3 mb-4">
           <ExportButtons />

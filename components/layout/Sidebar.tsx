@@ -13,31 +13,31 @@ import type { UserRole } from "@prisma/client";
 
 const navGroups = [
   {
-    label: "Main",
+    label: "",
     items: [
-      { label: "Members",      href: "/members",            icon: Users,        roles: ["ADMIN", "FRONT_DESK", "TRAINER", "ACCOUNTANT"] },
-      { label: "Attendance",   href: "/attendance",         icon: CalendarCheck, roles: ["ADMIN", "FRONT_DESK", "TRAINER"] },
-      { label: "Renewals",     href: "/renewals",           icon: RotateCcw,    roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
-      { label: "Payments",     href: "/payments",           icon: CreditCard,   roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
-      { label: "Operations",   href: "/staff-tools",        icon: Wrench,       roles: ["ADMIN", "FRONT_DESK"] },
+      { label: "Members",          href: "/members",            icon: Users,         roles: ["ADMIN", "FRONT_DESK", "TRAINER", "ACCOUNTANT"] },
+      { label: "Attendance",       href: "/attendance",         icon: CalendarCheck, roles: ["ADMIN", "FRONT_DESK", "TRAINER"] },
+      { label: "Renewals",         href: "/renewals",           icon: RotateCcw,     roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
+      { label: "Payments",         href: "/payments",           icon: CreditCard,    roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
+      { label: "Overview",         href: "/staff-tools",        icon: Wrench,        roles: ["ADMIN", "FRONT_DESK"] },
     ],
   },
   {
     label: "Staff",
     items: [
-      { label: "Employees",        href: "/employees",          icon: UserCog,     roles: ["ADMIN", "ACCOUNTANT"] },
-      { label: "Emp. Attendance",  href: "/employee-attendance", icon: ClipboardList, roles: ["ADMIN", "ACCOUNTANT"] },
-      { label: "Payroll",          href: "/payroll",            icon: DollarSign,  roles: ["ADMIN", "ACCOUNTANT"] },
+      { label: "Employees",        href: "/employees",          icon: UserCog,       roles: ["ADMIN", "ACCOUNTANT"] },
+      { label: "Staff Attendance", href: "/employee-attendance", icon: ClipboardList, roles: ["ADMIN", "ACCOUNTANT"] },
+      { label: "Payroll",          href: "/payroll",            icon: DollarSign,    roles: ["ADMIN", "ACCOUNTANT"] },
     ],
   },
   {
     label: "Insights",
     items: [
-      { label: "Reports",      href: "/reports",            icon: BarChart3,    roles: ["ADMIN", "ACCOUNTANT"] },
-      { label: "Messages",     href: "/messages",           icon: MessageSquare, roles: ["ADMIN", "FRONT_DESK"] },
-      { label: "Automation",   href: "/automation",         icon: Zap,          roles: ["ADMIN"] },
-      { label: "Settings",     href: "/settings",           icon: Settings,     roles: ["ADMIN"] },
-      { label: "Import Data",  href: "/admin/import",       icon: FileUp,       roles: ["ADMIN"] },
+      { label: "Reports",          href: "/reports",            icon: BarChart3,     roles: ["ADMIN", "ACCOUNTANT"] },
+      { label: "Messages",         href: "/messages",           icon: MessageSquare, roles: ["ADMIN", "FRONT_DESK"] },
+      { label: "Automation",       href: "/automation",         icon: Zap,           roles: ["ADMIN"] },
+      { label: "Settings",         href: "/settings",           icon: Settings,      roles: ["ADMIN"] },
+      { label: "Import",           href: "/admin/import",       icon: FileUp,        roles: ["ADMIN"] },
     ],
   },
 ];
@@ -86,9 +86,11 @@ export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onM
           if (visible.length === 0) return null;
           return (
             <div key={group.label}>
-              <p className="text-[9px] font-bold uppercase tracking-[0.12em] px-2.5 mb-1" style={{ color: "#374151" }}>
-                {group.label}
-              </p>
+              {group.label && (
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] px-2.5 mb-1" style={{ color: "#374151" }}>
+                  {group.label}
+                </p>
+              )}
               <div className="space-y-0.5">
                 {visible.map((item) => {
                   const isActive = pathname.startsWith(item.href);
@@ -139,7 +141,9 @@ export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onM
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-white truncate leading-tight">{userName}</p>
-            <p className="text-[10px] leading-tight truncate" style={{ color: "#4b5563" }}>{userRole.replace("_", " ")}</p>
+            <p className="text-[10px] leading-tight truncate" style={{ color: "#4b5563" }}>
+              {userRole === "ADMIN" ? "Administrator" : userRole === "FRONT_DESK" ? "Front Desk" : userRole === "ACCOUNTANT" ? "Accountant" : "Trainer"}
+            </p>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
