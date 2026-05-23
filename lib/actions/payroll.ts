@@ -30,3 +30,24 @@ export async function markPayrollPaid(recordId: string, paidMode: string) {
   revalidatePath("/payroll");
   return { success: true };
 }
+
+export async function updateBonus(recordId: string, bonus: number) {
+  const session = await auth();
+  if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "ACCOUNTANT")) {
+    throw new Error("Unauthorized");
+  }
+
+  const record = await prisma.payrollRecord.findUnique({ where: { id: recordId } });
+  if (!record) throw new Error("Record not found");
+
+  // Recalculate net salary with new bonus
+  const netSalary = Math.max(0, Number(record.grossSalary) - Number(record.deductions) + bonus);
+
+  await prisma.payrollRecord.update({
+    where: { id: recordId },
+    data: { bonus, netSalary },
+  });
+
+  revalidatePath("/payroll");
+  return { success: true };
+}

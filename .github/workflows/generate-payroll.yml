@@ -1,0 +1,22 @@
+name: Generate Monthly Payroll
+
+on:
+  schedule:
+    - cron: "0 1 1 * *"   # 1st of every month at 01:00 UTC (6:30 AM IST)
+  workflow_dispatch:        # Allow manual trigger
+
+jobs:
+  generate-payroll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate payroll for previous month
+        run: |
+          response=$(curl -s -w "\n%{http_code}" \
+            -X POST "https://yosfitnessstudio.in/api/cron/generate-payroll" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json")
+          body=$(echo "$response" | head -n -1)
+          status=$(echo "$response" | tail -n 1)
+          echo "Status: $status"
+          echo "Body: $body"
+          if [ "$status" != "200" ]; then exit 1; fi

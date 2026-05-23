@@ -2,13 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, RefreshCw, CheckCircle2, Loader2, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { generatePayrollAction, markPayrollPaid } from "@/lib/actions/payroll";
+import { ChevronLeft, ChevronRight, RefreshCw, CheckCircle2, Loader2, Download, Gift } from "lucide-react";
+import { generatePayrollAction, markPayrollPaid, updateBonus } from "@/lib/actions/payroll";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, getMonthName } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@prisma/client";
+
+const CARD = { background: "#161616", border: "1px solid rgba(255,255,255,0.06)" };
+const CARD_INNER = { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" };
+
+const PAY_MODES = ["CASH", "UPI", "BANK_TRANSFER"] as const;
+type PayMode = typeof PAY_MODES[number];
+const PAY_MODE_LABELS: Record<PayMode, string> = { CASH: "Cash", UPI: "UPI", BANK_TRANSFER: "Bank Transfer" };
 
 type PayrollRecord = {
   id: string;
@@ -20,17 +26,17 @@ type PayrollRecord = {
   employee: { fullName: string; role: string; salaryType: string; employeeId: string };
 };
 
-type Props = {
-  records: PayrollRecord[];
-  month: number;
-  year: number;
-  userRole: UserRole;
-};
+type Props = { records: PayrollRecord[]; month: number; year: number; userRole: UserRole };
 
 export function PayrollClient({ records, month, year, userRole }: Props) {
   const router = useRouter();
   const [generating, setGenerating] = useState(false);
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const [payModes, setPayModes] = useState<Record<string, PayMode>>({});
+  const [bonuses, setBonuses] = useState<Record<string, string>>(() =>
+    Object.fromEntries(records.map((r) => [r.id, String(Number(r.bonus) || 0)]))
+  );
+  const [savingBonus, setSavingBonus] = useState<string | null>(null);
 
   const canEdit = userRole === "ADMIN" || userRole === "ACCOUNTANT";
 
@@ -47,173 +53,235 @@ export function PayrollClient({ records, month, year, userRole }: Props) {
     setGenerating(true);
     try {
       const r = await generatePayrollAction(month, year);
-      toast({ title: "Payroll generated!", description: `${r.count} employees processed.` });
+      toast({ title: "Payroll generated", description: `${r.count} employees processed.` });
       router.refresh();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
-    } finally {
-      setGenerating(false);
-    }
+    } finally { setGenerating(false); }
   }
 
   async function handleMarkPaid(id: string) {
     setMarkingId(id);
     try {
-      await markPayrollPaid(id, "CASH");
-      toast({ title: "Marked as paid!" });
+      const mode = payModes[id] ?? "CASH";
+      await markPayrollPaid(id, mode);
+      toast({ title: "Marked as paid", description: PAY_MODE_LABELS[mode] });
       router.refresh();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
-    } finally {
-      setMarkingId(null);
-    }
+    } finally { setMarkingId(null); }
+  }
+
+  async function handleSaveBonus(id: string) {
+    setSavingBonus(id);
+    try {
+      const bonus = parseFloat(bonuses[id] ?? "0") || 0;
+      await updateBonus(id, bonus);
+      toast({ title: "Bonus saved" });
+      router.refresh();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally { setSavingBonus(null); }
   }
 
   function exportCSV() {
     const rows = [
-      ["Employee", "ID", "Role", "Present", "Absent", "Half", "Working Days", "Gross", "Deductions", "Net", "Paid"],
+      ["Employee", "ID", "Role", "Present", "Absent", "Half", "Working Days", "Gross", "Deductions", "Bonus", "Net", "Paid", "Mode"],
       ...records.map((r) => [
         r.employee.fullName, r.employee.employeeId, r.employee.role,
         r.presentDays, r.absentDays, r.halfDays, r.workingDays,
-        Number(r.grossSalary), Number(r.deductions), Number(r.netSalary),
-        r.isPaid ? "Yes" : "No",
+        Number(r.grossSalary), Number(r.deductions), Number(r.bonus), Number(r.netSalary),
+        r.isPaid ? "Yes" : "No", r.paidMode ?? "",
       ]),
     ];
     const csv = rows.map((row) => row.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
+    const a = document.createElement("a"); a.href = url;
     a.download = `payroll-${year}-${String(month).padStart(2, "0")}.csv`;
     a.click();
   }
 
-  const totalNet = records.reduce((sum, r) => sum + Number(r.netSalary), 0);
-  const totalGross = records.reduce((sum, r) => sum + Number(r.grossSalary), 0);
-  const paidCount = records.filter((r) => r.isPaid).length;
+  const totalNet   = records.reduce((s, r) => s + Number(r.netSalary), 0);
+  const totalGross = records.reduce((s, r) => s + Number(r.grossSalary), 0);
+  const totalBonus = records.reduce((s, r) => s + Number(r.bonus), 0);
+  const paidCount  = records.filter((r) => r.isPaid).length;
 
   return (
     <div className="space-y-5">
       {/* Header controls */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-gray-100 border">
+          <button onClick={prevMonth} className="p-1.5 rounded-lg text-gray-400 hover:text-white transition-colors" style={CARD_INNER}>
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="font-semibold text-gray-900 min-w-[140px] text-center">
-            {getMonthName(month)} {year}
-          </span>
-          <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-gray-100 border">
+          <span className="font-bold text-white min-w-[140px] text-center">{getMonthName(month)} {year}</span>
+          <button onClick={nextMonth} className="p-1.5 rounded-lg text-gray-400 hover:text-white transition-colors" style={CARD_INNER}>
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportCSV} disabled={records.length === 0}>
-            <Download className="h-3.5 w-3.5" />
-            Export
-          </Button>
+          <button
+            onClick={exportCSV}
+            disabled={records.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-300 disabled:opacity-40 transition-colors hover:text-white"
+            style={CARD_INNER}
+          >
+            <Download className="h-3.5 w-3.5" /> Export
+          </button>
           {canEdit && (
-            <Button size="sm" onClick={handleGenerate} disabled={generating}>
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
+            >
               {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               Generate Payroll
-            </Button>
+            </button>
           )}
         </div>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border p-4">
-          <p className="text-xs text-gray-500">Total Payable</p>
-          <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalNet)}</p>
-        </div>
-        <div className="bg-white rounded-xl border p-4">
-          <p className="text-xs text-gray-500">Gross Salary</p>
-          <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalGross)}</p>
-        </div>
-        <div className="bg-white rounded-xl border p-4">
-          <p className="text-xs text-gray-500">Paid / Total</p>
-          <p className="text-2xl font-bold text-gray-900">{paidCount} / {records.length}</p>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Total Payable", value: formatCurrency(totalNet), color: "#f97316" },
+          { label: "Gross Salary",  value: formatCurrency(totalGross), color: "#a3a3a3" },
+          { label: "Total Bonus",   value: formatCurrency(totalBonus), color: "#a78bfa" },
+          { label: "Paid",          value: `${paidCount} / ${records.length}`, color: "#4ade80" },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="rounded-xl p-4" style={CARD}>
+            <p className="text-xs text-gray-500 mb-1">{label}</p>
+            <p className="text-xl font-bold" style={{ color }}>{value}</p>
+          </div>
+        ))}
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border overflow-hidden">
+      <div className="rounded-2xl overflow-hidden overflow-x-auto" style={CARD}>
         {records.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-16 text-gray-500">
             <p className="mb-3">No payroll generated for this month yet.</p>
             {canEdit && (
-              <Button size="sm" onClick={handleGenerate} disabled={generating}>
+              <button
+                onClick={handleGenerate}
+                disabled={generating}
+                className="flex items-center gap-1.5 mx-auto px-4 py-2 rounded-lg text-sm font-bold text-white"
+                style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
+              >
                 {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Generate Now
-              </Button>
+              </button>
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Employee</th>
-                  <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500 uppercase">Present</th>
-                  <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500 uppercase">Absent</th>
-                  <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500 uppercase">Half</th>
-                  <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500 uppercase">Working Days</th>
-                  <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 uppercase">Gross</th>
-                  <th className="text-right px-3 py-3 text-xs font-semibold text-gray-500 uppercase">Deductions</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Net Salary</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {records.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">{r.employee.fullName}</p>
-                      <p className="text-xs text-gray-400">{r.employee.employeeId} · {r.employee.role.replace("_", " ")}</p>
-                    </td>
-                    <td className="text-center px-3 py-3 text-green-700 font-medium">{r.presentDays}</td>
-                    <td className="text-center px-3 py-3 text-red-600 font-medium">{r.absentDays}</td>
-                    <td className="text-center px-3 py-3 text-yellow-600 font-medium">{r.halfDays}</td>
-                    <td className="text-center px-3 py-3 text-gray-600">{r.workingDays}</td>
-                    <td className="text-right px-3 py-3 text-gray-700">{formatCurrency(Number(r.grossSalary))}</td>
-                    <td className="text-right px-3 py-3 text-red-600">-{formatCurrency(Number(r.deductions))}</td>
-                    <td className="text-right px-4 py-3 font-bold text-gray-900">{formatCurrency(Number(r.netSalary))}</td>
-                    <td className="text-center px-4 py-3">
-                      {r.isPaid ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-green-700 font-medium">
+          <table className="w-full text-sm">
+            <thead style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.03)" }}>
+              <tr>
+                {["Employee", "Present", "Absent", "Half", "Working Days", "Gross", "Deductions", "Bonus", "Net Salary", "Status"].map((h) => (
+                  <th key={h} className={cn("px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider",
+                    h === "Employee" ? "text-left" : h === "Status" ? "text-center" : "text-right"
+                  )}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((r, i) => (
+                <tr key={r.id} style={{ borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : undefined }}>
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-white">{r.employee.fullName}</p>
+                    <p className="text-xs text-gray-500">{r.employee.employeeId} · {r.employee.role.replace("_", " ")}</p>
+                  </td>
+                  <td className="text-right px-4 py-3 text-emerald-400 font-medium">{r.presentDays}</td>
+                  <td className="text-right px-4 py-3 text-red-400 font-medium">{r.absentDays}</td>
+                  <td className="text-right px-4 py-3 text-amber-400 font-medium">{r.halfDays}</td>
+                  <td className="text-right px-4 py-3 text-gray-400">{r.workingDays}</td>
+                  <td className="text-right px-4 py-3 text-gray-300">{formatCurrency(Number(r.grossSalary))}</td>
+                  <td className="text-right px-4 py-3 text-red-400">-{formatCurrency(Number(r.deductions))}</td>
+
+                  {/* Bonus cell */}
+                  <td className="text-right px-4 py-3">
+                    {canEdit && !r.isPaid ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <span className="text-gray-500 text-xs">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={bonuses[r.id] ?? "0"}
+                          onChange={(e) => setBonuses((p) => ({ ...p, [r.id]: e.target.value }))}
+                          onBlur={() => {
+                            const orig = String(Number(r.bonus) || 0);
+                            if (bonuses[r.id] !== orig) handleSaveBonus(r.id);
+                          }}
+                          className="w-20 text-right bg-transparent border-b text-purple-300 font-medium text-sm focus:outline-none focus:border-purple-400"
+                          style={{ borderColor: "rgba(255,255,255,0.1)" }}
+                        />
+                        {savingBonus === r.id && <Loader2 className="h-3 w-3 animate-spin text-purple-400" />}
+                      </div>
+                    ) : (
+                      <span className={cn("font-medium", Number(r.bonus) > 0 ? "text-purple-400" : "text-gray-600")}>
+                        {Number(r.bonus) > 0 ? `+${formatCurrency(Number(r.bonus))}` : "—"}
+                      </span>
+                    )}
+                  </td>
+
+                  <td className="text-right px-4 py-3 font-bold text-white">{formatCurrency(Number(r.netSalary))}</td>
+
+                  {/* Status / mark paid */}
+                  <td className="text-center px-4 py-3">
+                    {r.isPaid ? (
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-semibold">
                           <CheckCircle2 className="h-3.5 w-3.5" /> Paid
                         </span>
-                      ) : canEdit ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
+                        {r.paidMode && (
+                          <span className="text-[10px] text-gray-600">{PAY_MODE_LABELS[r.paidMode as PayMode] ?? r.paidMode}</span>
+                        )}
+                      </div>
+                    ) : canEdit ? (
+                      <div className="flex flex-col items-center gap-1.5">
+                        <select
+                          value={payModes[r.id] ?? "CASH"}
+                          onChange={(e) => setPayModes((p) => ({ ...p, [r.id]: e.target.value as PayMode }))}
+                          className="text-[10px] rounded px-1.5 py-0.5 text-gray-300 font-medium"
+                          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
+                        >
+                          {PAY_MODES.map((m) => (
+                            <option key={m} value={m}>{PAY_MODE_LABELS[m]}</option>
+                          ))}
+                        </select>
+                        <button
                           onClick={() => handleMarkPaid(r.id)}
                           disabled={markingId === r.id}
-                          className="text-xs h-7"
+                          className="text-[10px] font-bold px-2.5 py-1 rounded-lg text-white transition-all disabled:opacity-60"
+                          style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
                         >
                           {markingId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Mark Paid"}
-                        </Button>
-                      ) : (
-                        <span className="text-xs text-gray-400">Pending</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="border-t bg-gray-50">
-                <tr>
-                  <td className="px-4 py-3 font-semibold text-gray-700" colSpan={5}>Total</td>
-                  <td className="text-right px-3 py-3 font-semibold text-gray-700">{formatCurrency(totalGross)}</td>
-                  <td className="text-right px-3 py-3 font-semibold text-red-600">
-                    -{formatCurrency(records.reduce((s, r) => s + Number(r.deductions), 0))}
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-600">Pending</span>
+                    )}
                   </td>
-                  <td className="text-right px-4 py-3 font-bold text-gray-900 text-base">{formatCurrency(totalNet)}</td>
-                  <td />
                 </tr>
-              </tfoot>
-            </table>
-          </div>
+              ))}
+            </tbody>
+            <tfoot style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}>
+              <tr>
+                <td className="px-4 py-3 font-bold text-gray-400 text-xs uppercase" colSpan={5}>Total</td>
+                <td className="text-right px-4 py-3 font-semibold text-gray-300">{formatCurrency(totalGross)}</td>
+                <td className="text-right px-4 py-3 font-semibold text-red-400">
+                  -{formatCurrency(records.reduce((s, r) => s + Number(r.deductions), 0))}
+                </td>
+                <td className="text-right px-4 py-3 font-semibold text-purple-400">
+                  {totalBonus > 0 ? `+${formatCurrency(totalBonus)}` : "—"}
+                </td>
+                <td className="text-right px-4 py-3 font-bold text-white text-base">{formatCurrency(totalNet)}</td>
+                <td />
+              </tr>
+            </tfoot>
+          </table>
         )}
       </div>
     </div>
