@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   Users, CalendarCheck, RotateCcw, CreditCard,
-  UserCog, ClipboardList, DollarSign, BarChart3, MessageSquare,
+  ClipboardList, DollarSign, BarChart3, MessageSquare,
   Zap, Settings, LogOut, Dumbbell, Wrench, FileUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,6 @@ const navGroups = [
   {
     label: "Staff",
     items: [
-      { label: "Employees",        href: "/employees",          icon: UserCog,       roles: ["ADMIN", "ACCOUNTANT"] },
       { label: "Staff Attendance", href: "/employee-attendance", icon: ClipboardList, roles: ["ADMIN", "ACCOUNTANT"] },
       { label: "Payroll",          href: "/payroll",            icon: DollarSign,    roles: ["ADMIN", "ACCOUNTANT"] },
     ],

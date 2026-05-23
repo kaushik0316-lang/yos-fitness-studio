@@ -282,7 +282,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
             )}
           >
             {t === "attendance" ? <CalendarDays className="h-4 w-4" /> : <Users className="h-4 w-4" />}
-            {t === "attendance" ? "Attendance" : "Staff"}
+            {t === "attendance" ? "Attendance" : "Staff Details"}
             {t === "staff" && (
               <span className={cn(
                 "text-[10px] px-1.5 py-0.5 rounded-full font-bold",
