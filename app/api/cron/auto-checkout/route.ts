@@ -135,28 +135,33 @@ async function runAutoCheckout() {
     return { checkedOut: 0, employees: [], message: "No open shifts ready for auto-checkout" };
   }
 
+  const closed: string[] = [];
+  const errors: string[] = [];
+
+  // Process each shift independently — one failure won't block the others
   for (const s of toClose) {
-    const emp = s.attendance.employee;
-    const endTimeStr = resolveCheckoutTime(s.checkInTime, emp.shifts as ShiftDef[] | null, emp.shiftEndTime);
-    await prisma.attendanceShift.update({
-      where: { id: s.id },
-      data: { checkOutTime: shiftEndUTC(s.checkInTime, endTimeStr) },
-    });
+    try {
+      const emp = s.attendance.employee;
+      const endTimeStr = resolveCheckoutTime(s.checkInTime, emp.shifts as ShiftDef[] | null, emp.shiftEndTime);
+      const checkOutTime = shiftEndUTC(s.checkInTime, endTimeStr);
+
+      await prisma.attendanceShift.update({
+        where: { id: s.id },
+        data: { checkOutTime },
+      });
+
+      await prisma.employeeAttendance.updateMany({
+        where: { id: s.attendanceId, status: "ABSENT" },
+        data: { status: "PRESENT" },
+      });
+
+      closed.push(`${emp.fullName} → ${endTimeStr}`);
+    } catch (err: any) {
+      errors.push(`shift ${s.id}: ${err?.message ?? String(err)}`);
+    }
   }
 
-  const attendanceIds = Array.from(new Set(toClose.map((s) => s.attendanceId)));
-  await prisma.employeeAttendance.updateMany({
-    where: { id: { in: attendanceIds }, status: "ABSENT" },
-    data: { status: "PRESENT" },
-  });
-
-  const employees = toClose.map((s) => {
-    const emp = s.attendance.employee;
-    const end = resolveCheckoutTime(s.checkInTime, emp.shifts as ShiftDef[] | null, emp.shiftEndTime);
-    return `${emp.fullName} → ${end}`;
-  });
-
-  return { checkedOut: toClose.length, employees };
+  return { checkedOut: closed.length, employees: closed, ...(errors.length > 0 && { errors }) };
 }
 
 function isAuthorized(req: NextRequest): boolean {
