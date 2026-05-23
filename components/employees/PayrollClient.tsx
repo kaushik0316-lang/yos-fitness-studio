@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, RefreshCw, CheckCircle2, Loader2, Download, Gift } from "lucide-react";
-import { generatePayrollAction, markPayrollPaid, updateBonus } from "@/lib/actions/payroll";
+import { ChevronLeft, ChevronRight, RefreshCw, CheckCircle2, Loader2, Download, Trash2 } from "lucide-react";
+import { generatePayrollAction, markPayrollPaid, updateBonus, clearPayrollAction } from "@/lib/actions/payroll";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, getMonthName } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,8 @@ type Props = { records: PayrollRecord[]; month: number; year: number; userRole: 
 export function PayrollClient({ records, month, year, userRole }: Props) {
   const router = useRouter();
   const [generating, setGenerating] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [payModes, setPayModes] = useState<Record<string, PayMode>>({});
   const [bonuses, setBonuses] = useState<Record<string, string>>(() =>
@@ -53,11 +55,24 @@ export function PayrollClient({ records, month, year, userRole }: Props) {
     setGenerating(true);
     try {
       const r = await generatePayrollAction(month, year);
-      toast({ title: "Payroll generated", description: `${r.count} employees processed.` });
+      toast({ title: records.length > 0 ? "Payroll regenerated" : "Payroll generated", description: `${r.count} employees processed.` });
       router.refresh();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally { setGenerating(false); }
+  }
+
+  async function handleClear() {
+    if (!confirmClear) { setConfirmClear(true); return; }
+    setClearing(true);
+    try {
+      const r = await clearPayrollAction(month, year);
+      toast({ title: "Payroll cleared", description: `${r.deleted} records removed.` });
+      setConfirmClear(false);
+      router.refresh();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally { setClearing(false); }
   }
 
   async function handleMarkPaid(id: string) {
@@ -130,15 +145,32 @@ export function PayrollClient({ records, month, year, userRole }: Props) {
             <Download className="h-3.5 w-3.5" /> Export
           </button>
           {canEdit && (
-            <button
-              onClick={handleGenerate}
-              disabled={generating}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all disabled:opacity-60"
-              style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
-            >
-              {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-              Generate Payroll
-            </button>
+            <>
+              {records.length > 0 && userRole === "ADMIN" && (
+                <button
+                  onClick={handleClear}
+                  onBlur={() => setConfirmClear(false)}
+                  disabled={clearing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-60"
+                  style={confirmClear
+                    ? { background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.4)", color: "#f87171" }
+                    : { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#9ca3af" }
+                  }
+                >
+                  {clearing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  {confirmClear ? "Confirm Clear?" : "Undo Payroll"}
+                </button>
+              )}
+              <button
+                onClick={handleGenerate}
+                disabled={generating}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all disabled:opacity-60"
+                style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
+              >
+                {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                {records.length > 0 ? "Regenerate" : "Generate Payroll"}
+              </button>
+            </>
           )}
         </div>
       </div>

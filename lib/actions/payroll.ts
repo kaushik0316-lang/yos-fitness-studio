@@ -31,6 +31,17 @@ export async function markPayrollPaid(recordId: string, paidMode: string) {
   return { success: true };
 }
 
+export async function clearPayrollAction(month: number, year: number) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ADMIN") {
+    throw new Error("Unauthorized — only admins can clear payroll");
+  }
+
+  const { count } = await prisma.payrollRecord.deleteMany({ where: { month, year } });
+  revalidatePath("/payroll");
+  return { success: true, deleted: count };
+}
+
 export async function updateBonus(recordId: string, bonus: number) {
   const session = await auth();
   if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "ACCOUNTANT")) {
