@@ -31,16 +31,27 @@ const GYM_LAT = 13.0347589;
 const GYM_LNG = 80.2713245;
 const GEOFENCE_RADIUS_M = 250;
 
-// Gym operating hours: 5:30 AM – 10:30 PM IST
-const OPEN_MINUTES  = 5 * 60 + 30;   // 330
-const CLOSE_MINUTES = 22 * 60 + 30;  // 1350
+// Gym operating hours (IST)
+// Mon–Sat: 5:30 AM – 10:30 PM
+// Sunday:  8:00 AM – 11:00 AM (staff rotation only)
+const WEEKDAY_OPEN  = 5 * 60 + 30;   // 330 min
+const WEEKDAY_CLOSE = 22 * 60 + 30;  // 1350 min
+const SUNDAY_OPEN   = 8 * 60;        // 480 min
+const SUNDAY_CLOSE  = 11 * 60;       // 660 min
 
-function isWithinOperatingHours(): boolean {
+function isWithinOperatingHours(): { allowed: boolean; message?: string } {
   const now = new Date();
-  // Convert UTC → IST (UTC+5:30)
   const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
   const totalMinutes = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
-  return totalMinutes >= OPEN_MINUTES && totalMinutes <= CLOSE_MINUTES;
+  const dayOfWeek = istNow.getUTCDay(); // 0 = Sunday
+
+  if (dayOfWeek === 0) {
+    if (totalMinutes >= SUNDAY_OPEN && totalMinutes <= SUNDAY_CLOSE) return { allowed: true };
+    return { allowed: false, message: "Check-in is only available between 8:00 AM and 11:00 AM on Sundays." };
+  }
+
+  if (totalMinutes >= WEEKDAY_OPEN && totalMinutes <= WEEKDAY_CLOSE) return { allowed: true };
+  return { allowed: false, message: "Check-in is only available between 5:30 AM and 10:30 PM." };
 }
 
 function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -75,11 +86,9 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Operating hours check ───────────────────────────────────────────────
-    if (!isWithinOperatingHours()) {
-      return NextResponse.json(
-        { error: "Check-in is only available between 5:30 AM and 10:30 PM." },
-        { status: 403 }
-      );
+    const hours = isWithinOperatingHours();
+    if (!hours.allowed) {
+      return NextResponse.json({ error: hours.message }, { status: 403 });
     }
 
     const body = await req.json();
