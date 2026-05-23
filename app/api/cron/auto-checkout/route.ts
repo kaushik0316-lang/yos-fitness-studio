@@ -71,8 +71,8 @@ function resolveCheckoutTime(
       const startMin = timeToMinutes(s.start);
       const endMin   = timeToMinutes(s.end);
 
-      // Check-in is "in window" if it's within [start - 120 min, end]
-      const windowStart = startMin - 120;
+      // Check-in is "in window" if it's within [start - 30 min, end]
+      const windowStart = startMin - 30;
       if (checkInMinutes >= windowStart && checkInMinutes <= endMin) {
         const diff = Math.abs(checkInMinutes - startMin);
         if (diff < bestDiff) { bestDiff = diff; bestShift = s; }
