@@ -104,9 +104,9 @@ export const COMPANY_COLORS: Record<Company, string> = {
 
 export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
   ADMIN: ["*"],
-  FRONT_DESK: ["members", "attendance", "renewals", "payments", "dashboard"],
+  FRONT_DESK: ["members", "attendance", "renewals", "payments"],
   TRAINER: ["members:read", "attendance", "inactive", "notes"],
-  ACCOUNTANT: ["payments", "reports", "payroll", "renewals", "dashboard"],
+  ACCOUNTANT: ["payments", "reports", "payroll", "renewals"],
 };
 
 export function hasPermission(role: UserRole, permission: string): boolean {

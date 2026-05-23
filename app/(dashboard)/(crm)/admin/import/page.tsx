@@ -8,7 +8,7 @@ export const metadata = { title: "Import Data" };
 
 export default async function ImportPage() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/dashboard");
+  if (!session?.user || session.user.role !== "ADMIN") redirect("/members");
 
   return (
     <>
