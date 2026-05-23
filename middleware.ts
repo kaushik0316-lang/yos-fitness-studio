@@ -25,7 +25,6 @@ const PROTECTED_PREFIXES = [
   "/attendance",
   "/automation",
   "/employee-attendance",
-  "/employees",
   "/members",
   "/messages",
   "/payments",
