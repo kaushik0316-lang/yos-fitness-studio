@@ -37,9 +37,18 @@ function isAuthorized(req: NextRequest): boolean {
  * Creates an ABSENT record for every active employee who has no
  * attendance entry for the given date (defaults to today IST).
  *
+ * Skips Sundays — the gym is open 8–11 AM only and staff rotate,
+ * so non-attending staff on Sundays are not considered absent.
+ *
  * Pass ?date=2026-05-22 to backfill a missed day.
+ * Pass ?date=2026-05-25&force=true to force-run on a Sunday.
  */
-async function runMarkAbsent(targetDate: Date) {
+async function runMarkAbsent(targetDate: Date, force = false) {
+  // Skip Sundays unless explicitly forced
+  const dayOfWeek = targetDate.getUTCDay(); // 0 = Sunday
+  if (dayOfWeek === 0 && !force) {
+    return { markedAbsent: 0, date: targetDate.toISOString().slice(0, 10), message: "Skipped — Sunday (staff rotate, no blanket absent)" };
+  }
   const [activeEmployees, existingOnDate] = await Promise.all([
     prisma.employee.findMany({ where: { isActive: true }, select: { id: true, fullName: true } }),
     prisma.employeeAttendance.findMany({ where: { date: targetDate }, select: { employeeId: true } }),
@@ -68,38 +77,30 @@ async function runMarkAbsent(targetDate: Date) {
   };
 }
 
-export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+function resolveParams(req: NextRequest): { targetDate: Date; force: boolean } | { error: string } {
   const dateParam = req.nextUrl.searchParams.get("date");
-  let targetDate: Date;
+  const force = req.nextUrl.searchParams.get("force") === "true";
 
   if (dateParam) {
     const parsed = parseDateParam(dateParam);
-    if (!parsed) return NextResponse.json({ error: "Invalid date format. Use YYYY-MM-DD." }, { status: 400 });
-    targetDate = parsed;
-  } else {
-    targetDate = todayIST();
+    if (!parsed) return { error: "Invalid date format. Use YYYY-MM-DD." };
+    return { targetDate: parsed, force };
   }
+  return { targetDate: todayIST(), force };
+}
 
-  const result = await runMarkAbsent(targetDate);
+export async function GET(req: NextRequest) {
+  if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const params = resolveParams(req);
+  if ("error" in params) return NextResponse.json({ error: params.error }, { status: 400 });
+  const result = await runMarkAbsent(params.targetDate, params.force);
   return NextResponse.json({ success: true, ...result });
 }
 
 export async function POST(req: NextRequest) {
   if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const dateParam = req.nextUrl.searchParams.get("date");
-  let targetDate: Date;
-
-  if (dateParam) {
-    const parsed = parseDateParam(dateParam);
-    if (!parsed) return NextResponse.json({ error: "Invalid date format. Use YYYY-MM-DD." }, { status: 400 });
-    targetDate = parsed;
-  } else {
-    targetDate = todayIST();
-  }
-
-  const result = await runMarkAbsent(targetDate);
+  const params = resolveParams(req);
+  if ("error" in params) return NextResponse.json({ error: params.error }, { status: 400 });
+  const result = await runMarkAbsent(params.targetDate, params.force);
   return NextResponse.json({ success: true, ...result });
 }
