@@ -6,17 +6,14 @@ import { prisma } from "@/lib/prisma";
 function isFakePhone(phone: string): boolean {
   const digits = phone.replace(/\D/g, "");
   if (digits.length < 9) return true;
-  // All same digit: 0000000000, 1111111111, 9999999999 etc.
-  if (new Set(digits.split("")).size === 1) return true;
-  // Sequential patterns
+  if (new Set(digits.split("")).size === 1) return true; // all same digit
   if (digits === "1234567890" || digits === "9876543210") return true;
   return false;
 }
 
 /**
  * Returns true if two names are likely the same person written differently.
- * Strategy: split into significant words (>1 char), check Jaccard overlap ≥ 0.25
- * OR if one name is essentially a subset of the other (nickname / initials dropped).
+ * Uses Jaccard word-overlap >= 0.25 OR recall >= 0.5 (one name mostly inside the other).
  */
 function areSimilarNames(a: string, b: string): boolean {
   const tokenise = (s: string) =>
@@ -26,80 +23,94 @@ function areSimilarNames(a: string, b: string): boolean {
   const wB = tokenise(b);
   if (wA.length === 0 || wB.length === 0) return false;
 
-  const setA = new Set(wA);
-  const setB = new Set(wB);
-
+  // Count common words (without using Set iteration)
   let common = 0;
-  for (const w of setA) if (setB.has(w)) common++;
-
+  for (let i = 0; i < wA.length; i++) {
+    for (let j = 0; j < wB.length; j++) {
+      if (wA[i] === wB[j]) { common++; break; }
+    }
+  }
   if (common === 0) return false;
 
-  // Jaccard similarity on the union
-  const union = new Set([...setA, ...setB]).size;
+  // Build union count without spread-Set
+  const unionWords: string[] = wA.slice();
+  for (let j = 0; j < wB.length; j++) {
+    if (!wA.includes(wB[j])) unionWords.push(wB[j]);
+  }
+  const union = unionWords.length;
   const jaccard = common / union;
-
-  // Also treat as similar if one name is mostly contained in the other
-  // (handles "Pavitran B" vs "B Pavitran", or "Pavithra" vs "P C Pavithra")
-  const recall = common / Math.min(setA.size, setB.size);
+  const recall = common / Math.min(wA.length, wB.length);
 
   return jaccard >= 0.25 || recall >= 0.5;
 }
 
-async function getDuplicateGroups() {
-  // Fetch all members with their payment/attendance counts
-  const all = await prisma.member.findMany({
+type MemberRow = {
+  id: string; memberId: string; fullName: string; phone: string;
+  status: string; joinDate: Date;
+  email: string | null; address: string | null; dateOfBirth: Date | null;
+  gender: string | null; bloodGroup: string | null;
+  emergencyContact: string | null; emergencyPhone: string | null;
+  expiryDate: Date | null; renewalDueDate: Date | null;
+  _count: { payments: number; attendances: number };
+};
+
+type DupeGroup = { phone: string; members: MemberRow[] };
+
+async function getDuplicateGroups(): Promise<DupeGroup[]> {
+  const all: MemberRow[] = await prisma.member.findMany({
     where: { phone: { not: "" } },
     select: {
-      id: true,
-      memberId: true,
-      fullName: true,
-      phone: true,
-      status: true,
-      joinDate: true,
-      email: true,
-      address: true,
-      dateOfBirth: true,
-      gender: true,
-      bloodGroup: true,
-      emergencyContact: true,
-      emergencyPhone: true,
-      expiryDate: true,
-      renewalDueDate: true,
+      id: true, memberId: true, fullName: true, phone: true,
+      status: true, joinDate: true,
+      email: true, address: true, dateOfBirth: true,
+      gender: true, bloodGroup: true,
+      emergencyContact: true, emergencyPhone: true,
+      expiryDate: true, renewalDueDate: true,
       _count: { select: { payments: true, attendances: true } },
     },
-  });
+  }) as MemberRow[];
 
-  // Group by phone
-  const phoneMap = new Map<string, typeof all>();
-  for (const m of all) {
+  // Group by phone using a plain object map
+  const phoneMap: Record<string, MemberRow[]> = {};
+  for (let i = 0; i < all.length; i++) {
+    const m = all[i];
     if (!m.phone) continue;
     const key = m.phone.trim();
-    if (!phoneMap.has(key)) phoneMap.set(key, []);
-    phoneMap.get(key)!.push(m);
+    if (!phoneMap[key]) phoneMap[key] = [];
+    phoneMap[key].push(m);
   }
 
-  // Keep only real duplicate groups (exclude fake/placeholder phone numbers)
-  return Array.from(phoneMap.entries())
-    .filter(([phone, mems]) => mems.length > 1 && !isFakePhone(phone))
-    .map(([phone, mems]) => {
-      // Sort: non-IMP first, then by payment count desc, then by joinDate asc
-      const sorted = [...mems].sort((a, b) => {
-        const aGhost = a.memberId.startsWith("IMP-") ? 1 : 0;
-        const bGhost = b.memberId.startsWith("IMP-") ? 1 : 0;
-        if (aGhost !== bGhost) return aGhost - bGhost;
-        if (b._count.payments !== a._count.payments) return b._count.payments - a._count.payments;
-        return new Date(a.joinDate).getTime() - new Date(b.joinDate).getTime();
-      });
-      // Only keep duplicates whose name is similar to the primary
-      // (different names = family sharing a phone → not a real duplicate)
-      const primary = sorted[0];
-      const mergeable = sorted.slice(1).filter((dup) => areSimilarNames(primary.fullName, dup.fullName));
+  const groups: DupeGroup[] = [];
+  const phones = Object.keys(phoneMap);
 
-      if (mergeable.length === 0) return null; // family members — skip
+  for (let pi = 0; pi < phones.length; pi++) {
+    const phone = phones[pi];
+    const mems = phoneMap[phone];
+    if (mems.length < 2 || isFakePhone(phone)) continue;
 
-      return { phone, members: [primary, ...mergeable] };
-    })
-    .filter(Boolean) as { phone: string; members: (typeof all)[number][] }[];
+    // Sort: non-IMP first, then more payments, then earlier joinDate
+    const sorted = mems.slice().sort((a, b) => {
+      const aGhost = a.memberId.startsWith("IMP-") ? 1 : 0;
+      const bGhost = b.memberId.startsWith("IMP-") ? 1 : 0;
+      if (aGhost !== bGhost) return aGhost - bGhost;
+      if (b._count.payments !== a._count.payments) return b._count.payments - a._count.payments;
+      return new Date(a.joinDate).getTime() - new Date(b.joinDate).getTime();
+    });
+
+    const primary = sorted[0];
+    const mergeable: MemberRow[] = [];
+    for (let i = 1; i < sorted.length; i++) {
+      if (areSimilarNames(primary.fullName, sorted[i].fullName)) {
+        mergeable.push(sorted[i]);
+      }
+    }
+
+    if (mergeable.length > 0) {
+      groups.push({ phone, members: [primary, ...mergeable] });
+    }
+  }
+
+  return groups;
 }
 
 export async function GET() {
@@ -135,25 +146,24 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const groups = await getDuplicateGroups();
-
-    if (groups.length === 0)
-      return NextResponse.json({ merged: 0, results: [] });
+    if (groups.length === 0) return NextResponse.json({ merged: 0, results: [] });
 
     const results: string[] = [];
     let mergedCount = 0;
 
-    for (const { phone, members } of groups) {
+    for (let gi = 0; gi < groups.length; gi++) {
+      const { phone, members } = groups[gi];
       const primary = members[0];
       const duplicates = members.slice(1);
 
-      for (const dup of duplicates) {
+      for (let di = 0; di < duplicates.length; di++) {
+        const dup = duplicates[di];
         try {
           await prisma.$transaction(async (tx) => {
             await tx.payment.updateMany({ where: { memberId: dup.id }, data: { memberId: primary.id } });
             await tx.membership.updateMany({ where: { memberId: dup.id }, data: { memberId: primary.id } });
             await tx.memberAttendance.updateMany({ where: { memberId: dup.id }, data: { memberId: primary.id } });
 
-            // Merge missing fields onto primary
             const updates: Record<string, any> = {};
             if (!primary.email && dup.email) updates.email = dup.email;
             if (!primary.address && dup.address) updates.address = dup.address;
@@ -162,28 +172,23 @@ export async function POST() {
             if (!primary.bloodGroup && dup.bloodGroup) updates.bloodGroup = dup.bloodGroup;
             if (!primary.emergencyContact && dup.emergencyContact) updates.emergencyContact = dup.emergencyContact;
             if (!primary.emergencyPhone && dup.emergencyPhone) updates.emergencyPhone = dup.emergencyPhone;
-            // Use whichever expiry date is further in the future
             if (dup.expiryDate && (!primary.expiryDate || new Date(dup.expiryDate) > new Date(primary.expiryDate))) {
               updates.expiryDate = dup.expiryDate;
               updates.renewalDueDate = dup.expiryDate;
             }
-            // Prefer the better status
             const rank: Record<string, number> = { ACTIVE: 4, FROZEN: 3, EXPIRED: 2, INACTIVE: 1, PROSPECT: 0 };
-            if ((rank[dup.status] ?? 0) > (rank[primary.status] ?? 0)) {
-              updates.status = dup.status;
-            }
+            if ((rank[dup.status] ?? 0) > (rank[primary.status] ?? 0)) updates.status = dup.status;
 
             if (Object.keys(updates).length > 0) {
               await tx.member.update({ where: { id: primary.id }, data: updates });
             }
-
             await tx.member.delete({ where: { id: dup.id } });
           });
 
-          results.push(`✓ ${dup.fullName} (${dup.memberId}) merged into ${primary.fullName} (${primary.memberId}) [${phone}]`);
+          results.push(`✓ ${dup.fullName} (${dup.memberId}) → ${primary.fullName} (${primary.memberId}) [${phone}]`);
           mergedCount++;
         } catch (e: any) {
-          results.push(`✗ Failed to merge ${dup.memberId}: ${e.message}`);
+          results.push(`✗ Failed ${dup.memberId}: ${e.message}`);
         }
       }
     }
