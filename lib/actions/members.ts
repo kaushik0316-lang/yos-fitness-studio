@@ -244,3 +244,16 @@ export async function renewMembership(input: {
 
   return { success: true, expiryDate, paymentId };
 }
+
+export async function toggleDoNotDisturb(memberId: string, value: boolean) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  await prisma.member.update({
+    where: { id: memberId },
+    data: { doNotDisturb: value },
+  });
+
+  revalidatePath(`/members/${memberId}`);
+  return { success: true };
+}

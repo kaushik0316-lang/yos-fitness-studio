@@ -46,6 +46,7 @@ export async function runRenewalReminders(): Promise<{
     for (const member of members) {
       if (!member.whatsapp && !member.phone) continue;
       if (member.messageLogs.length > 0) continue; // already sent today
+      if (member.doNotDisturb) continue; // member has muted all automated messages
 
       processed++;
 
@@ -120,6 +121,7 @@ export async function runRenewalReminders(): Promise<{
 
   for (const member of expiredWithNoRecentMsg) {
     if (!member.whatsapp && !member.phone) continue;
+    if (member.doNotDisturb) continue;
     processed++;
     try {
       const dbTemplate = await prisma.messageTemplate.findFirst({

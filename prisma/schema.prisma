@@ -154,9 +154,10 @@ model Member {
   emergencyPhone   String?
   photoUrl         String?
 
-  joinDate DateTime  @default(now())
-  status   MemberStatus @default(ACTIVE)
-  notes    String?
+  joinDate       DateTime     @default(now())
+  status         MemberStatus @default(ACTIVE)
+  notes          String?
+  doNotDisturb   Boolean      @default(false) // mute all automated WhatsApp messages
 
   // Extended member profile fields
   email              String?

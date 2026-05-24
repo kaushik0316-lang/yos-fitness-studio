@@ -4,8 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, Phone, User, Calendar, Package, CreditCard,
-  Clock, RotateCcw, CheckCircle, MessageSquare, AlertTriangle, MapPin, Link2Off,
+  Clock, RotateCcw, CheckCircle, MessageSquare, AlertTriangle, MapPin, Link2Off, BellOff,
 } from "lucide-react";
+import { toggleDoNotDisturb } from "@/lib/actions/members";
 import { RenewMembershipDialog } from "@/components/members/RenewMembershipDialog";
 import { RecordPaymentDialog } from "@/components/payments/RecordPaymentDialog";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
@@ -26,6 +27,8 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
   const [showRenew, setShowRenew] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showAttendance, setShowAttendance] = useState(false);
+  const [dnd, setDnd] = useState<boolean>(member.doNotDisturb ?? false);
+  const [dndLoading, setDndLoading] = useState(false);
 
   const daysLeft = member.expiryDate ? daysUntil(member.expiryDate) : null;
   const lastVisit = member.lastAttendanceDate ? daysAgo(member.lastAttendanceDate) : null;
@@ -156,6 +159,34 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                   <p className="text-sm text-gray-600 leading-relaxed">{member.notes}</p>
                 </div>
               )}
+
+              {/* Do Not Disturb toggle */}
+              <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BellOff className={`h-4 w-4 ${dnd ? "text-orange-500" : "text-gray-400"}`} />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700">Mute reminders</p>
+                    <p className="text-xs text-gray-400">Stop all automated WhatsApp messages</p>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    setDndLoading(true);
+                    const next = !dnd;
+                    setDnd(next);
+                    await toggleDoNotDisturb(member.id, next);
+                    setDndLoading(false);
+                  }}
+                  disabled={dndLoading}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                    dnd ? "bg-orange-500" : "bg-gray-200"
+                  } ${dndLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                    dnd ? "translate-x-6" : "translate-x-1"
+                  }`} />
+                </button>
+              </div>
             </div>
           </div>
 

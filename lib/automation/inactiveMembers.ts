@@ -47,6 +47,7 @@ export async function runInactiveMembersCheck(): Promise<{
     for (const member of members) {
       if (!member.whatsapp && !member.phone) continue;
       if (member.messageLogs.length > 0) continue;
+      if (member.doNotDisturb) continue; // member has muted all automated messages
 
       processed++;
 
