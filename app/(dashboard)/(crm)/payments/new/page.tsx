@@ -20,7 +20,6 @@ export default async function NewReceiptPage({ searchParams }: { searchParams: {
       where: { memberId: { not: { startsWith: "IMP-" } } },
       select: { id: true, memberId: true, fullName: true, phone: true },
       orderBy: { fullName: "asc" },
-      take: 1000,
     }),
     prisma.employee.findMany({
       where: { isActive: true },

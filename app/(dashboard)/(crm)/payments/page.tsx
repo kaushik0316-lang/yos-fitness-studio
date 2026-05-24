@@ -66,7 +66,6 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
       where: { memberId: { not: { startsWith: "IMP-" } } },
       select: { id: true, memberId: true, fullName: true },
       orderBy: { fullName: "asc" },
-      take: 1000,
     }),
   ]);
 
