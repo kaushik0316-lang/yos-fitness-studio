@@ -189,7 +189,20 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
     "w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-400 transition-colors bg-white text-gray-800 font-medium placeholder-gray-400";
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6" style={{ colorScheme: "light" }}>
+    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6" style={{ colorScheme: "light" }} data-receipt-form>
+      <style>{`
+        [data-receipt-form] input,
+        [data-receipt-form] select,
+        [data-receipt-form] textarea {
+          color: #111827 !important;
+          background-color: #ffffff !important;
+          -webkit-text-fill-color: #111827 !important;
+        }
+        [data-receipt-form] input::placeholder {
+          color: #9ca3af !important;
+          -webkit-text-fill-color: #9ca3af !important;
+        }
+      `}</style>
       {/* Error banner */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
