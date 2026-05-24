@@ -113,7 +113,7 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
   return (
     <>
       {/* ── Toolbar ── */}
-      <div className="no-print flex items-center gap-3 px-6 py-4 bg-white border-b border-gray-100 shadow-sm">
+      <div className="no-print flex items-center gap-3 px-6 py-4 bg-white border-b border-gray-100 shadow-sm flex-shrink-0">
         <Link
           href={searchParams.from === "member" ? `/members/${payment.member.id}` : "/payments"}
           className="flex items-center gap-2 px-4 py-2 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors"
@@ -144,7 +144,8 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
       `}</style>
 
       {/* ── Receipt card ── */}
-      <div className="p-6 print:p-0 print:m-0 bg-gray-50 min-h-screen">
+      <div className="flex-1 overflow-y-auto">
+      <div className="p-6 print:p-0 print:m-0 bg-gray-50 min-h-full">
         <div
           className="mx-auto print:shadow-none"
           style={{
@@ -319,6 +320,7 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
             </p>
           </div>
         </div>
+      </div>
       </div>
     </>
   );
