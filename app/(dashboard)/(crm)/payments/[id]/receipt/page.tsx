@@ -4,7 +4,6 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { amountToWords } from "@/lib/utils/amountToWords";
-import { PrintButton } from "@/components/receipts/PrintButton";
 import { WhatsAppButton } from "@/components/receipts/WhatsAppButton";
 import { EditReceiptButton } from "@/components/receipts/EditReceiptButton";
 import { SendPDFButton } from "@/components/receipts/SendPDFButton";
@@ -122,7 +121,6 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
         >
           ← {searchParams.from === "member" ? "Back to Member" : "Back"}
         </Link>
-        <PrintButton />
         {session.user.role === "ADMIN" && (
           <EditReceiptButton
             paymentId={payment.id}
