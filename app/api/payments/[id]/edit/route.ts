@@ -9,7 +9,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { memberName, date, amount, discount, pendingAmount, paymentMode,
+    const { memberName, newMemberId, date, amount, discount, pendingAmount, paymentMode,
             categoryLabel, periodLabel, startDate, expiryDate,
             notes, transactionRef } = body;
 
@@ -19,7 +19,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     });
     if (!payment) return NextResponse.json({ error: "Payment not found" }, { status: 404 });
 
-    if (memberName && memberName.trim()) {
+    if (newMemberId) {
+      // Reassign payment to a different member
+      await prisma.payment.update({
+        where: { id: params.id },
+        data: { memberId: newMemberId },
+      });
+    } else if (memberName && memberName.trim()) {
+      // Just rename the current member
       await prisma.member.update({
         where: { id: payment.memberId },
         data: { fullName: memberName.trim() },

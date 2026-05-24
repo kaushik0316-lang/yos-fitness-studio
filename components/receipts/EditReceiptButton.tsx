@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Check, X } from "lucide-react";
 
@@ -21,6 +21,8 @@ type Props = {
     transactionRef: string;
   };
 };
+
+type MemberResult = { id: string; fullName: string; memberId: string; phone: string };
 
 const MODES = ["CASH", "UPI", "CARD", "CHEQUE", "BANK_TRANSFER", "FREE"];
 const MODE_LABELS: Record<string, string> = {
@@ -57,8 +59,61 @@ export function EditReceiptButton({ paymentId, current }: Props) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
   const [form, setForm] = useState({ ...current });
+
+  // Member search state
+  const [memberQuery, setMemberQuery] = useState(current.memberName);
+  const [memberResults, setMemberResults] = useState<MemberResult[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Reset form when modal opens
+  function openModal() {
+    setForm({ ...current });
+    setMemberQuery(current.memberName);
+    setSelectedMemberId(null);
+    setMemberResults([]);
+    setShowDropdown(false);
+    setError("");
+    setOpen(true);
+  }
+
+  // Debounced member search
+  function onMemberType(val: string) {
+    setMemberQuery(val);
+    setSelectedMemberId(null); // clear any previous selection
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (val.length < 1) { setMemberResults([]); setShowDropdown(false); return; }
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/members/search?q=${encodeURIComponent(val)}`);
+        const data = await res.json();
+        setMemberResults(Array.isArray(data) ? data : []);
+        setShowDropdown(true);
+      } catch { setMemberResults([]); }
+    }, 250);
+  }
+
+  function pickMember(m: MemberResult) {
+    setMemberQuery(m.fullName);
+    setSelectedMemberId(m.id);
+    setForm((f) => ({ ...f, memberName: m.fullName }));
+    setShowDropdown(false);
+    setMemberResults([]);
+  }
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
 
   function set(key: keyof typeof form, val: string | number) {
     setForm((f) => ({ ...f, [key]: val }));
@@ -67,10 +122,15 @@ export function EditReceiptButton({ paymentId, current }: Props) {
   async function save() {
     setSaving(true); setError("");
     try {
+      const payload = {
+        ...form,
+        memberName: memberQuery,
+        ...(selectedMemberId ? { newMemberId: selectedMemberId } : {}),
+      };
       const res = await fetch(`/api/payments/${paymentId}/edit`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed");
@@ -83,7 +143,7 @@ export function EditReceiptButton({ paymentId, current }: Props) {
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={openModal}
         className="no-print flex items-center gap-1.5 px-3 py-2 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-500 hover:border-orange-300 hover:text-orange-600 transition-colors"
       >
         <Pencil className="h-3.5 w-3.5" /> Edit Receipt
@@ -105,11 +165,38 @@ export function EditReceiptButton({ paymentId, current }: Props) {
 
             <div style={{ padding: "16px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
 
-              {/* Member Name */}
-              <div>
+              {/* Member Name — searchable combobox */}
+              <div ref={dropdownRef} style={{ position: "relative" }}>
                 <label style={LBL}>Member Name</label>
-                <input style={INP} value={form.memberName}
-                  onChange={(e) => set("memberName", e.target.value)} />
+                <input
+                  style={INP}
+                  value={memberQuery}
+                  onChange={(e) => onMemberType(e.target.value)}
+                  onFocus={() => { if (memberResults.length > 0) setShowDropdown(true); }}
+                  placeholder="Type to search members…"
+                  autoComplete="off"
+                />
+                {selectedMemberId && (
+                  <p style={{ fontSize: "11px", color: "#059669", margin: "4px 0 0", fontWeight: 600 }}>
+                    ✓ Member selected — payment will be reassigned
+                  </p>
+                )}
+                {showDropdown && memberResults.length > 0 && (
+                  <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "2px solid #e5e7eb", borderRadius: "8px", boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 100, marginTop: "4px", overflow: "hidden" }}>
+                    {memberResults.map((m) => (
+                      <button
+                        key={m.id}
+                        onMouseDown={() => pickMember(m)}
+                        style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "transparent", border: "none", borderBottom: "1px solid #f3f4f6", cursor: "pointer", textAlign: "left" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "#fff7ed")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
+                        <span style={{ fontSize: "14px", fontWeight: 600, color: "#111827" }}>{m.fullName}</span>
+                        <span style={{ fontSize: "11px", color: "#9ca3af", fontFamily: "monospace" }}>#{m.memberId}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Date */}
