@@ -7,6 +7,7 @@ import { Pencil, Check, X } from "lucide-react";
 type Props = {
   paymentId: string;
   current: {
+    memberName: string;
     date: string;
     amount: number;
     discount: number;
@@ -27,8 +28,29 @@ const MODE_LABELS: Record<string, string> = {
   CHEQUE: "Cheque", BANK_TRANSFER: "Bank Transfer", FREE: "Free",
 };
 
-const inp = "w-full border-2 border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-orange-400 transition-colors";
-const lbl = "block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1";
+const INP: React.CSSProperties = {
+  width: "100%",
+  border: "2px solid #e5e7eb",
+  borderRadius: "8px",
+  padding: "6px 12px",
+  fontSize: "14px",
+  color: "#111827",
+  backgroundColor: "#ffffff",
+  colorScheme: "light",
+  boxSizing: "border-box",
+  outline: "none",
+  fontFamily: "inherit",
+};
+
+const LBL: React.CSSProperties = {
+  display: "block",
+  fontSize: "11px",
+  fontWeight: 700,
+  color: "#6b7280",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  marginBottom: "4px",
+};
 
 export function EditReceiptButton({ paymentId, current }: Props) {
   const router = useRouter();
@@ -69,111 +91,120 @@ export function EditReceiptButton({ paymentId, current }: Props) {
 
       {open && (
         <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+          <div style={{ background: "#fff", borderRadius: "16px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", width: "100%", maxWidth: "520px", margin: "0 16px", maxHeight: "90vh", overflowY: "auto", colorScheme: "light", color: "#111827" }}>
+
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <Pencil className="h-4 w-4 text-orange-500" /> Edit Receipt
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 24px", borderBottom: "1px solid #f3f4f6" }}>
+              <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#111827", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                <Pencil style={{ width: 16, height: 16, color: "#f97316" }} /> Edit Receipt
               </h2>
-              <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
-                <X className="h-4 w-4" />
+              <button onClick={() => setOpen(false)} style={{ padding: "6px", borderRadius: "8px", border: "none", background: "transparent", cursor: "pointer", color: "#9ca3af" }}>
+                <X style={{ width: 16, height: 16 }} />
               </button>
             </div>
 
-            <div className="px-6 py-4 space-y-4">
+            <div style={{ padding: "16px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+
+              {/* Member Name */}
+              <div>
+                <label style={LBL}>Member Name</label>
+                <input style={INP} value={form.memberName}
+                  onChange={(e) => set("memberName", e.target.value)} />
+              </div>
+
               {/* Date */}
               <div>
-                <label className={lbl}>Bill Date</label>
-                <input type="date" className={inp} value={form.date}
+                <label style={LBL}>Bill Date</label>
+                <input type="date" style={INP} value={form.date}
                   onChange={(e) => set("date", e.target.value)} />
               </div>
 
               {/* Amounts */}
-              <div className="grid grid-cols-3 gap-3">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
                 <div>
-                  <label className={lbl}>Amount (₹)</label>
-                  <input type="number" className={inp} value={form.amount}
+                  <label style={LBL}>Amount (₹)</label>
+                  <input type="number" style={INP} value={form.amount}
                     onChange={(e) => set("amount", Number(e.target.value))} />
                 </div>
                 <div>
-                  <label className={lbl}>Discount (₹)</label>
-                  <input type="number" className={inp} value={form.discount}
+                  <label style={LBL}>Discount (₹)</label>
+                  <input type="number" style={INP} value={form.discount}
                     onChange={(e) => set("discount", Number(e.target.value))} />
                 </div>
                 <div>
-                  <label className={lbl}>Pending (₹)</label>
-                  <input type="number" className={inp} value={form.pendingAmount}
+                  <label style={LBL}>Pending (₹)</label>
+                  <input type="number" style={INP} value={form.pendingAmount}
                     onChange={(e) => set("pendingAmount", Number(e.target.value))} />
                 </div>
               </div>
 
               {/* Payment mode */}
               <div>
-                <label className={lbl}>Payment Mode</label>
-                <select className={inp} value={form.paymentMode}
+                <label style={LBL}>Payment Mode</label>
+                <select style={INP} value={form.paymentMode}
                   onChange={(e) => set("paymentMode", e.target.value)}>
                   {MODES.map((m) => <option key={m} value={m}>{MODE_LABELS[m]}</option>)}
                 </select>
               </div>
 
               {/* Category + Period */}
-              <div className="grid grid-cols-2 gap-3">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div>
-                  <label className={lbl}>Category</label>
-                  <input className={inp} value={form.categoryLabel}
+                  <label style={LBL}>Category</label>
+                  <input style={INP} value={form.categoryLabel}
                     onChange={(e) => set("categoryLabel", e.target.value)} />
                 </div>
                 <div>
-                  <label className={lbl}>Period</label>
-                  <input className={inp} value={form.periodLabel}
+                  <label style={LBL}>Period</label>
+                  <input style={INP} value={form.periodLabel}
                     onChange={(e) => set("periodLabel", e.target.value)} />
                 </div>
               </div>
 
               {/* Start + Expiry */}
-              <div className="grid grid-cols-2 gap-3">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div>
-                  <label className={lbl}>Start Date</label>
-                  <input type="date" className={inp} value={form.startDate}
+                  <label style={LBL}>Start Date</label>
+                  <input type="date" style={INP} value={form.startDate}
                     onChange={(e) => set("startDate", e.target.value)} />
                 </div>
                 <div>
-                  <label className={lbl}>Expiry Date</label>
-                  <input type="date" className={inp} value={form.expiryDate}
+                  <label style={LBL}>Expiry Date</label>
+                  <input type="date" style={INP} value={form.expiryDate}
                     onChange={(e) => set("expiryDate", e.target.value)} />
                 </div>
               </div>
 
               {/* Transaction ref */}
               <div>
-                <label className={lbl}>Transaction Ref / UPI ID</label>
-                <input className={inp} value={form.transactionRef}
+                <label style={LBL}>Transaction Ref / UPI ID</label>
+                <input style={INP} value={form.transactionRef}
                   onChange={(e) => set("transactionRef", e.target.value)}
                   placeholder="UPI ref, cheque no…" />
               </div>
 
               {/* Notes */}
               <div>
-                <label className={lbl}>Notes</label>
-                <input className={inp} value={form.notes}
+                <label style={LBL}>Notes</label>
+                <input style={INP} value={form.notes}
                   onChange={(e) => set("notes", e.target.value)}
                   placeholder="Optional note…" />
               </div>
 
               {error && (
-                <p className="text-sm text-red-600 font-medium bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>
+                <p style={{ fontSize: "13px", color: "#dc2626", fontWeight: 500, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", padding: "8px 12px", margin: 0 }}>{error}</p>
               )}
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
+            <div style={{ padding: "16px 24px", borderTop: "1px solid #f3f4f6", display: "flex", gap: "12px", justifyContent: "flex-end" }}>
               <button onClick={() => setOpen(false)}
-                className="px-4 py-2 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors">
+                style={{ padding: "8px 16px", border: "2px solid #e5e7eb", borderRadius: "12px", fontSize: "14px", fontWeight: 600, color: "#6b7280", background: "#fff", cursor: "pointer" }}>
                 Cancel
               </button>
               <button onClick={save} disabled={saving}
-                className="flex items-center gap-2 px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-bold transition-colors shadow-md shadow-orange-200 disabled:opacity-50">
-                <Check className="h-4 w-4" />
+                style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 20px", background: saving ? "#fdba74" : "#f97316", border: "none", borderRadius: "12px", fontSize: "14px", fontWeight: 700, color: "#fff", cursor: saving ? "not-allowed" : "pointer", boxShadow: "0 4px 12px rgba(249,115,22,0.3)" }}>
+                <Check style={{ width: 16, height: 16 }} />
                 {saving ? "Saving…" : "Save Changes"}
               </button>
             </div>

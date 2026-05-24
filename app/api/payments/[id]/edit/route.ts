@@ -9,9 +9,22 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { date, amount, discount, pendingAmount, paymentMode,
+    const { memberName, date, amount, discount, pendingAmount, paymentMode,
             categoryLabel, periodLabel, startDate, expiryDate,
             notes, transactionRef } = body;
+
+    const payment = await prisma.payment.findUnique({
+      where: { id: params.id },
+      select: { memberId: true },
+    });
+    if (!payment) return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+
+    if (memberName && memberName.trim()) {
+      await prisma.member.update({
+        where: { id: payment.memberId },
+        data: { fullName: memberName.trim() },
+      });
+    }
 
     await prisma.payment.update({
       where: { id: params.id },

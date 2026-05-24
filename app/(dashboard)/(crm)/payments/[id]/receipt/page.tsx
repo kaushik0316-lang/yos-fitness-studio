@@ -126,6 +126,7 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
           <EditReceiptButton
             paymentId={payment.id}
             current={{
+              memberName:    payment.member.fullName,
               date:          format(paymentDate, "yyyy-MM-dd"),
               amount:        amountNum,
               discount:      discountNum,
