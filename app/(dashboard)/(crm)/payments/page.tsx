@@ -63,10 +63,10 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
     }),
     prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.member.findMany({
-      where: { status: { in: ["ACTIVE", "EXPIRED"] } },
+      where: { memberId: { not: { startsWith: "IMP-" } } },
       select: { id: true, memberId: true, fullName: true },
       orderBy: { fullName: "asc" },
-      take: 500,
+      take: 1000,
     }),
   ]);
 
