@@ -7,8 +7,8 @@ export async function POST() {
   if (!session?.user || session.user.role !== "ADMIN")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Get all ABSENT attendance records
-  const absents = await prisma.memberAttendance.findMany({
+  // Get all ABSENT employee attendance records
+  const absents = await prisma.employeeAttendance.findMany({
     where: { status: "ABSENT" },
     select: { id: true, date: true },
   });
@@ -22,7 +22,7 @@ export async function POST() {
     return NextResponse.json({ deleted: 0, message: "No Sunday absence records found." });
   }
 
-  const result = await prisma.memberAttendance.deleteMany({
+  const result = await prisma.employeeAttendance.deleteMany({
     where: { id: { in: sundayAbsentIds } },
   });
 

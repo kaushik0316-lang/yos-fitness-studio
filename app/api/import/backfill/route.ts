@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
   let notFound = 0;
   let noDates = 0;
   const today = new Date();
-  const affectedMemberIds = new Set<string>();
+  const affectedMemberIdsSet = new Set<string>();
 
   for (const row of rows) {
     const receiptNoRaw = row["RECEIPT NO."] ?? row["RECEIPT NO"];
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (expiryDate) affectedMemberIds.add(payment.memberId);
+    if (expiryDate) affectedMemberIdsSet.add(payment.memberId);
     datesUpdated++;
   }
 
@@ -88,7 +88,9 @@ export async function POST(req: NextRequest) {
   let membersSetActive = 0;
   let membersSetExpired = 0;
 
-  for (const memberId of affectedMemberIds) {
+  const affectedMemberIds = Array.from(affectedMemberIdsSet);
+  for (let i = 0; i < affectedMemberIds.length; i++) {
+    const memberId = affectedMemberIds[i];
     const latest = await prisma.payment.findFirst({
       where: { memberId, expiryDate: { not: null } },
       orderBy: { expiryDate: "desc" },

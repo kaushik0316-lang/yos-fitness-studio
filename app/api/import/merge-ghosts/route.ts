@@ -12,12 +12,12 @@ function words(name: string): string[] {
 
 // Jaccard-like word overlap
 function wordOverlap(a: string, b: string): number {
-  const wa = new Set(words(a));
+  const wa = words(a);
   const wb = new Set(words(b));
-  if (wa.size === 0 || wb.size === 0) return 0;
+  if (wa.length === 0 || wb.size === 0) return 0;
   let common = 0;
-  for (const w of wa) if (wb.has(w)) common++;
-  return (2 * common) / (wa.size + wb.size);
+  for (let i = 0; i < wa.length; i++) if (wb.has(wa[i])) common++;
+  return (2 * common) / (wa.length + wb.size);
 }
 
 // Check if ghost name looks like "FIRSTNAME.INITIAL" → match on first name

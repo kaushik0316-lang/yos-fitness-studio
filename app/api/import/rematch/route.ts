@@ -7,12 +7,12 @@ function normalize(name: string) {
 }
 
 function similarity(a: string, b: string): number {
-  const wa = new Set(normalize(a).split(" ").filter((w) => w.length >= 3));
+  const wa = normalize(a).split(" ").filter((w) => w.length >= 3);
   const wb = new Set(normalize(b).split(" ").filter((w) => w.length >= 3));
-  if (wa.size === 0 || wb.size === 0) return 0;
+  if (wa.length === 0 || wb.size === 0) return 0;
   let common = 0;
-  for (const w of wa) if (wb.has(w)) common++;
-  return (2 * common) / (wa.size + wb.size);
+  for (let i = 0; i < wa.length; i++) if (wb.has(wa[i])) common++;
+  return (2 * common) / (wa.length + wb.size);
 }
 
 export async function POST() {

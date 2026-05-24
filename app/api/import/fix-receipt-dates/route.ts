@@ -54,7 +54,7 @@ export async function POST() {
   let setActive = 0;
   let setExpired = 0;
 
-  const affectedMemberIds = [...new Set(toFix.map((p) => p.memberId))];
+  const affectedMemberIds = Array.from(new Set(toFix.map((p) => p.memberId)));
   for (const memberId of affectedMemberIds) {
     const latest = await prisma.payment.findFirst({
       where: { memberId, expiryDate: { not: null } },

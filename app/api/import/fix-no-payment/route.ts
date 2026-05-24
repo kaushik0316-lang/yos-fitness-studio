@@ -16,7 +16,7 @@ export async function POST() {
 
   const result = await prisma.member.updateMany({
     where: {
-      id: { notIn: [...paidIds] },
+      id: { notIn: Array.from(paidIds) },
       status: { in: ["ACTIVE", "INACTIVE"] },
     },
     data: { status: "PROSPECT" },
