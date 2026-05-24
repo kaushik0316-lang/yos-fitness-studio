@@ -189,7 +189,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
     "w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-400 transition-colors bg-white text-gray-800 font-medium placeholder-gray-400";
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6">
+    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6" style={{ colorScheme: "light" }}>
       {/* Error banner */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
@@ -254,26 +254,23 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
           )}
         </div>
         {selectedMember && (
-          <div className="mt-2 space-y-2">
+          <div className="mt-3 space-y-2">
             <p className="text-xs text-emerald-600 font-medium">
-              Selected: {selectedMember.memberId} — {selectedMember.fullName}
-              {!isFakePhone(selectedMember.phone) && ` (${selectedMember.phone})`}
+              ✓ {selectedMember.memberId} — {selectedMember.fullName}
             </p>
-            {isFakePhone(selectedMember.phone) && (
-              <div>
-                <label className="block text-xs font-semibold text-orange-600 mb-1">
-                  📱 No phone on record — enter to enable WhatsApp receipt
-                </label>
-                <input
-                  type="tel"
-                  value={phoneOverride}
-                  onChange={(e) => setPhoneOverride(e.target.value)}
-                  placeholder="10-digit WhatsApp number"
-                  className={inputClass}
-                  maxLength={10}
-                />
-              </div>
-            )}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">
+                📱 Phone Number {isFakePhone(selectedMember.phone) ? <span className="text-orange-500">(none on record)</span> : ""}
+              </label>
+              <input
+                type="tel"
+                value={phoneOverride || (!isFakePhone(selectedMember.phone) ? selectedMember.phone : "")}
+                onChange={(e) => setPhoneOverride(e.target.value)}
+                placeholder="10-digit mobile number"
+                className={inputClass}
+                maxLength={12}
+              />
+            </div>
           </div>
         )}
       </div>
