@@ -258,6 +258,7 @@ function ReceiptsImport() {
       {error && <ErrorBanner message={error} />}
       {result && <ResultCard result={result} type="receipts" />}
 
+      <FixReceiptNumbersPanel />
       <MergeDuplicatesPanel />
       <FixSpecificPaymentsPanel />
       <FixReceiptDatesPanel />
@@ -271,6 +272,98 @@ function ReceiptsImport() {
       <FixNoPaymentPanel />
       <FixDatesPanel />
       <FixSundayAbsencesPanel />
+    </div>
+  );
+}
+
+/* ─── Fix corrupt receipt numbers (Excel date serials imported as numbers) ── */
+
+function FixReceiptNumbersPanel() {
+  const [loading, setLoading]   = useState(false);
+  const [fixing, setFixing]     = useState(false);
+  const [info, setInfo]         = useState<{ badCount: number; maxGoodReceiptNumber: number; samples: any[] } | null>(null);
+  const [result, setResult]     = useState<{ fixed: number; maxReceiptNumberNow: number; message: string } | null>(null);
+  const [error, setError]       = useState<string | null>(null);
+
+  async function check() {
+    setLoading(true); setError(null); setResult(null);
+    try {
+      const res  = await fetch("/api/admin/fix-receipt-numbers");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setInfo(data);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  async function fix() {
+    if (!confirm(`This will clear ${info?.badCount} corrupt receipt number(s) (> 9999). They will show as "—" on old imported receipts but new receipts will get correct numbers. Continue?`)) return;
+    setFixing(true); setError(null);
+    try {
+      const res  = await fetch("/api/admin/fix-receipt-numbers", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setResult(data); setInfo(null);
+    } catch (e: any) { setError(e.message); }
+    finally { setFixing(false); }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-red-200 p-5 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <ReceiptText className="h-4 w-4 text-red-500" />
+            Fix Corrupt Receipt Numbers
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Excel date serials (e.g. 32803) were accidentally imported as receipt numbers.
+            This finds all receipt numbers above 9999 and clears them so the next real receipt gets the correct sequential number.
+          </p>
+        </div>
+        <div className="flex gap-2 flex-shrink-0">
+          <button onClick={check} disabled={loading || fixing}
+            className={cn("flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+              loading ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-gray-100 hover:bg-gray-200 text-gray-700")}>
+            {loading ? "Checking…" : "Check"}
+          </button>
+          {info && info.badCount > 0 && (
+            <button onClick={fix} disabled={fixing}
+              className={cn("flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+                fixing ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-200")}>
+              {fixing ? "Fixing…" : `Clear ${info.badCount} bad number${info.badCount !== 1 ? "s" : ""}`}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {error && <ErrorBanner message={error} />}
+
+      {info && (
+        <div className="space-y-2">
+          {info.badCount === 0 ? (
+            <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+              <p className="text-sm font-semibold text-green-700">✓ No corrupt receipt numbers found. Highest valid receipt: #{info.maxGoodReceiptNumber}</p>
+            </div>
+          ) : (
+            <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 space-y-2">
+              <p className="text-sm font-semibold text-red-700">⚠ {info.badCount} corrupt receipt number(s) found. Highest valid: #{info.maxGoodReceiptNumber}</p>
+              <div className="space-y-1">
+                {info.samples.map((s: any, i: number) => (
+                  <p key={i} className="text-xs font-mono text-red-600">#{s.receiptNumber} — {s.member} ({s.memberId}) ₹{s.amount}</p>
+                ))}
+                {info.badCount > 10 && <p className="text-xs text-gray-400">…and {info.badCount - 10} more</p>}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {result && (
+        <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+          <p className="text-sm font-semibold text-green-700">✓ {result.message}</p>
+        </div>
+      )}
     </div>
   );
 }
