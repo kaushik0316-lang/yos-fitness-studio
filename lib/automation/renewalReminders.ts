@@ -1,9 +1,34 @@
 import { prisma } from "@/lib/prisma";
 import { MemberStatus, AutomationTrigger, MessageChannel, MessageStatus } from "@prisma/client";
-import { addDays, startOfDay, endOfDay, format } from "date-fns";
+import { format } from "date-fns";
 import { getActiveProvider } from "@/lib/messaging/provider";
 import { interpolate, DEFAULT_TEMPLATES } from "@/lib/messaging/templates";
 
+// ── IST date helpers ─────────────────────────────────────────────────────────
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+/** Returns midnight UTC for today's IST calendar date */
+function todayIST(): Date {
+  const ist = new Date(Date.now() + IST_OFFSET_MS);
+  return new Date(Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate()));
+}
+
+/** Add N calendar days (as UTC midnight) */
+function addDaysUTC(date: Date, n: number): Date {
+  return new Date(date.getTime() + n * 24 * 60 * 60 * 1000);
+}
+
+/** End of day in UTC for a given UTC-midnight date */
+function endOfDayUTC(date: Date): Date {
+  return new Date(date.getTime() + 24 * 60 * 60 * 1000 - 1);
+}
+
+/** Clean phone number — strip spaces, dashes, parentheses */
+function cleanPhone(phone: string): string {
+  return phone.replace(/[\s\-().]/g, "");
+}
+
+// ── Rules ────────────────────────────────────────────────────────────────────
 const RENEWAL_RULES: { daysBeforeExpiry: number; trigger: AutomationTrigger; templateName: string }[] = [
   { daysBeforeExpiry: 7, trigger: AutomationTrigger.EXPIRY_7_DAYS,  templateName: "yos_renewal_7d" },
   { daysBeforeExpiry: 3, trigger: AutomationTrigger.EXPIRY_3_DAYS,  templateName: "yos_renewal_3d" },
@@ -16,27 +41,27 @@ export async function runRenewalReminders(): Promise<{
   messagesQueued: number;
   errors: string[];
 }> {
-  const today = new Date();
+  const today = todayIST(); // midnight UTC for today's IST date
   let processed = 0;
   let messagesQueued = 0;
   const errors: string[] = [];
 
   for (const rule of RENEWAL_RULES) {
-    const targetDate = addDays(today, rule.daysBeforeExpiry);
-    const dayStart = startOfDay(targetDate);
-    const dayEnd   = endOfDay(targetDate);
+    const targetDayStart = addDaysUTC(today, rule.daysBeforeExpiry);
+    const targetDayEnd   = endOfDayUTC(targetDayStart);
 
     const members = await prisma.member.findMany({
       where: {
         status: MemberStatus.ACTIVE,
-        expiryDate: { gte: dayStart, lte: dayEnd },
+        doNotDisturb: false,
+        expiryDate: { gte: targetDayStart, lte: targetDayEnd },
       },
       include: {
         currentPackage: { select: { name: true } },
         messageLogs: {
           where: {
             trigger: rule.trigger,
-            createdAt: { gte: startOfDay(today) },
+            createdAt: { gte: today }, // dedup: only one message per trigger per day
           },
           take: 1,
         },
@@ -46,7 +71,6 @@ export async function runRenewalReminders(): Promise<{
     for (const member of members) {
       if (!member.whatsapp && !member.phone) continue;
       if (member.messageLogs.length > 0) continue; // already sent today
-      if (member.doNotDisturb) continue; // member has muted all automated messages
 
       processed++;
 
@@ -68,13 +92,13 @@ export async function runRenewalReminders(): Promise<{
           gym_name:       "Yos Fitness Studio",
         });
 
-        const phone = member.whatsapp ?? member.phone;
+        const rawPhone = member.whatsapp ?? member.phone!;
+        const phone = cleanPhone(rawPhone);
         const provider = getActiveProvider();
         const result = await provider.send({
-          to: phone!.startsWith("+") ? phone! : `+91${phone}`,
+          to: phone.startsWith("+") ? phone : `+91${phone}`,
           message,
           channel: "WHATSAPP",
-          // WhatsApp template for business-initiated outbound messages
           templateName: rule.templateName,
           templateParams: [
             { type: "text", text: firstName },
@@ -86,15 +110,15 @@ export async function runRenewalReminders(): Promise<{
 
         await prisma.messageLog.create({
           data: {
-            memberId:     member.id,
-            templateId:   dbTemplate?.id,
+            memberId:      member.id,
+            templateId:    dbTemplate?.id,
             message,
-            channel:      MessageChannel.WHATSAPP,
-            status:       result.success ? MessageStatus.SENT : MessageStatus.FAILED,
-            sentAt:       result.success ? new Date() : undefined,
+            channel:       MessageChannel.WHATSAPP,
+            status:        result.success ? MessageStatus.SENT : MessageStatus.FAILED,
+            sentAt:        result.success ? new Date() : undefined,
             failureReason: result.error,
-            trigger:      rule.trigger,
-            isManual:     false,
+            trigger:       rule.trigger,
+            isManual:      false,
           },
         });
 
@@ -105,60 +129,74 @@ export async function runRenewalReminders(): Promise<{
     }
   }
 
-  // Also handle already-expired members (separate reminder)
-  const expiredWithNoRecentMsg = await prisma.member.findMany({
-    where: {
-      status: MemberStatus.EXPIRED,
-      messageLogs: {
-        none: {
-          trigger: AutomationTrigger.ALREADY_EXPIRED,
-          createdAt: { gte: addDays(today, -7) }, // don't spam — max once per 7 days
+  // ── Already-expired members ─────────────────────────────────────────────
+  // Process in batches of 50 to avoid skipping members with the old take: 20 cap
+  const sevenDaysAgo = addDaysUTC(today, -7);
+  let skip = 0;
+  const BATCH = 50;
+
+  while (true) {
+    const expiredBatch = await prisma.member.findMany({
+      where: {
+        status: MemberStatus.EXPIRED,
+        doNotDisturb: false,
+        messageLogs: {
+          none: {
+            trigger: AutomationTrigger.ALREADY_EXPIRED,
+            createdAt: { gte: sevenDaysAgo }, // max once per 7 days
+          },
         },
       },
-    },
-    take: 20,
-  });
+      skip,
+      take: BATCH,
+    });
 
-  for (const member of expiredWithNoRecentMsg) {
-    if (!member.whatsapp && !member.phone) continue;
-    if (member.doNotDisturb) continue;
-    processed++;
-    try {
-      const dbTemplate = await prisma.messageTemplate.findFirst({
-        where: { trigger: AutomationTrigger.ALREADY_EXPIRED, isActive: true },
-      });
-      const firstName  = member.fullName.split(" ")[0];
-      const expiryDate = member.expiryDate ? format(member.expiryDate, "dd MMM yyyy") : "—";
-      const message = interpolate(
-        dbTemplate?.body ?? DEFAULT_TEMPLATES.ALREADY_EXPIRED,
-        { name: firstName, expiry_date: expiryDate, gym_name: "Yos Fitness Studio" }
-      );
-      const phone = member.whatsapp ?? member.phone;
-      const provider = getActiveProvider();
-      const result = await provider.send({
-        to: phone!.startsWith("+") ? phone! : `+91${phone}`,
-        message,
-        channel: "WHATSAPP",
-        templateName: "yos_already_expired",
-        templateParams: [
-          { type: "text", text: firstName },
-          { type: "text", text: expiryDate },
-        ],
-      });
-      await prisma.messageLog.create({
-        data: {
-          memberId: member.id, templateId: dbTemplate?.id, message,
-          channel: MessageChannel.WHATSAPP,
-          status: result.success ? MessageStatus.SENT : MessageStatus.FAILED,
-          sentAt: result.success ? new Date() : undefined,
-          failureReason: result.error,
-          trigger: AutomationTrigger.ALREADY_EXPIRED, isManual: false,
-        },
-      });
-      if (result.success) messagesQueued++;
-    } catch (e: any) {
-      errors.push(`Member ${member.memberId}: ${e.message}`);
+    if (expiredBatch.length === 0) break;
+
+    for (const member of expiredBatch) {
+      if (!member.whatsapp && !member.phone) continue;
+      processed++;
+      try {
+        const dbTemplate = await prisma.messageTemplate.findFirst({
+          where: { trigger: AutomationTrigger.ALREADY_EXPIRED, isActive: true },
+        });
+        const firstName  = member.fullName.split(" ")[0];
+        const expiryDate = member.expiryDate ? format(member.expiryDate, "dd MMM yyyy") : "—";
+        const message = interpolate(
+          dbTemplate?.body ?? DEFAULT_TEMPLATES.ALREADY_EXPIRED,
+          { name: firstName, expiry_date: expiryDate, gym_name: "Yos Fitness Studio" }
+        );
+        const rawPhone = member.whatsapp ?? member.phone!;
+        const phone = cleanPhone(rawPhone);
+        const provider = getActiveProvider();
+        const result = await provider.send({
+          to: phone.startsWith("+") ? phone : `+91${phone}`,
+          message,
+          channel: "WHATSAPP",
+          templateName: "yos_already_expired",
+          templateParams: [
+            { type: "text", text: firstName },
+            { type: "text", text: expiryDate },
+          ],
+        });
+        await prisma.messageLog.create({
+          data: {
+            memberId: member.id, templateId: dbTemplate?.id, message,
+            channel: MessageChannel.WHATSAPP,
+            status: result.success ? MessageStatus.SENT : MessageStatus.FAILED,
+            sentAt: result.success ? new Date() : undefined,
+            failureReason: result.error,
+            trigger: AutomationTrigger.ALREADY_EXPIRED, isManual: false,
+          },
+        });
+        if (result.success) messagesQueued++;
+      } catch (e: any) {
+        errors.push(`Member ${member.memberId}: ${e.message}`);
+      }
     }
+
+    if (expiredBatch.length < BATCH) break;
+    skip += BATCH;
   }
 
   return { processed, messagesQueued, errors };

@@ -1,9 +1,29 @@
 import { prisma } from "@/lib/prisma";
 import { MemberStatus, AutomationTrigger, MessageChannel, MessageStatus } from "@prisma/client";
-import { subDays, format } from "date-fns";
+import { format } from "date-fns";
 import { getActiveProvider } from "@/lib/messaging/provider";
 import { interpolate, DEFAULT_TEMPLATES } from "@/lib/messaging/templates";
 
+// ── IST date helpers ─────────────────────────────────────────────────────────
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+/** Returns midnight UTC for today's IST calendar date */
+function todayIST(): Date {
+  const ist = new Date(Date.now() + IST_OFFSET_MS);
+  return new Date(Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate()));
+}
+
+/** Subtract N calendar days (as UTC midnight) */
+function subDaysUTC(date: Date, n: number): Date {
+  return new Date(date.getTime() - n * 24 * 60 * 60 * 1000);
+}
+
+/** Clean phone number — strip spaces, dashes, parentheses */
+function cleanPhone(phone: string): string {
+  return phone.replace(/[\s\-().]/g, "");
+}
+
+// ── Rules ────────────────────────────────────────────────────────────────────
 const INACTIVITY_RULES: { daysAbsent: number; trigger: AutomationTrigger; templateName: string }[] = [
   { daysAbsent: 4,  trigger: AutomationTrigger.INACTIVE_4_DAYS,  templateName: "yos_inactive_4d" },
   { daysAbsent: 7,  trigger: AutomationTrigger.INACTIVE_7_DAYS,  templateName: "yos_inactive_7d" },
@@ -15,29 +35,42 @@ export async function runInactiveMembersCheck(): Promise<{
   messagesQueued: number;
   errors: string[];
 }> {
-  const today = new Date();
+  const today = todayIST(); // midnight UTC for today's IST date
   let processed = 0;
   let messagesQueued = 0;
   const errors: string[] = [];
 
   for (const rule of INACTIVITY_RULES) {
-    const cutoffDate  = subDays(today, rule.daysAbsent);
-    const exactCutoff = subDays(today, rule.daysAbsent + 1);
+    // Use UTC midnight boundaries so members stored at midnight UTC are correctly caught
+    // Window: [today - (N+1) days, today - N days) — exactly N days absent
+    const windowEnd   = subDaysUTC(today, rule.daysAbsent);       // midnight N days ago
+    const windowStart = subDaysUTC(today, rule.daysAbsent + 1);   // midnight N+1 days ago
 
     const members = await prisma.member.findMany({
       where: {
         status: MemberStatus.ACTIVE,
-        lastAttendanceDate: {
-          gte: exactCutoff,
-          lt:  cutoffDate,
-        },
+        doNotDisturb: false,
+        OR: [
+          // Members who last attended exactly N days ago
+          {
+            lastAttendanceDate: {
+              gte: windowStart,
+              lt:  windowEnd,
+            },
+          },
+          // Members who NEVER attended but joined more than N days ago
+          {
+            lastAttendanceDate: null,
+            joinDate: { lt: windowEnd },
+          },
+        ],
       },
       include: {
         trainer: { select: { fullName: true } },
         messageLogs: {
           where: {
             trigger: rule.trigger,
-            createdAt: { gte: subDays(today, rule.daysAbsent) },
+            createdAt: { gte: windowStart }, // don't re-send within the same window
           },
           take: 1,
         },
@@ -47,7 +80,6 @@ export async function runInactiveMembersCheck(): Promise<{
     for (const member of members) {
       if (!member.whatsapp && !member.phone) continue;
       if (member.messageLogs.length > 0) continue;
-      if (member.doNotDisturb) continue; // member has muted all automated messages
 
       processed++;
 
@@ -70,13 +102,13 @@ export async function runInactiveMembersCheck(): Promise<{
           gym_name:      "Yos Fitness Studio",
         });
 
-        const phone = member.whatsapp ?? member.phone;
+        const rawPhone = member.whatsapp ?? member.phone!;
+        const phone = cleanPhone(rawPhone);
         const provider = getActiveProvider();
         const result = await provider.send({
-          to: phone!.startsWith("+") ? phone! : `+91${phone}`,
+          to: phone.startsWith("+") ? phone : `+91${phone}`,
           message,
           channel: "WHATSAPP",
-          // WhatsApp template for business-initiated outbound messages
           templateName: rule.templateName,
           templateParams: [
             { type: "text", text: firstName },
@@ -88,15 +120,15 @@ export async function runInactiveMembersCheck(): Promise<{
 
         await prisma.messageLog.create({
           data: {
-            memberId:  member.id,
-            templateId: dbTemplate?.id,
+            memberId:      member.id,
+            templateId:    dbTemplate?.id,
             message,
-            channel:   MessageChannel.WHATSAPP,
-            status:    result.success ? MessageStatus.SENT : MessageStatus.FAILED,
-            sentAt:    result.success ? new Date() : undefined,
+            channel:       MessageChannel.WHATSAPP,
+            status:        result.success ? MessageStatus.SENT : MessageStatus.FAILED,
+            sentAt:        result.success ? new Date() : undefined,
             failureReason: result.error,
-            trigger:   rule.trigger,
-            isManual:  false,
+            trigger:       rule.trigger,
+            isManual:      false,
           },
         });
 

@@ -246,8 +246,8 @@ export async function renewMembership(input: {
 }
 
 export async function toggleDoNotDisturb(memberId: string, value: boolean) {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
 
   await prisma.member.update({
     where: { id: memberId },
