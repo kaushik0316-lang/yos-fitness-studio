@@ -13,6 +13,38 @@ function isFakePhone(phone: string): boolean {
   return false;
 }
 
+/**
+ * Returns true if two names are likely the same person written differently.
+ * Strategy: split into significant words (>1 char), check Jaccard overlap ≥ 0.25
+ * OR if one name is essentially a subset of the other (nickname / initials dropped).
+ */
+function areSimilarNames(a: string, b: string): boolean {
+  const tokenise = (s: string) =>
+    s.toLowerCase().replace(/[^a-z\s]/g, "").split(/\s+/).filter((w) => w.length > 1);
+
+  const wA = tokenise(a);
+  const wB = tokenise(b);
+  if (wA.length === 0 || wB.length === 0) return false;
+
+  const setA = new Set(wA);
+  const setB = new Set(wB);
+
+  let common = 0;
+  for (const w of setA) if (setB.has(w)) common++;
+
+  if (common === 0) return false;
+
+  // Jaccard similarity on the union
+  const union = new Set([...setA, ...setB]).size;
+  const jaccard = common / union;
+
+  // Also treat as similar if one name is mostly contained in the other
+  // (handles "Pavitran B" vs "B Pavitran", or "Pavithra" vs "P C Pavithra")
+  const recall = common / Math.min(setA.size, setB.size);
+
+  return jaccard >= 0.25 || recall >= 0.5;
+}
+
 async function getDuplicateGroups() {
   // Fetch all members with their payment/attendance counts
   const all = await prisma.member.findMany({
@@ -58,8 +90,16 @@ async function getDuplicateGroups() {
         if (b._count.payments !== a._count.payments) return b._count.payments - a._count.payments;
         return new Date(a.joinDate).getTime() - new Date(b.joinDate).getTime();
       });
-      return { phone, members: sorted };
-    });
+      // Only keep duplicates whose name is similar to the primary
+      // (different names = family sharing a phone → not a real duplicate)
+      const primary = sorted[0];
+      const mergeable = sorted.slice(1).filter((dup) => areSimilarNames(primary.fullName, dup.fullName));
+
+      if (mergeable.length === 0) return null; // family members — skip
+
+      return { phone, members: [primary, ...mergeable] };
+    })
+    .filter(Boolean) as { phone: string; members: (typeof all)[number][] }[];
 }
 
 export async function GET() {
