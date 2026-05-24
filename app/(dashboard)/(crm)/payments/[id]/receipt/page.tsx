@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { amountToWords } from "@/lib/utils/amountToWords";
 import { PrintButton } from "@/components/receipts/PrintButton";
 import { WhatsAppButton } from "@/components/receipts/WhatsAppButton";
+import { EditDateButton } from "@/components/receipts/EditDateButton";
 
 export const dynamic = "force-dynamic";
 
@@ -121,6 +122,12 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
           ← {searchParams.from === "member" ? "Back to Member" : "Back"}
         </Link>
         <PrintButton />
+        {(session.user.role === "ADMIN" || session.user.role === "FRONT_DESK") && (
+          <EditDateButton
+            paymentId={payment.id}
+            currentDate={format(paymentDate, "yyyy-MM-dd")}
+          />
+        )}
         <WhatsAppButton
           phone={payment.member.phone}
           memberName={payment.member.fullName}
