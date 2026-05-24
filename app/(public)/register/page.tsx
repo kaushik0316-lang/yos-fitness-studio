@@ -181,12 +181,8 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* ── Optional ── */}
+        {/* ── Additional Info ── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-          <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Optional</p>
-            <p className="text-[11px] text-gray-400 mt-0.5">Fill what you're comfortable sharing</p>
-          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
