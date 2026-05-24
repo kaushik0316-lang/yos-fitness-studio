@@ -4,11 +4,11 @@ import { addDays, startOfDay, endOfDay, format } from "date-fns";
 import { getActiveProvider } from "@/lib/messaging/provider";
 import { interpolate, DEFAULT_TEMPLATES } from "@/lib/messaging/templates";
 
-const RENEWAL_RULES: { daysBeforeExpiry: number; trigger: AutomationTrigger }[] = [
-  { daysBeforeExpiry: 7, trigger: AutomationTrigger.EXPIRY_7_DAYS },
-  { daysBeforeExpiry: 3, trigger: AutomationTrigger.EXPIRY_3_DAYS },
-  { daysBeforeExpiry: 1, trigger: AutomationTrigger.EXPIRY_1_DAY },
-  { daysBeforeExpiry: 0, trigger: AutomationTrigger.EXPIRY_TODAY },
+const RENEWAL_RULES: { daysBeforeExpiry: number; trigger: AutomationTrigger; templateName: string }[] = [
+  { daysBeforeExpiry: 7, trigger: AutomationTrigger.EXPIRY_7_DAYS,  templateName: "yos_renewal_7d" },
+  { daysBeforeExpiry: 3, trigger: AutomationTrigger.EXPIRY_3_DAYS,  templateName: "yos_renewal_3d" },
+  { daysBeforeExpiry: 1, trigger: AutomationTrigger.EXPIRY_1_DAY,   templateName: "yos_renewal_1d" },
+  { daysBeforeExpiry: 0, trigger: AutomationTrigger.EXPIRY_TODAY,   templateName: "yos_renewal_today" },
 ];
 
 export async function runRenewalReminders(): Promise<{
@@ -50,31 +50,43 @@ export async function runRenewalReminders(): Promise<{
       processed++;
 
       try {
-        const template = await prisma.messageTemplate.findFirst({
+        const dbTemplate = await prisma.messageTemplate.findFirst({
           where: { trigger: rule.trigger, isActive: true },
         });
 
-        const bodyTemplate = template?.body ?? DEFAULT_TEMPLATES[rule.trigger as keyof typeof DEFAULT_TEMPLATES] ?? "";
+        const bodyTemplate = dbTemplate?.body ?? DEFAULT_TEMPLATES[rule.trigger as keyof typeof DEFAULT_TEMPLATES] ?? "";
+        const firstName    = member.fullName.split(" ")[0];
+        const expiryDate   = member.expiryDate ? format(member.expiryDate, "dd MMM yyyy") : "—";
+        const packageName  = member.currentPackage?.name ?? "your membership";
+
         const message = interpolate(bodyTemplate, {
-          name:           member.fullName.split(" ")[0],
-          expiry_date:    member.expiryDate ? format(member.expiryDate, "dd MMM yyyy") : "—",
+          name:           firstName,
+          expiry_date:    expiryDate,
           days_to_expiry: rule.daysBeforeExpiry,
-          package_name:   member.currentPackage?.name ?? "your membership",
+          package_name:   packageName,
           gym_name:       "Yos Fitness Studio",
         });
 
         const phone = member.whatsapp ?? member.phone;
         const provider = getActiveProvider();
         const result = await provider.send({
-          to: phone.startsWith("+") ? phone : `+91${phone}`,
+          to: phone!.startsWith("+") ? phone! : `+91${phone}`,
           message,
           channel: "WHATSAPP",
+          // WhatsApp template for business-initiated outbound messages
+          templateName: rule.templateName,
+          templateParams: [
+            { type: "text", text: firstName },
+            { type: "text", text: packageName },
+            { type: "text", text: expiryDate },
+            { type: "text", text: String(rule.daysBeforeExpiry) },
+          ],
         });
 
         await prisma.messageLog.create({
           data: {
             memberId:     member.id,
-            templateId:   template?.id,
+            templateId:   dbTemplate?.id,
             message,
             channel:      MessageChannel.WHATSAPP,
             status:       result.success ? MessageStatus.SENT : MessageStatus.FAILED,
@@ -110,23 +122,30 @@ export async function runRenewalReminders(): Promise<{
     if (!member.whatsapp && !member.phone) continue;
     processed++;
     try {
-      const template = await prisma.messageTemplate.findFirst({
+      const dbTemplate = await prisma.messageTemplate.findFirst({
         where: { trigger: AutomationTrigger.ALREADY_EXPIRED, isActive: true },
       });
+      const firstName  = member.fullName.split(" ")[0];
+      const expiryDate = member.expiryDate ? format(member.expiryDate, "dd MMM yyyy") : "—";
       const message = interpolate(
-        template?.body ?? DEFAULT_TEMPLATES.ALREADY_EXPIRED,
-        {
-          name:        member.fullName.split(" ")[0],
-          expiry_date: member.expiryDate ? format(member.expiryDate, "dd MMM yyyy") : "—",
-          gym_name:    "Yos Fitness Studio",
-        }
+        dbTemplate?.body ?? DEFAULT_TEMPLATES.ALREADY_EXPIRED,
+        { name: firstName, expiry_date: expiryDate, gym_name: "Yos Fitness Studio" }
       );
       const phone = member.whatsapp ?? member.phone;
       const provider = getActiveProvider();
-      const result = await provider.send({ to: phone.startsWith("+") ? phone : `+91${phone}`, message, channel: "WHATSAPP" });
+      const result = await provider.send({
+        to: phone!.startsWith("+") ? phone! : `+91${phone}`,
+        message,
+        channel: "WHATSAPP",
+        templateName: "yos_already_expired",
+        templateParams: [
+          { type: "text", text: firstName },
+          { type: "text", text: expiryDate },
+        ],
+      });
       await prisma.messageLog.create({
         data: {
-          memberId: member.id, templateId: template?.id, message,
+          memberId: member.id, templateId: dbTemplate?.id, message,
           channel: MessageChannel.WHATSAPP,
           status: result.success ? MessageStatus.SENT : MessageStatus.FAILED,
           sentAt: result.success ? new Date() : undefined,

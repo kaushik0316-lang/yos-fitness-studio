@@ -1,10 +1,17 @@
 // Messaging abstraction — swap providers without changing business logic.
 // Add a real provider by implementing the MessageProvider interface below.
 
+export type WhatsAppTemplateParam = { type: "text"; text: string };
+
 export type MessagePayload = {
   to: string;      // phone number  e.g. "+919876543210"
   message: string;
   channel: "WHATSAPP" | "SMS";
+  // If templateName is provided, WhatsApp sends a pre-approved template message
+  // instead of free-form text (required for business-initiated outbound messages)
+  templateName?: string;
+  templateParams?: WhatsAppTemplateParam[];
+  templateLanguage?: string; // default "en"
 };
 
 export type SendResult = {
@@ -41,15 +48,31 @@ class WhatsAppProvider implements MessageProvider {
     }
 
     try {
+      // Use template if provided (required for business-initiated messages)
+      const body = payload.templateName
+        ? {
+            messaging_product: "whatsapp",
+            to: payload.to.replace("+", ""),
+            type: "template",
+            template: {
+              name: payload.templateName,
+              language: { code: payload.templateLanguage ?? "en" },
+              components: payload.templateParams?.length
+                ? [{ type: "body", parameters: payload.templateParams }]
+                : [],
+            },
+          }
+        : {
+            messaging_product: "whatsapp",
+            to: payload.to.replace("+", ""),
+            type: "text",
+            text: { body: payload.message },
+          };
+
       const res = await fetch(`${apiUrl}/${phoneId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: payload.to.replace("+", ""),
-          type: "text",
-          text: { body: payload.message },
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) {
