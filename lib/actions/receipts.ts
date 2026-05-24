@@ -23,6 +23,7 @@ const receiptSchema = z.object({
   previousAmount: z.number().optional(),
   notes: z.string().optional(),
   soldById: z.string().optional(), // employee who made the sale; null = common/unattributed
+  phoneOverride: z.string().optional(), // save phone to member profile if they had none
 });
 
 export async function createReceipt(input: z.infer<typeof receiptSchema>) {
@@ -66,17 +67,19 @@ export async function createReceipt(input: z.infer<typeof receiptSchema>) {
       },
     });
 
-    // Update member's last payment date and membership dates
-    await tx.member.update({
-      where: { id: data.memberId },
-      data: {
-        lastPaymentDate: new Date(),
-        startDate: new Date(data.startDate),
-        expiryDate: new Date(data.expiryDate),
-        renewalDueDate: new Date(data.expiryDate),
-        status: "ACTIVE",
-      },
-    });
+    // Update member's last payment date, membership dates, and phone if provided
+    const memberUpdate: Record<string, any> = {
+      lastPaymentDate: new Date(),
+      startDate: new Date(data.startDate),
+      expiryDate: new Date(data.expiryDate),
+      renewalDueDate: new Date(data.expiryDate),
+      status: "ACTIVE",
+    };
+    if (data.phoneOverride && data.phoneOverride.replace(/\D/g, "").length >= 9) {
+      memberUpdate.phone = data.phoneOverride.trim();
+      memberUpdate.whatsapp = data.phoneOverride.trim();
+    }
+    await tx.member.update({ where: { id: data.memberId }, data: memberUpdate });
 
     await tx.auditLog.create({
       data: {

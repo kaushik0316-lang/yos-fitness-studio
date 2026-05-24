@@ -95,6 +95,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   const [prevReceiptNo, setPrevReceiptNo] = useState("");
   const [prevAmount, setPrevAmount] = useState("");
   const [soldById, setSoldById] = useState<string | null>(null); // null = common/unattributed
+  const [phoneOverride, setPhoneOverride] = useState(""); // used when member has no phone saved
 
   // Filtered members
   const filteredMembers = useMemo(() => {
@@ -112,10 +113,16 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
 
   const selectedMember = members.find((m) => m.id === selectedMemberId);
 
+  function isFakePhone(p: string) {
+    const d = p.replace(/\D/g, "");
+    return !d || d.length < 9 || new Set(d.split("")).size === 1;
+  }
+
   function handleSelectMember(m: Member) {
     setSelectedMemberId(m.id);
     setMemberSearch(`${m.memberId} — ${m.fullName}`);
     setShowMemberDropdown(false);
+    setPhoneOverride(""); // reset phone field when switching member
   }
 
   function handlePeriodSelect(p: string) {
@@ -169,6 +176,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
         previousAmount: prevAmount ? Number(prevAmount) : undefined,
         notes: notes || undefined,
         soldById: soldById ?? undefined,
+        phoneOverride: phoneOverride || undefined,
       });
       router.push(`/payments/${result.paymentId}/receipt`);
     } catch (err: any) {
@@ -246,9 +254,27 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
           )}
         </div>
         {selectedMember && (
-          <p className="mt-2 text-xs text-emerald-600 font-medium">
-            Selected: {selectedMember.memberId} — {selectedMember.fullName} ({selectedMember.phone})
-          </p>
+          <div className="mt-2 space-y-2">
+            <p className="text-xs text-emerald-600 font-medium">
+              Selected: {selectedMember.memberId} — {selectedMember.fullName}
+              {!isFakePhone(selectedMember.phone) && ` (${selectedMember.phone})`}
+            </p>
+            {isFakePhone(selectedMember.phone) && (
+              <div>
+                <label className="block text-xs font-semibold text-orange-600 mb-1">
+                  📱 No phone on record — enter to enable WhatsApp receipt
+                </label>
+                <input
+                  type="tel"
+                  value={phoneOverride}
+                  onChange={(e) => setPhoneOverride(e.target.value)}
+                  placeholder="10-digit WhatsApp number"
+                  className={inputClass}
+                  maxLength={10}
+                />
+              </div>
+            )}
+          </div>
         )}
       </div>
 

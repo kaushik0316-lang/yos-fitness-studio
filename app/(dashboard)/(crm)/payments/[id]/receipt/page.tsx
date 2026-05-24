@@ -5,6 +5,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { amountToWords } from "@/lib/utils/amountToWords";
 import { PrintButton } from "@/components/receipts/PrintButton";
+import { WhatsAppButton } from "@/components/receipts/WhatsAppButton";
 
 export const dynamic = "force-dynamic";
 
@@ -120,6 +121,15 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
           ← {searchParams.from === "member" ? "Back to Member" : "Back"}
         </Link>
         <PrintButton />
+        <WhatsAppButton
+          phone={payment.member.phone}
+          memberName={payment.member.fullName}
+          amount={amountNum}
+          receiptNo={payment.receiptNumber}
+          company={payment.company}
+          startDate={payment.startDate?.toISOString()}
+          expiryDate={payment.expiryDate?.toISOString()}
+        />
         <span className="text-xs text-gray-400 ml-auto font-mono">
           Receipt #{payment.receiptNumber ?? "—"} · {companyShort}
         </span>
