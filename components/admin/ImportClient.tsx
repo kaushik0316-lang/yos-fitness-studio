@@ -297,7 +297,7 @@ function FixReceiptNumbersPanel() {
   }
 
   async function fix() {
-    if (!confirm(`This will clear ${info?.badCount} corrupt receipt number(s) (> 9999). They will show as "—" on old imported receipts but new receipts will get correct numbers. Continue?`)) return;
+    if (!confirm(`This will renumber ${info?.badCount} corrupt receipt(s) to the next valid sequential numbers starting from #${(info?.maxGoodReceiptNumber ?? 0) + 1}. Continue?`)) return;
     setFixing(true); setError(null);
     try {
       const res  = await fetch("/api/admin/fix-receipt-numbers", { method: "POST" });
@@ -331,7 +331,7 @@ function FixReceiptNumbersPanel() {
             <button onClick={fix} disabled={fixing}
               className={cn("flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
                 fixing ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-200")}>
-              {fixing ? "Fixing…" : `Clear ${info.badCount} bad number${info.badCount !== 1 ? "s" : ""}`}
+              {fixing ? "Renumbering…" : `Renumber ${info.badCount} receipt${info.badCount !== 1 ? "s" : ""}`}
             </button>
           )}
         </div>
@@ -360,8 +360,11 @@ function FixReceiptNumbersPanel() {
       )}
 
       {result && (
-        <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3">
-          <p className="text-sm font-semibold text-green-700">✓ {result.message}</p>
+        <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3 space-y-1">
+          <p className="text-sm font-semibold text-green-700">✓ Renumbered {result.fixed} receipt(s)</p>
+          {result.results && result.results.map((r: string, i: number) => (
+            <p key={i} className="text-xs font-mono text-green-700">{r}</p>
+          ))}
         </div>
       )}
     </div>
