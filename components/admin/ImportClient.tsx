@@ -258,6 +258,7 @@ function ReceiptsImport() {
       {error && <ErrorBanner message={error} />}
       {result && <ResultCard result={result} type="receipts" />}
 
+      <FixSpecificPaymentsPanel />
       <FixReceiptDatesPanel />
       <FixCurrentPackagePanel />
       <FixNamesPanel />
@@ -269,6 +270,61 @@ function ReceiptsImport() {
       <FixNoPaymentPanel />
       <FixDatesPanel />
       <FixSundayAbsencesPanel />
+    </div>
+  );
+}
+
+/* ─── One-time fix: Nithin #2678 + Gowtham #2656 dates ──────────────────── */
+
+function FixSpecificPaymentsPanel() {
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<string[] | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+  const [done, setDone]       = useState(false);
+
+  async function run() {
+    setLoading(true); setResults(null); setError(null);
+    try {
+      const res  = await fetch("/api/admin/fix-payments", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setResults(data.results);
+      setDone(true);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  if (done && results) {
+    return (
+      <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 space-y-1">
+        <p className="text-sm font-bold text-green-700">✓ Payment dates corrected</p>
+        {results.map((r, i) => <p key={i} className="text-xs text-green-700">{r}</p>)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-amber-300 p-5 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-gray-800">Fix Nithin & Gowtham Payment Dates</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            One-time fix — Nithin #2678: date → 21 May 2026, membership 21 May 2026 → 20 May 2027.
+            Gowtham #2656: payment date → 29 Apr 2026.
+          </p>
+        </div>
+        <button
+          onClick={run} disabled={loading}
+          className={cn(
+            "flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+            loading ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-amber-500 hover:bg-amber-600 text-white shadow-md shadow-amber-200"
+          )}
+        >
+          {loading ? "Fixing…" : "Apply Fix"}
+        </button>
+      </div>
+      {error && <ErrorBanner message={error} />}
     </div>
   );
 }
