@@ -258,6 +258,7 @@ function ReceiptsImport() {
       {error && <ErrorBanner message={error} />}
       {result && <ResultCard result={result} type="receipts" />}
 
+      <MergeDuplicatesPanel />
       <FixSpecificPaymentsPanel />
       <FixReceiptDatesPanel />
       <FixCurrentPackagePanel />
@@ -270,6 +271,125 @@ function ReceiptsImport() {
       <FixNoPaymentPanel />
       <FixDatesPanel />
       <FixSundayAbsencesPanel />
+    </div>
+  );
+}
+
+/* ─── Merge duplicate members (same phone number) ───────────────────────── */
+
+type DupeGroup = {
+  phone: string;
+  members: { id: string; memberId: string; fullName: string; status: string; payments: number; attendances: number }[];
+};
+
+function MergeDuplicatesPanel() {
+  const [loading, setLoading]   = useState(false);
+  const [merging, setMerging]   = useState(false);
+  const [dupes, setDupes]       = useState<DupeGroup[] | null>(null);
+  const [results, setResults]   = useState<string[] | null>(null);
+  const [error, setError]       = useState<string | null>(null);
+
+  async function preview() {
+    setLoading(true); setError(null); setDupes(null); setResults(null);
+    try {
+      const res  = await fetch("/api/admin/merge-duplicates");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setDupes(data.duplicates);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  async function merge() {
+    if (!confirm(`This will merge ${dupes?.length} duplicate group(s). The member with more payments is kept. Continue?`)) return;
+    setMerging(true); setError(null);
+    try {
+      const res  = await fetch("/api/admin/merge-duplicates", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setResults(data.results);
+      setDupes(null);
+    } catch (e: any) { setError(e.message); }
+    finally { setMerging(false); }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-dashed border-red-200 p-5 space-y-3">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            <GitMerge className="h-4 w-4 text-red-500" />
+            Merge Duplicate Members
+          </p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Finds members with the same phone number and merges them into one record. The member with more payments is kept; all data (payments, attendances) is moved across.
+          </p>
+        </div>
+        <div className="flex gap-2 flex-shrink-0">
+          <button
+            onClick={preview} disabled={loading || merging}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+              loading ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+            )}
+          >
+            {loading ? "Checking…" : "Preview"}
+          </button>
+          {dupes && dupes.length > 0 && (
+            <button
+              onClick={merge} disabled={merging}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+                merging ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-200"
+              )}
+            >
+              <GitMerge className="h-3.5 w-3.5" />
+              {merging ? "Merging…" : `Merge ${dupes.length} group${dupes.length !== 1 ? "s" : ""}`}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {error && <ErrorBanner message={error} />}
+
+      {dupes !== null && dupes.length === 0 && (
+        <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+          <p className="text-sm font-semibold text-green-700">✓ No duplicates found — all phone numbers are unique.</p>
+        </div>
+      )}
+
+      {dupes && dupes.length > 0 && (
+        <div className="space-y-2 max-h-72 overflow-y-auto">
+          {dupes.map((g) => (
+            <div key={g.phone} className="bg-red-50 border border-red-100 rounded-lg p-3">
+              <p className="text-xs font-bold text-red-600 mb-1.5">📞 {g.phone}</p>
+              <div className="space-y-1">
+                {g.members.map((m, i) => (
+                  <div key={m.id} className="flex items-center gap-2 text-xs text-gray-700">
+                    {i === 0
+                      ? <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-bold text-[10px]">KEEP</span>
+                      : <span className="px-1.5 py-0.5 bg-red-100 text-red-700 rounded font-bold text-[10px]">MERGE</span>
+                    }
+                    <span className="font-semibold">{m.fullName}</span>
+                    <span className="text-gray-400">{m.memberId}</span>
+                    <span className="text-gray-400">· {m.payments} payments · {m.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {results && (
+        <div className="space-y-1 max-h-48 overflow-y-auto">
+          {results.map((r, i) => (
+            <p key={i} className={cn("text-xs font-mono", r.startsWith("✓") ? "text-green-700" : "text-red-600")}>{r}</p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -68,13 +68,14 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
 
   const totalPages = Math.ceil(total / pageSize);
   const inputStyle = {
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    color: "#e5e7eb",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.14)",
+    color: "#f9fafb",
     borderRadius: "0.75rem",
     padding: "0.625rem 0.875rem",
     fontSize: "0.875rem",
     outline: "none",
+    WebkitTextFillColor: "#f9fafb",
   };
 
   return (
@@ -86,7 +87,7 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
           <form onSubmit={(e) => { e.preventDefault(); updateQuery("search", search); }}
             className="flex items-center gap-2 flex-1 min-w-[220px]">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-600 pointer-events-none" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
