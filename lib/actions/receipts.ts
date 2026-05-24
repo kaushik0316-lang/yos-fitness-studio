@@ -7,7 +7,9 @@ import { Company, PaymentMode, PaymentType } from "@prisma/client";
 import { z } from "zod";
 
 const receiptSchema = z.object({
-  memberId: z.string(),
+  memberId: z.string().optional(),
+  newMemberName: z.string().optional(),
+  newMemberPhone: z.string().optional(),
   company: z.nativeEnum(Company),
   paymentType: z.nativeEnum(PaymentType),
   categoryLabel: z.string(),
@@ -36,7 +38,39 @@ export async function createReceipt(input: z.infer<typeof receiptSchema>) {
 
   const data = receiptSchema.parse(input);
 
+  if (!data.memberId && !data.newMemberName?.trim()) {
+    throw new Error("Please select a member or enter a new member name.");
+  }
+
   const payment = await prisma.$transaction(async (tx) => {
+    // ── Create new member on the fly if needed ────────────────────────────
+    let resolvedMemberId = data.memberId ?? "";
+    if (!resolvedMemberId && data.newMemberName?.trim()) {
+      const name = data.newMemberName.trim().toUpperCase();
+      const prefix = data.company === "YOS_FITNESS" ? "YF" : "YFS";
+      const existing = await tx.member.findMany({
+        where: { memberId: { startsWith: `${prefix}-` } },
+        select: { memberId: true },
+      });
+      const maxNum = existing.reduce((max, m) => {
+        const n = parseInt(m.memberId.split("-")[1] ?? "0", 10);
+        return n > max ? n : max;
+      }, 0);
+      const nextMemberId = `${prefix}-${String(maxNum + 1).padStart(3, "0")}`;
+      const phone = data.newMemberPhone?.trim() || "0000000000";
+      const newMember = await tx.member.create({
+        data: {
+          memberId: nextMemberId,
+          fullName: name,
+          phone,
+          whatsapp: phone,
+          status: "ACTIVE",
+        },
+        select: { id: true },
+      });
+      resolvedMemberId = newMember.id;
+    }
+
     // Auto-assign receiptNumber per company (MAX + 1, race-safe inside transaction)
     const agg = await tx.payment.aggregate({
       _max: { receiptNumber: true },
@@ -46,7 +80,7 @@ export async function createReceipt(input: z.infer<typeof receiptSchema>) {
 
     const created = await tx.payment.create({
       data: {
-        memberId: data.memberId,
+        memberId: resolvedMemberId,
         amount: data.amount,
         discount: data.discount,
         pendingAmount: data.pendingAmount,
@@ -79,7 +113,7 @@ export async function createReceipt(input: z.infer<typeof receiptSchema>) {
       memberUpdate.phone = data.phoneOverride.trim();
       memberUpdate.whatsapp = data.phoneOverride.trim();
     }
-    await tx.member.update({ where: { id: data.memberId }, data: memberUpdate });
+    await tx.member.update({ where: { id: resolvedMemberId }, data: memberUpdate });
 
     await tx.auditLog.create({
       data: {
@@ -100,7 +134,7 @@ export async function createReceipt(input: z.infer<typeof receiptSchema>) {
   });
 
   revalidatePath("/payments");
-  revalidatePath(`/members/${data.memberId}`);
+  revalidatePath("/members");
   revalidatePath("/");
 
   return { success: true, paymentId: payment.id };

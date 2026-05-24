@@ -96,6 +96,9 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   const [prevAmount, setPrevAmount] = useState("");
   const [soldById, setSoldById] = useState<string | null>(null); // null = common/unattributed
   const [phoneOverride, setPhoneOverride] = useState(""); // used when member has no phone saved
+  const [isNewMember, setIsNewMember] = useState(false);
+  const [newMemberName, setNewMemberName] = useState("");
+  const [newMemberPhone, setNewMemberPhone] = useState("");
 
   // Filtered members
   const filteredMembers = useMemo(() => {
@@ -122,7 +125,24 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
     setSelectedMemberId(m.id);
     setMemberSearch(`${m.memberId} — ${m.fullName}`);
     setShowMemberDropdown(false);
-    setPhoneOverride(""); // reset phone field when switching member
+    setPhoneOverride("");
+    setIsNewMember(false);
+    setNewMemberName("");
+    setNewMemberPhone("");
+  }
+
+  function handleNewMember() {
+    setIsNewMember(true);
+    setNewMemberName(memberSearch.trim());
+    setSelectedMemberId("");
+    setShowMemberDropdown(false);
+  }
+
+  function cancelNewMember() {
+    setIsNewMember(false);
+    setNewMemberName("");
+    setNewMemberPhone("");
+    setMemberSearch("");
   }
 
   function handlePeriodSelect(p: string) {
@@ -148,8 +168,12 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
     e.preventDefault();
     setError(null);
 
-    if (!selectedMemberId) {
-      setError("Please select a member.");
+    if (!selectedMemberId && !isNewMember) {
+      setError("Please select a member or create a new one.");
+      return;
+    }
+    if (isNewMember && !newMemberName.trim()) {
+      setError("Please enter the new member's name.");
       return;
     }
     if (!amount || Number(amount) <= 0) {
@@ -160,7 +184,9 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
     setLoading(true);
     try {
       const result = await createReceipt({
-        memberId: selectedMemberId,
+        memberId: isNewMember ? undefined : selectedMemberId,
+        newMemberName: isNewMember ? newMemberName.trim() : undefined,
+        newMemberPhone: isNewMember ? newMemberPhone.trim() : undefined,
         company,
         paymentType,
         categoryLabel: categoryInput,
@@ -236,54 +262,100 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
       {/* ── Row 2: Member ── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 relative">
         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Member</p>
-        <div className="relative">
-          <input
-            value={memberSearch}
-            onChange={(e) => {
-              setMemberSearch(e.target.value);
-              setShowMemberDropdown(true);
-              if (!e.target.value) setSelectedMemberId("");
-            }}
-            onFocus={() => setShowMemberDropdown(true)}
-            placeholder="Search by name, ID, or phone…"
-            className={inputClass}
-            autoComplete="off"
-          />
-          {showMemberDropdown && filteredMembers.length > 0 && (
-            <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-56 overflow-y-auto">
-              {filteredMembers.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onMouseDown={() => handleSelectMember(m)}
-                  className="w-full text-left px-4 py-2.5 hover:bg-orange-50 transition-colors"
-                >
-                  <span className="font-semibold text-sm text-gray-900">{m.fullName}</span>
-                  <span className="text-xs text-gray-400 ml-2">{m.memberId}</span>
-                  <span className="text-xs text-gray-400 ml-2">{m.phone}</span>
-                </button>
-              ))}
+
+        {isNewMember ? (
+          /* ── New member form ── */
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-orange-500 uppercase tracking-wider">🆕 New Member</span>
+              <button type="button" onClick={cancelNewMember} className="text-xs text-gray-400 hover:text-gray-600 underline">
+                ← Back to search
+              </button>
             </div>
-          )}
-        </div>
-        {selectedMember && (
-          <div className="mt-3 space-y-2">
-            <p className="text-xs text-emerald-600 font-medium">
-              ✓ {selectedMember.memberId} — {selectedMember.fullName}
-            </p>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">
-                📱 Phone Number {isFakePhone(selectedMember.phone) ? <span className="text-orange-500">(none on record)</span> : ""}
-              </label>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Full Name *</label>
+              <input
+                value={newMemberName}
+                onChange={(e) => setNewMemberName(e.target.value)}
+                placeholder="Enter full name"
+                className={inputClass}
+                autoComplete="off"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">📱 Phone Number</label>
               <input
                 type="tel"
-                value={phoneOverride || (!isFakePhone(selectedMember.phone) ? selectedMember.phone : "")}
-                onChange={(e) => setPhoneOverride(e.target.value)}
+                value={newMemberPhone}
+                onChange={(e) => setNewMemberPhone(e.target.value)}
                 placeholder="10-digit mobile number"
                 className={inputClass}
                 maxLength={12}
               />
             </div>
+          </div>
+        ) : (
+          /* ── Existing member search ── */
+          <div className="relative">
+            <input
+              value={memberSearch}
+              onChange={(e) => {
+                setMemberSearch(e.target.value);
+                setShowMemberDropdown(true);
+                if (!e.target.value) setSelectedMemberId("");
+              }}
+              onFocus={() => setShowMemberDropdown(true)}
+              placeholder="Search by name, ID, or phone…"
+              className={inputClass}
+              autoComplete="off"
+            />
+            {showMemberDropdown && (memberSearch.length > 0) && (
+              <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-64 overflow-y-auto">
+                {filteredMembers.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onMouseDown={() => handleSelectMember(m)}
+                    className="w-full text-left px-4 py-2.5 hover:bg-orange-50 transition-colors border-b border-gray-50 last:border-0"
+                  >
+                    <span className="font-semibold text-sm text-gray-900">{m.fullName}</span>
+                    <span className="text-xs text-gray-400 ml-2">{m.memberId}</span>
+                    <span className="text-xs text-gray-400 ml-2">{m.phone}</span>
+                  </button>
+                ))}
+                {/* Always show "+ New Member" option when typing */}
+                <button
+                  type="button"
+                  onMouseDown={handleNewMember}
+                  className="w-full text-left px-4 py-2.5 hover:bg-orange-50 transition-colors border-t border-orange-100 flex items-center gap-2"
+                >
+                  <span className="text-sm font-bold text-orange-500">+ New Member</span>
+                  {memberSearch.trim() && (
+                    <span className="text-sm text-gray-500">"{memberSearch.trim()}"</span>
+                  )}
+                </button>
+              </div>
+            )}
+            {selectedMember && (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-emerald-600 font-medium">
+                  ✓ {selectedMember.memberId} — {selectedMember.fullName}
+                </p>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    📱 Phone Number {isFakePhone(selectedMember.phone) ? <span className="text-orange-500">(none on record)</span> : ""}
+                  </label>
+                  <input
+                    type="tel"
+                    value={phoneOverride || (!isFakePhone(selectedMember.phone) ? selectedMember.phone : "")}
+                    onChange={(e) => setPhoneOverride(e.target.value)}
+                    placeholder="10-digit mobile number"
+                    className={inputClass}
+                    maxLength={12}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
