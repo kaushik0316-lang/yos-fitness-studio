@@ -17,6 +17,8 @@ export default function RegisterPage() {
   const [result, setResult] = useState<{ memberId: string; fullName: string } | null>(null);
   const [error, setError] = useState("");
 
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
   const [form, setForm] = useState({
     fullName: "", phone: "", gender: "", dateOfBirth: "",
     address: "", weight: "", height: "", healthConditions: "",
@@ -32,7 +34,8 @@ export default function RegisterPage() {
   const requiredFilled =
     form.fullName.trim() && form.phone.trim() && form.gender &&
     form.dateOfBirth && form.address.trim() &&
-    form.weight && form.height && form.healthConditions.trim();
+    form.weight && form.height && form.healthConditions.trim() &&
+    termsAccepted;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -220,6 +223,70 @@ export default function RegisterPage() {
             <input className={inp} type="tel" inputMode="numeric" placeholder="10-digit number"
               value={form.emergencyPhone} onChange={(e) => set("emergencyPhone", e.target.value)} />
           </div>
+        </div>
+
+        {/* ── Terms & Conditions ── */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-5 pt-4 pb-2 border-b border-gray-100">
+            <p className="text-xs font-bold text-gray-700 uppercase tracking-widest">Terms of Use &amp; Membership</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">Please read carefully before submitting</p>
+          </div>
+
+          {/* Scrollable T&C text */}
+          <div className="px-5 py-3 max-h-52 overflow-y-auto text-[11.5px] text-gray-600 leading-relaxed space-y-3 bg-gray-50">
+            <p className="font-semibold text-gray-800">Your health and safety is of utmost importance to us.</p>
+
+            <div>
+              <p className="font-semibold text-gray-700 mb-1">Terms of Use</p>
+              <ol className="list-decimal list-outside ml-4 space-y-1.5">
+                <li>Members are obligated to inform the management of any conditions that may pose potential risk or hazard to life or health.</li>
+                <li>Please keep a pair of shoes exclusive for use at the Gym. Do not use regular footwear within the facilities.</li>
+                <li>Please wear appropriate sports clothing at all times.</li>
+                <li>Follow all instructions from trainers/instructors. Inform them of any discomfort while exercising or using equipment.</li>
+                <li>Assured Results programs are subject to conditions. Please read them carefully.</li>
+                <li>Mobile phone usage within the facilities is restricted. It is prohibited while performing exercises or using equipment.</li>
+                <li>All gym equipment must be used carefully and only as directed. Management reserves the right to restrict use in case of wilful misuse.</li>
+                <li>Smoking and consumption of alcohol within the facilities is strictly prohibited. Members are not allowed in inebriated condition.</li>
+                <li>No eatables are allowed within the facilities.</li>
+                <li>The management of Yos Fitness takes no responsibility for loss of property or any injuries/damages while using the facilities. <strong>Usage is entirely at the risk of the member.</strong></li>
+                <li>I have no objection to publishing my photo/video on social and other media.</li>
+              </ol>
+            </div>
+
+            <div>
+              <p className="font-semibold text-gray-700 mb-1">Terms of Membership &amp; Rights of Admission</p>
+              <ol className="list-decimal list-outside ml-4 space-y-1.5">
+                <li>Membership to Yos Fitness is non-transferrable.</li>
+                <li>Periods of absence cannot be compensated or refunded.</li>
+                <li>All members must show proof of membership upon demand (membership card or payment receipt).</li>
+                <li>The right of entry is at the discretion of the management. Memberships can be revoked in case of repeated or extreme delinquency.</li>
+                <li>Memberships must be renewed within three months from date of expiry, failing which membership may be cancelled.</li>
+                <li>Fees are subject to change without notice. Please consult the front desk for queries.</li>
+                <li><strong>All fees are payable in advance. No refunds will be entertained under any circumstances.</strong></li>
+              </ol>
+            </div>
+
+            <p className="text-gray-500 italic">Yos Fitness and its management reserves all rights to amend or modify these terms without notice.</p>
+
+            <div className="border-t border-gray-200 pt-2">
+              <p className="font-semibold text-gray-700">Timings</p>
+              <p>General: 6:00 am – 12:00 pm &amp; 4:30 pm – 9:00 pm</p>
+              <p>Ladies: 12:00 pm – 4:30 pm <span className="text-gray-400">(subject to availability)</span></p>
+            </div>
+          </div>
+
+          {/* Checkbox */}
+          <label className="flex items-start gap-3 px-5 py-4 cursor-pointer hover:bg-orange-50 transition-colors">
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-orange-500 accent-orange-500 flex-shrink-0"
+            />
+            <span className="text-xs text-gray-700 leading-relaxed">
+              I have read and understood the Terms of Use and Terms of Membership. I agree to abide by all the rules and conditions of Yos Fitness Studio.
+            </span>
+          </label>
         </div>
 
         {/* Submit */}

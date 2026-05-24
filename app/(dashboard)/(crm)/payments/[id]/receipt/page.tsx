@@ -276,6 +276,21 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
             </div>
           )}
 
+          {/* ── Terms & Conditions (printed footer) ── */}
+          <div style={{ padding: "12px 24px", borderBottom: `1px solid ${brand.mutedBorder}`, background: brand.bg }}>
+            <p style={{ fontSize: "8px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#9ca3af", marginBottom: "6px" }}>
+              Terms &amp; Conditions
+            </p>
+            <ol style={{ margin: 0, paddingLeft: "14px", fontSize: "8px", color: "#6b7280", lineHeight: "1.65", display: "flex", flexDirection: "column", gap: "2px" }}>
+              <li>Membership is non-transferrable. All fees are payable in advance. <strong style={{ color: "#374151" }}>No refunds under any circumstances.</strong></li>
+              <li>Periods of absence cannot be compensated or refunded. Membership must be renewed within 3 months of expiry.</li>
+              <li>Usage of facilities, equipment and exercise routines is <strong style={{ color: "#374151" }}>entirely at the member's own risk.</strong> Management is not liable for loss of property or injuries.</li>
+              <li>Management reserves the right of admission and may revoke membership for misconduct or repeated delinquency.</li>
+              <li>Smoking, alcohol and eatables are strictly prohibited within the facilities.</li>
+              <li>Fees are subject to change without notice. By accepting this receipt, the member agrees to the full Terms of Use available at the front desk or at <span style={{ color: "#f97316" }}>yosfitnessstudio.in</span></li>
+            </ol>
+          </div>
+
           {/* ── Footer ── */}
           <div
             style={{
