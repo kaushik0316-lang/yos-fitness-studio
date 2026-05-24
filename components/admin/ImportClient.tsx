@@ -282,7 +282,7 @@ function FixReceiptNumbersPanel() {
   const [loading, setLoading]   = useState(false);
   const [fixing, setFixing]     = useState(false);
   const [info, setInfo]         = useState<{ badCount: number; maxGoodReceiptNumber: number; samples: any[] } | null>(null);
-  const [result, setResult]     = useState<{ fixed: number; maxReceiptNumberNow: number; message: string } | null>(null);
+  const [result, setResult]     = useState<{ fixed: number; results: string[] } | null>(null);
   const [error, setError]       = useState<string | null>(null);
 
   async function check() {
