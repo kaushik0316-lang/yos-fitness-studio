@@ -7,6 +7,7 @@ import { amountToWords } from "@/lib/utils/amountToWords";
 import { PrintButton } from "@/components/receipts/PrintButton";
 import { WhatsAppButton } from "@/components/receipts/WhatsAppButton";
 import { EditReceiptButton } from "@/components/receipts/EditReceiptButton";
+import { SendPDFButton } from "@/components/receipts/SendPDFButton";
 
 export const dynamic = "force-dynamic";
 
@@ -142,14 +143,10 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
             }}
           />
         )}
-        <WhatsAppButton
+        <SendPDFButton
           phone={payment.member.phone}
           memberName={payment.member.fullName}
-          amount={amountNum}
           receiptNo={payment.receiptNumber}
-          company={payment.company}
-          startDate={payment.startDate?.toISOString()}
-          expiryDate={payment.expiryDate?.toISOString()}
         />
         <span className="text-xs text-gray-400 ml-auto font-mono">
           Receipt #{payment.receiptNumber ?? "—"} · {companyShort}
@@ -168,6 +165,7 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
       <div className="flex-1 overflow-y-auto">
       <div className="p-6 print:p-0 print:m-0 bg-gray-50 min-h-full">
         <div
+          id="receipt-card"
           className="mx-auto print:shadow-none"
           style={{
             maxWidth: "420px",
