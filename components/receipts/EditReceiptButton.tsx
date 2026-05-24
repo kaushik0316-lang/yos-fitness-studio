@@ -8,6 +8,7 @@ type Props = {
   paymentId: string;
   current: {
     memberName: string;
+    memberPhone: string;
     date: string;
     amount: number;
     discount: number;
@@ -125,6 +126,7 @@ export function EditReceiptButton({ paymentId, current }: Props) {
       const payload = {
         ...form,
         memberName: memberQuery,
+        memberPhone: form.memberPhone,
         ...(selectedMemberId ? { newMemberId: selectedMemberId } : {}),
       };
       const res = await fetch(`/api/payments/${paymentId}/edit`, {
@@ -197,6 +199,18 @@ export function EditReceiptButton({ paymentId, current }: Props) {
                     ))}
                   </div>
                 )}
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label style={LBL}>Phone Number</label>
+                <input
+                  type="tel"
+                  style={INP}
+                  value={form.memberPhone}
+                  onChange={(e) => set("memberPhone", e.target.value)}
+                  placeholder="10-digit mobile number"
+                />
               </div>
 
               {/* Date */}

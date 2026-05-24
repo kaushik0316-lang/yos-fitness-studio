@@ -9,7 +9,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { memberName, newMemberId, date, amount, discount, pendingAmount, paymentMode,
+    const { memberName, memberPhone, newMemberId, date, amount, discount, pendingAmount, paymentMode,
             categoryLabel, periodLabel, startDate, expiryDate,
             notes, transactionRef } = body;
 
@@ -25,12 +25,21 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         where: { id: params.id },
         data: { memberId: newMemberId },
       });
-    } else if (memberName && memberName.trim()) {
-      // Just rename the current member
-      await prisma.member.update({
-        where: { id: payment.memberId },
-        data: { fullName: memberName.trim() },
-      });
+    } else {
+      // Update name and/or phone on the current member
+      const memberUpdate: Record<string, string> = {};
+      if (memberName && memberName.trim()) memberUpdate.fullName = memberName.trim();
+      if (memberPhone !== undefined && memberPhone !== null) {
+        const phone = String(memberPhone).trim();
+        memberUpdate.phone = phone;
+        memberUpdate.whatsapp = phone;
+      }
+      if (Object.keys(memberUpdate).length > 0) {
+        await prisma.member.update({
+          where: { id: payment.memberId },
+          data: memberUpdate,
+        });
+      }
     }
 
     await prisma.payment.update({
