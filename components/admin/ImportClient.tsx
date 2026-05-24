@@ -296,7 +296,8 @@ function MergeDuplicatesPanel() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed");
       setDupes(data.duplicates);
-    } catch (e: any) { setError(e.message); }
+      setError(null); // clear any stale error
+    } catch (e: any) { setError(e.message); setDupes(null); }
     finally { setLoading(false); }
   }
 

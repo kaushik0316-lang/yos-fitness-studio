@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+/** Returns true for obvious placeholder/fake phone numbers */
+function isFakePhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 9) return true;
+  // All same digit: 0000000000, 1111111111, 9999999999 etc.
+  if (new Set(digits.split("")).size === 1) return true;
+  // Sequential patterns
+  if (digits === "1234567890" || digits === "9876543210") return true;
+  return false;
+}
+
 async function getDuplicateGroups() {
   // Fetch all members with their payment/attendance counts
   const all = await prisma.member.findMany({
@@ -35,9 +46,9 @@ async function getDuplicateGroups() {
     phoneMap.get(key)!.push(m);
   }
 
-  // Keep only groups with duplicates
+  // Keep only real duplicate groups (exclude fake/placeholder phone numbers)
   return Array.from(phoneMap.entries())
-    .filter(([, mems]) => mems.length > 1)
+    .filter(([phone, mems]) => mems.length > 1 && !isFakePhone(phone))
     .map(([phone, mems]) => {
       // Sort: non-IMP first, then by payment count desc, then by joinDate asc
       const sorted = [...mems].sort((a, b) => {
