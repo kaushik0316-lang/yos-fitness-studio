@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { Loader2, CreditCard, Receipt } from "lucide-react";
 import Link from "next/link";
+import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { recordPayment } from "@/lib/actions/payments";
@@ -14,14 +15,15 @@ type Props = {
   open: boolean;
   onClose: () => void;
   member: { id: string; memberId: string; fullName: string };
-  packages: { id: string; name: string; price: any; company: Company | null }[];
+  packages: { id: string; name: string; price: any; durationDays: number; company: Company | null }[];
   userId: string;
 };
 
 export function RecordPaymentDialog({ open, onClose, member, packages, userId }: Props) {
   const [loading, setLoading] = useState(false);
   const [successPaymentId, setSuccessPaymentId] = useState<string | null>(null);
-  const { register, handleSubmit, reset } = useForm({
+
+  const { register, handleSubmit, reset, control } = useForm({
     defaultValues: {
       amount: "",
       discount: "0",
@@ -31,8 +33,12 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId }:
       company: "YOS_FITNESS",
       transactionRef: "",
       notes: "",
+      startDate: format(new Date(), "yyyy-MM-dd"),
     },
   });
+
+  const selectedPackageId = useWatch({ control, name: "packageId" });
+  const selectedPackage = packages.find((p) => p.id === selectedPackageId);
 
   function handleClose() {
     reset();
@@ -47,6 +53,7 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId }:
     }
     setLoading(true);
     try {
+      const hasPackageAndDate = !!data.packageId && !!data.startDate;
       const result = await recordPayment({
         memberId: member.id,
         amount: Number(data.amount),
@@ -57,7 +64,8 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId }:
         company: data.company as Company,
         transactionRef: data.transactionRef || undefined,
         notes: data.notes || undefined,
-        createMembership: false,
+        createMembership: hasPackageAndDate,
+        startDate: hasPackageAndDate ? data.startDate : undefined,
       });
       setSuccessPaymentId(result.paymentId);
     } catch (e: any) {
@@ -102,71 +110,90 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId }:
           </div>
         )}
 
-        {!successPaymentId && <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="font-semibold text-gray-900">{member.fullName}</p>
-            <p className="text-xs text-gray-400">{member.memberId}</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Amount (₹) *</label>
-              <input {...register("amount")} type="number" className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none" placeholder="1500" />
+        {!successPaymentId && (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="font-semibold text-gray-900">{member.fullName}</p>
+              <p className="text-xs text-gray-400">{member.memberId}</p>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Discount (₹)</label>
-              <input {...register("discount")} type="number" defaultValue={0} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none" />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Amount (₹) *</label>
+                <input {...register("amount")} type="number" className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none" placeholder="1500" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Discount (₹)</label>
+                <input {...register("discount")} type="number" defaultValue={0} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Payment Mode</label>
+                <select {...register("paymentMode")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none">
+                  <option value="CASH">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="CARD">Card</option>
+                  <option value="BANK_TRANSFER">Bank Transfer</option>
+                  <option value="FREE">Free</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Company</label>
+                <select {...register("company")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none">
+                  <option value="YOS_FITNESS">Yos Fitness</option>
+                  <option value="YOS_FITNESS_STUDIO">Yos Fitness Studio</option>
+                </select>
+              </div>
+            </div>
+
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Payment Mode</label>
-              <select {...register("paymentMode")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none">
-                <option value="CASH">Cash</option>
-                <option value="UPI">UPI</option>
-                <option value="CARD">Card</option>
-                <option value="BANK_TRANSFER">Bank Transfer</option>
-                <option value="FREE">Free</option>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Package</label>
+              <select {...register("packageId")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none">
+                <option value="">No package linked</option>
+                {packages.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
               </select>
             </div>
+
+            {/* Start date — shown when a package is selected */}
+            {selectedPackage && (
+              <div className="bg-orange-50 border border-orange-100 rounded-lg p-3 space-y-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Membership Start Date *</label>
+                  <input
+                    {...register("startDate")}
+                    type="date"
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                  />
+                </div>
+                <p className="text-[11px] text-orange-700 font-medium">
+                  ✓ Member will be set to <strong>ACTIVE</strong> · Package: {selectedPackage.name} · {selectedPackage.durationDays} days
+                </p>
+              </div>
+            )}
+
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Company</label>
-              <select {...register("company")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none">
-                <option value="YOS_FITNESS">Yos Fitness</option>
-                <option value="YOS_FITNESS_STUDIO">Yos Fitness Studio</option>
-              </select>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Transaction Ref / UPI ID</label>
+              <input {...register("transactionRef")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none" placeholder="UPI ref, cheque no..." />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Package (optional)</label>
-            <select {...register("packageId")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none">
-              <option value="">No package linked</option>
-              {packages.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+              <input {...register("notes")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Optional note..." />
+            </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Transaction Ref / UPI ID</label>
-            <input {...register("transactionRef")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none" placeholder="UPI ref, cheque no..." />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-            <input {...register("notes")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Optional note..." />
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>Cancel</Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-              Record Payment
-            </Button>
-          </DialogFooter>
-        </form>}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>Cancel</Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                Record Payment
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

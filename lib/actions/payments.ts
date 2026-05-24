@@ -51,6 +51,12 @@ export async function recordPayment(input: z.infer<typeof paymentSchema>) {
         const startDate = new Date(data.startDate);
         const expiryDate = addDays(startDate, pkg.durationDays);
 
+        // Write startDate + expiryDate onto the payment row so the receipt shows them
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: { startDate, expiryDate },
+        });
+
         await tx.membership.create({
           data: {
             memberId: data.memberId,
