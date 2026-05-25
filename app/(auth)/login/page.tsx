@@ -249,7 +249,7 @@ export default function LoginPage() {
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
-                    className="w-full rounded-xl pl-10 pr-12 py-3 text-sm text-white focus:outline-none transition-all duration-200 placeholder:text-gray-700"
+                    className="w-full rounded-xl pl-10 pr-12 py-3 text-sm text-white focus:outline-none transition-all duration-200 placeholder:text-gray-700 [text-transform:none]"
                     style={{
                       background: "rgba(255,255,255,0.05)",
                       border: "1.5px solid rgba(255,255,255,0.08)",

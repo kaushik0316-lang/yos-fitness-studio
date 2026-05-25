@@ -65,7 +65,7 @@ html {
 }
 
 /* Uppercase all text inputs and textareas (exclude email, password, number, date, time) */
-input:not([type="email"]):not([type="password"]):not([type="number"]):not([type="date"]):not([type="time"]):not([type="color"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+input:not([type="email"]):not([type="password"]):not([type="number"]):not([type="date"]):not([type="time"]):not([type="color"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([autocomplete="current-password"]):not([autocomplete="new-password"]),
 textarea,
 select {
   text-transform: uppercase;
