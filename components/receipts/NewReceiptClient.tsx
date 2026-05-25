@@ -92,6 +92,9 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   const [discount, setDiscount] = useState("");
   const [pendingAmount, setPendingAmount] = useState("");
   const [paymentMode, setPaymentMode] = useState<"CASH" | "UPI" | "CARD" | "CHEQUE">("CASH");
+  const [splitEnabled, setSplitEnabled] = useState(false);
+  const [splitMode, setSplitMode] = useState<"CASH" | "UPI" | "CARD" | "CHEQUE">("UPI");
+  const [splitAmt, setSplitAmt] = useState("");
   const [notes, setNotes] = useState("");
   const [prevReceiptNo, setPrevReceiptNo] = useState("");
   const [prevAmount, setPrevAmount] = useState("");
@@ -196,6 +199,8 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
         discount: Number(discount) || 0,
         pendingAmount: Number(pendingAmount) || 0,
         paymentMode,
+        splitPaymentMode: splitEnabled && splitAmt ? splitMode : undefined,
+        splitAmount: splitEnabled && splitAmt ? Number(splitAmt) : undefined,
         billDate,
         startDate,
         expiryDate,
@@ -552,24 +557,85 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
       </div>
 
       {/* ── Row 8: Payment Mode ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Payment Mode</p>
-        <div className="grid grid-cols-4 gap-3">
-          {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setPaymentMode(mode)}
-              className={`py-2.5 px-3 rounded-xl text-sm font-bold transition-all border-2 ${
-                paymentMode === mode
-                  ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-200"
-                  : "bg-white border-gray-200 text-gray-500 hover:border-orange-300"
-              }`}
-            >
-              {mode === "UPI" ? "GPay/UPI" : mode.charAt(0) + mode.slice(1).toLowerCase()}
-            </button>
-          ))}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Payment Mode</p>
+          <button
+            type="button"
+            onClick={() => { setSplitEnabled(!splitEnabled); setSplitAmt(""); }}
+            className={`text-xs font-bold px-3 py-1 rounded-full border-2 transition-all ${
+              splitEnabled
+                ? "bg-orange-500 border-orange-500 text-white"
+                : "bg-white border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500"
+            }`}
+          >
+            {splitEnabled ? "✕ Remove split" : "+ Split payment"}
+          </button>
         </div>
+
+        {/* Primary mode */}
+        <div>
+          {splitEnabled && <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2">1st payment</p>}
+          <div className="grid grid-cols-4 gap-3">
+            {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setPaymentMode(mode)}
+                className={`py-2.5 px-3 rounded-xl text-sm font-bold transition-all border-2 ${
+                  paymentMode === mode
+                    ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-200"
+                    : "bg-white border-gray-200 text-gray-500 hover:border-orange-300"
+                }`}
+              >
+                {mode === "UPI" ? "GPay/UPI" : mode.charAt(0) + mode.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
+          {splitEnabled && splitAmt && Number(splitAmt) > 0 && Number(amount) > 0 && (
+            <p className="text-xs text-gray-500 mt-2 font-medium">
+              Amount via {paymentMode === "UPI" ? "GPay/UPI" : paymentMode.charAt(0) + paymentMode.slice(1).toLowerCase()}:{" "}
+              <span className="text-gray-800 font-bold">₹{Math.max(0, Number(amount) - Number(splitAmt)).toLocaleString()}</span>
+            </p>
+          )}
+        </div>
+
+        {/* Split / second payment */}
+        {splitEnabled && (
+          <div className="border-t border-gray-100 pt-4 space-y-3">
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">2nd payment</p>
+            <div className="grid grid-cols-4 gap-3">
+              {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setSplitMode(mode)}
+                  className={`py-2.5 px-3 rounded-xl text-sm font-bold transition-all border-2 ${
+                    splitMode === mode
+                      ? "bg-indigo-500 border-indigo-500 text-white shadow-md shadow-indigo-200"
+                      : "bg-white border-gray-200 text-gray-500 hover:border-indigo-300"
+                  }`}
+                >
+                  {mode === "UPI" ? "GPay/UPI" : mode.charAt(0) + mode.slice(1).toLowerCase()}
+                </button>
+              ))}
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                Amount paid via {splitMode === "UPI" ? "GPay/UPI" : splitMode.charAt(0) + splitMode.slice(1).toLowerCase()} (₹)
+              </label>
+              <input
+                type="number"
+                value={splitAmt}
+                onChange={(e) => setSplitAmt(e.target.value)}
+                placeholder="e.g. 2000"
+                min={1}
+                max={Number(amount) - 1 || undefined}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Row 9: Who made the sale? (admin only — not on receipt) ── */}

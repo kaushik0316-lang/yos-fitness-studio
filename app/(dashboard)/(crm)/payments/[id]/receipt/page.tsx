@@ -243,9 +243,22 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
               </div>
               <div style={{ textAlign: "right" }}>
                 <p style={label}>Mode</p>
-                <p style={{ ...value, fontSize: "12px" }}>
-                  {PAYMENT_MODE_LABELS[payment.paymentMode] ?? payment.paymentMode}
-                </p>
+                {payment.splitPaymentMode && payment.splitAmount ? (
+                  <>
+                    <p style={{ ...value, fontSize: "11px" }}>
+                      {PAYMENT_MODE_LABELS[payment.paymentMode] ?? payment.paymentMode}{" "}
+                      <span style={{ color: "#6b7280", fontWeight: 500 }}>₹{formatIndian(amountNum - Number(payment.splitAmount))}</span>
+                    </p>
+                    <p style={{ ...value, fontSize: "11px" }}>
+                      {PAYMENT_MODE_LABELS[payment.splitPaymentMode] ?? payment.splitPaymentMode}{" "}
+                      <span style={{ color: "#6b7280", fontWeight: 500 }}>₹{formatIndian(Number(payment.splitAmount))}</span>
+                    </p>
+                  </>
+                ) : (
+                  <p style={{ ...value, fontSize: "12px" }}>
+                    {PAYMENT_MODE_LABELS[payment.paymentMode] ?? payment.paymentMode}
+                  </p>
+                )}
                 <p style={{ ...label, marginTop: "8px" }}>Type</p>
                 <p style={{ ...value, fontSize: "12px" }}>
                   {PAYMENT_TYPE_LABELS[payment.paymentType] ?? payment.paymentType}

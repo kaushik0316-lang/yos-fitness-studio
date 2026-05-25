@@ -298,8 +298,12 @@ model Payment {
   soldById       String?
   soldBy         Employee?   @relation("SoldByEmployee", fields: [soldById], references: [id], onDelete: SetNull)
 
-  transactionRef String?
-  notes          String?
+  transactionRef    String?
+  notes             String?
+
+  // Split payment (optional second payment mode)
+  splitPaymentMode  PaymentMode?
+  splitAmount       Decimal?     @db.Decimal(10, 2)
 
   // Receipt / billing fields
   receiptNumber      Int?
