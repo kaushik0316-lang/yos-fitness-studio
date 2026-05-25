@@ -406,7 +406,7 @@ export default function StaffDashboardPage() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3">
-          <Link href="/payments/new"
+          <Link href="/staff-dashboard/new-receipt"
             className="flex flex-col gap-3 rounded-3xl p-5 transition-opacity active:opacity-70"
             style={{ background: "#1c1c1c" }}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
