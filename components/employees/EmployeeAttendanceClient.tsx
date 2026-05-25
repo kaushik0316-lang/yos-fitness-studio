@@ -126,8 +126,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
   function getSummary(empId: string) {
     const dates = localMap[empId] ?? {};
     const c: Record<string, number> = { PRESENT: 0, ABSENT: 0, HALF_DAY: 0, WEEKLY_OFF: 0, LEAVE: 0, PAID_LEAVE: 0 };
-    for (const [dateStr, s] of Object.entries(dates)) {
-      if (new Date(dateStr).getDay() === 0) continue;
+    for (const [, s] of Object.entries(dates)) {
       c[s] = (c[s] ?? 0) + 1;
     }
     return c;
@@ -242,7 +241,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                   )}
                 </div>
 
-                {canEdit && !isFuture && !isSunday && (
+                {canEdit && !isFuture && (
                   <button
                     onClick={() => setEditDay({ dateStr, displayDate })}
                     className="flex-shrink-0 p-1.5 rounded-lg text-gray-700 hover:text-orange-400 transition-colors"
@@ -478,22 +477,20 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                                 opacity: isFuture && !status ? 0.35 : 1,
                               }}>
                               <button
-                                onClick={() => !isSunday && cycleStatus(emp.id, dateStr, isFuture)}
-                                disabled={!canEdit || isSunday}
-                                title={isSunday ? "Sunday" : isFuture ? (status ? STATUS_OPTIONS.find(s => s.value === status)?.title : "Click to plan leave") : STATUS_OPTIONS.find(s => s.value === status)?.title ?? "Not marked"}
+                                onClick={() => cycleStatus(emp.id, dateStr, isFuture)}
+                                disabled={!canEdit}
+                                title={isFuture ? (status ? STATUS_OPTIONS.find(s => s.value === status)?.title : "Click to plan leave") : STATUS_OPTIONS.find(s => s.value === status)?.title ?? "Not marked"}
                                 className={cn(
                                   "w-full rounded-md text-[10px] font-bold transition-all px-1 py-0.5 mb-0.5",
-                                  status ? style?.cell : isSunday
-                                    ? "text-gray-800 cursor-default"
-                                    : isFuture
+                                  status ? style?.cell : isFuture
                                     ? "text-gray-700 hover:bg-white/5 hover:text-gray-500 cursor-pointer"
                                     : "text-gray-800 hover:bg-white/5 hover:text-gray-600",
-                                  canEdit && !isSunday && "cursor-pointer"
+                                  canEdit && "cursor-pointer"
                                 )}
                               >
                                 {status
                                   ? STATUS_OPTIONS.find(s => s.value === status)?.label
-                                  : isSunday ? "—" : ""}
+                                  : ""}
                               </button>
 
                               {/* Shift times */}
