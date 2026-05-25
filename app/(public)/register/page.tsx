@@ -6,7 +6,7 @@ import { CheckCircle2 } from "lucide-react";
 
 type Phase = "form" | "submitting" | "success" | "error";
 
-const BLOOD_GROUPS = ["A+", "A−", "B+", "B−", "AB+", "AB−", "O+", "O−"];
+const BLOOD_GROUPS = ["A+", "A−", "B+", "B−", "AB+", "AB−", "O+", "O−", "A1+", "A1−", "A1B+", "A1B−", "Other"];
 const GOALS = [
   "Weight Loss", "Muscle Gain", "General Fitness", "Strength Training",
   "Flexibility & Mobility", "Sports Performance", "Rehabilitation", "Other",
@@ -23,7 +23,7 @@ export default function RegisterPage() {
     fullName: "", phone: "", gender: "", dateOfBirth: "",
     address: "", weight: "", height: "", healthConditions: "",
     // optional
-    email: "", bloodGroup: "", emergencyContact: "", emergencyPhone: "",
+    email: "", bloodGroup: "", customBloodGroup: "", emergencyContact: "", emergencyPhone: "",
     intentionOfJoining: "",
   });
 
@@ -49,8 +49,9 @@ export default function RegisterPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          whatsapp: form.phone, // phone is WhatsApp
-          primaryCompany: "YOS_FITNESS", // staff assigns correct company later
+          bloodGroup: form.bloodGroup === "Other" ? form.customBloodGroup.trim() : form.bloodGroup,
+          whatsapp: form.phone,
+          primaryCompany: "YOS_FITNESS",
         }),
       });
       const data = await res.json();
@@ -196,6 +197,15 @@ export default function RegisterPage() {
                 <option value="">—</option>
                 {BLOOD_GROUPS.map((b) => <option key={b} value={b}>{b}</option>)}
               </select>
+              {form.bloodGroup === "Other" && (
+                <input
+                  className={inp}
+                  style={{ marginTop: "8px" }}
+                  placeholder="e.g. A1+ve, A1B+"
+                  value={form.customBloodGroup}
+                  onChange={(e) => set("customBloodGroup", e.target.value)}
+                />
+              )}
             </div>
           </div>
 
