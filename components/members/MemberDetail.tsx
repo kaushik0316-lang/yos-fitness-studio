@@ -7,6 +7,7 @@ import {
   Clock, RotateCcw, CheckCircle, MessageSquare, AlertTriangle, MapPin, Link2Off, BellOff,
 } from "lucide-react";
 import { toggleDoNotDisturb } from "@/lib/actions/members";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import { RenewMembershipDialog } from "@/components/members/RenewMembershipDialog";
 import { RecordPaymentDialog } from "@/components/payments/RecordPaymentDialog";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
@@ -90,7 +91,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                   {getInitials(member.fullName)}
                 </div>
                 <div>
-                  <h2 className="text-xl font-extrabold text-gray-900">{member.fullName}</h2>
+                  <h2 className="text-xl font-extrabold text-gray-900">{toTitleCase(member.fullName)}</h2>
                   <p className="text-sm text-gray-400 font-mono mt-0.5">{member.memberId}</p>
                 </div>
               </div>
@@ -148,7 +149,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                     <div className="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center text-[10px] font-bold text-orange-700">
                       {member.trainer.fullName.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                     </div>
-                    <span className="text-sm font-semibold text-gray-800">{member.trainer.fullName}</span>
+                    <span className="text-sm font-semibold text-gray-800">{toTitleCase(member.trainer.fullName)}</span>
                   </div>
                 </div>
               )}

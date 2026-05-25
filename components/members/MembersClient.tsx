@@ -8,6 +8,7 @@ import { AddMemberDialog } from "@/components/members/AddMemberDialog";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import type { Company, MemberStatus, UserRole } from "@prisma/client";
 
 type Member = {
@@ -187,7 +188,7 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
                             {m.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-semibold text-white">{m.fullName}</p>
+                            <p className="font-semibold text-white">{toTitleCase(m.fullName)}</p>
                             <p className="text-xs text-gray-600 mt-0.5">{m.memberId} · {m.phone}</p>
                           </div>
                         </div>
@@ -218,7 +219,7 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
 
                       {/* Trainer */}
                       <td className="px-5 py-4 text-sm text-gray-500">
-                        {m.trainer?.fullName ?? <span className="text-gray-700">—</span>}
+                        {m.trainer ? toTitleCase(m.trainer.fullName) : <span className="text-gray-700">—</span>}
                       </td>
 
                       {/* Actions */}

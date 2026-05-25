@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createReceipt } from "@/lib/actions/receipts";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import { Button } from "@/components/ui/button";
 
 type Member = {
@@ -77,7 +78,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
     const member = members.find((m) => m.id === initialMemberId);
     if (member) {
       setSelectedMemberId(member.id);
-      setMemberSearch(`${member.memberId} — ${member.fullName}`);
+      setMemberSearch(`${member.memberId} — ${toTitleCase(member.fullName)}`);
     }
   }, [initialMemberId, members]);
   const [categoryInput, setCategoryInput] = useState("General Fitness");
@@ -318,7 +319,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
                     onMouseDown={() => handleSelectMember(m)}
                     className="w-full text-left px-4 py-2.5 hover:bg-orange-50 transition-colors border-b border-gray-50 last:border-0"
                   >
-                    <span className="font-semibold text-sm text-gray-900">{m.fullName}</span>
+                    <span className="font-semibold text-sm text-gray-900">{toTitleCase(m.fullName)}</span>
                     <span className="text-xs text-gray-400 ml-2">{m.memberId}</span>
                     <span className="text-xs text-gray-400 ml-2">{m.phone}</span>
                   </button>
@@ -339,7 +340,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
             {selectedMember && (
               <div className="mt-3 space-y-2">
                 <p className="text-xs text-emerald-600 font-medium">
-                  ✓ {selectedMember.memberId} — {selectedMember.fullName}
+                  ✓ {selectedMember.memberId} — {toTitleCase(selectedMember.fullName)}
                 </p>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1">

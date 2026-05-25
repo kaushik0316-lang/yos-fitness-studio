@@ -46,7 +46,7 @@ export async function createReceipt(input: z.infer<typeof receiptSchema>) {
     // ── Create new member on the fly if needed ────────────────────────────
     let resolvedMemberId = data.memberId ?? "";
     if (!resolvedMemberId && data.newMemberName?.trim()) {
-      const name = data.newMemberName.trim().toUpperCase();
+      const name = data.newMemberName.trim().replace(/\w+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
       const prefix = data.company === "YOS_FITNESS" ? "YF" : "YFS";
       const existing = await tx.member.findMany({
         where: { memberId: { startsWith: `${prefix}-` } },

@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     return tx.member.create({
       data: {
         memberId: nextId,
-        fullName: fullName.trim().toUpperCase(),
+        fullName: fullName.trim().replace(/\w+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()),
         phone: phone.trim(),
         whatsapp: whatsapp?.trim() || phone.trim(),
         gender: gender || null,

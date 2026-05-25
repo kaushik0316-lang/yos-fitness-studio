@@ -6,6 +6,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Plus, CreditCard, IndianRupee, TrendingUp } from "lucide-react";
 import { RecordPaymentDialog } from "@/components/payments/RecordPaymentDialog";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import type { Company, UserRole } from "@prisma/client";
 
 type Payment = {
@@ -168,7 +169,7 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
                       <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(p.date)}</td>
                       <td className="px-5 py-4">
                         <Link href={`/members/${p.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
-                          {p.member.fullName}
+                          {toTitleCase(p.member.fullName)}
                         </Link>
                         <p className="text-xs text-gray-600 mt-0.5">{p.member.memberId}</p>
                       </td>
@@ -198,7 +199,7 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
                       </td>
                       <td className="px-5 py-4 text-sm">
                         {p.soldBy
-                          ? <span className="font-semibold text-orange-400">{p.soldBy.fullName}</span>
+                          ? <span className="font-semibold text-orange-400">{toTitleCase(p.soldBy.fullName)}</span>
                           : <span className="text-gray-600 text-xs">Common</span>}
                       </td>
                     </tr>

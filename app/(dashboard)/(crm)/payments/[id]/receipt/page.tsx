@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { amountToWords } from "@/lib/utils/amountToWords";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import { WhatsAppButton } from "@/components/receipts/WhatsAppButton";
 import { EditReceiptButton } from "@/components/receipts/EditReceiptButton";
 import { SendPDFButton } from "@/components/receipts/SendPDFButton";
@@ -125,7 +126,7 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
           <EditReceiptButton
             paymentId={payment.id}
             current={{
-              memberName:    payment.member.fullName,
+              memberName:    toTitleCase(payment.member.fullName),
               memberPhone:   payment.member.phone ?? "",
               date:          format(paymentDate, "yyyy-MM-dd"),
               amount:        amountNum,
@@ -215,7 +216,7 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
           <div style={{ padding: "14px 24px", borderBottom: `1px solid ${brand.mutedBorder}`, background: brand.bg }}>
             <p style={label}>Received with thanks from</p>
             <p style={{ fontSize: "18px", fontWeight: 800, color: "#111827", margin: "2px 0 0", letterSpacing: "0.01em" }}>
-              {payment.member.fullName}
+              {toTitleCase(payment.member.fullName)}
             </p>
             <p style={{ fontSize: "12px", color: "#6b7280", margin: "3px 0 0" }}>
               {payment.member.phone}
