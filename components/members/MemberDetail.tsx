@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { toggleDoNotDisturb } from "@/lib/actions/members";
 import { toTitleCase } from "@/lib/utils/titleCase";
+import { MemberPhotoUpload } from "@/components/members/MemberPhotoUpload";
 import { RenewMembershipDialog } from "@/components/members/RenewMembershipDialog";
 import { RecordPaymentDialog } from "@/components/payments/RecordPaymentDialog";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
@@ -87,12 +88,15 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
             {/* Avatar */}
             <div className="px-6 pt-6 pb-5">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center text-white text-lg font-extrabold shadow-lg shadow-orange-200/60 flex-shrink-0">
-                  {getInitials(member.fullName)}
-                </div>
+                <MemberPhotoUpload
+                  memberId={member.id}
+                  fullName={member.fullName}
+                  photoUrl={member.photoUrl ?? null}
+                />
                 <div>
                   <h2 className="text-xl font-extrabold text-gray-900">{toTitleCase(member.fullName)}</h2>
                   <p className="text-sm text-gray-400 font-mono mt-0.5">{member.memberId}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Tap photo to update</p>
                 </div>
               </div>
 
