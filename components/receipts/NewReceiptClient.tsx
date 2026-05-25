@@ -515,164 +515,149 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
         </div>
       </div>
 
-      {/* ── Row 7: Amounts ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Payment Details</p>
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5">Amount (₹) *</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0"
-              min={1}
-              required
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5">Discount (₹)</label>
-            <input
-              type="number"
-              value={discount}
-              onChange={(e) => setDiscount(e.target.value)}
-              placeholder="0"
-              min={0}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5">Balance / Pending (₹)</label>
-            <input
-              type="number"
-              value={pendingAmount}
-              onChange={(e) => setPendingAmount(e.target.value)}
-              placeholder="0"
-              min={0}
-              className={inputClass}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── Row 8: Payment Mode ── */}
+      {/* ── Row 7: Payment Details + Mode ── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Payment Mode</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Payment Details</p>
           <button
             type="button"
             onClick={() => { setSplitEnabled(!splitEnabled); setSplitAmt(""); }}
-            className={`text-xs font-bold px-3 py-1 rounded-full border-2 transition-all ${
-              splitEnabled
-                ? "bg-white border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400"
-                : "bg-white border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500"
-            }`}
+            className="text-xs font-bold px-3 py-1 rounded-full border-2 border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-all bg-white"
           >
             {splitEnabled ? "✕ Remove split" : "+ Split payment"}
           </button>
         </div>
 
         {!splitEnabled ? (
-          /* ── Single mode ── */
-          <div className="grid grid-cols-4 gap-3">
-            {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setPaymentMode(mode)}
-                className={`py-2.5 px-3 rounded-xl text-sm font-bold transition-all border-2 ${
-                  paymentMode === mode
-                    ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-200"
-                    : "bg-white border-gray-200 text-gray-500 hover:border-orange-300"
-                }`}
-              >
-                {mode === "UPI" ? "GPay/UPI" : mode.charAt(0) + mode.slice(1).toLowerCase()}
-              </button>
-            ))}
+          /* ── Single payment ── */
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Amount (₹) *</label>
+              <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
+                placeholder="0" min={1} required className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Discount (₹)</label>
+              <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)}
+                placeholder="0" min={0} className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Balance / Pending (₹)</label>
+              <input type="number" value={pendingAmount} onChange={(e) => setPendingAmount(e.target.value)}
+                placeholder="0" min={0} className={inputClass} />
+            </div>
           </div>
         ) : (
-          /* ── Split mode: two side-by-side cards ── */
-          <>
-            {/* Totals bar */}
-            {Number(amount) > 0 && (
-              <div className="flex items-center justify-center gap-2 text-xs text-gray-400 font-medium">
-                <span>Total ₹{Number(amount).toLocaleString("en-IN")}</span>
-                {Number(splitAmt) > 0 && (
-                  <>
-                    <span>=</span>
-                    <span className="text-orange-500 font-bold">₹{Math.max(0, Number(amount) - Number(splitAmt)).toLocaleString("en-IN")}</span>
-                    <span>+</span>
-                    <span className="text-indigo-500 font-bold">₹{Number(splitAmt).toLocaleString("en-IN")}</span>
-                  </>
-                )}
+          /* ── Split payment ── */
+          <div className="space-y-3">
+            {/* Row 1 — primary */}
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1.5 flex-shrink-0">
+                {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
+                  <button key={mode} type="button" onClick={() => setPaymentMode(mode)}
+                    className={`py-1.5 px-2.5 rounded-lg text-xs font-bold border-2 transition-all whitespace-nowrap ${
+                      paymentMode === mode
+                        ? "bg-orange-500 border-orange-500 text-white"
+                        : "bg-white border-gray-200 text-gray-500 hover:border-orange-300"
+                    }`}>
+                    {mode === "UPI" ? "GPay/UPI" : mode.charAt(0) + mode.slice(1).toLowerCase()}
+                  </button>
+                ))}
               </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              {/* Card 1 — primary */}
-              <div className="border-2 border-orange-200 rounded-xl p-3 space-y-2 bg-orange-50/40">
-                <p className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">1st Payment</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setPaymentMode(mode)}
-                      className={`py-1.5 px-1 rounded-lg text-xs font-bold transition-all border-2 ${
-                        paymentMode === mode
-                          ? "bg-orange-500 border-orange-500 text-white"
-                          : "bg-white border-gray-200 text-gray-500 hover:border-orange-300"
-                      }`}
-                    >
-                      {mode === "UPI" ? "GPay/UPI" : mode.charAt(0) + mode.slice(1).toLowerCase()}
-                    </button>
-                  ))}
-                </div>
-                <div className="bg-white border border-orange-200 rounded-lg px-3 py-2 text-center">
-                  <p className="text-[10px] text-gray-400 font-medium">Amount</p>
-                  <p className="text-base font-extrabold text-orange-500">
-                    {Number(amount) > 0 && Number(splitAmt) > 0
-                      ? `₹${Math.max(0, Number(amount) - Number(splitAmt)).toLocaleString("en-IN")}`
-                      : <span className="text-gray-300">₹—</span>}
-                  </p>
-                </div>
+              <div className="flex-1">
+                <input
+                  type="number"
+                  value={splitEnabled && splitAmt && Number(splitAmt) > 0
+                    ? String(Math.max(0, Number(amount) - Number(splitAmt))) : amount}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (splitAmt) setAmount(String(v + Number(splitAmt)));
+                    else setAmount(e.target.value);
+                  }}
+                  placeholder="₹ Amount"
+                  min={1}
+                  className={`${inputClass} text-orange-600 font-bold border-orange-200 focus:border-orange-400`}
+                />
               </div>
+            </div>
 
-              {/* Card 2 — split */}
-              <div className="border-2 border-indigo-200 rounded-xl p-3 space-y-2 bg-indigo-50/40">
-                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">2nd Payment</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setSplitMode(mode)}
-                      className={`py-1.5 px-1 rounded-lg text-xs font-bold transition-all border-2 ${
-                        splitMode === mode
-                          ? "bg-indigo-500 border-indigo-500 text-white"
-                          : "bg-white border-gray-200 text-gray-500 hover:border-indigo-300"
-                      }`}
-                    >
-                      {mode === "UPI" ? "GPay/UPI" : mode.charAt(0) + mode.slice(1).toLowerCase()}
-                    </button>
-                  ))}
-                </div>
+            {/* Row 2 — split */}
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1.5 flex-shrink-0">
+                {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
+                  <button key={mode} type="button" onClick={() => setSplitMode(mode)}
+                    className={`py-1.5 px-2.5 rounded-lg text-xs font-bold border-2 transition-all whitespace-nowrap ${
+                      splitMode === mode
+                        ? "bg-indigo-500 border-indigo-500 text-white"
+                        : "bg-white border-gray-200 text-gray-500 hover:border-indigo-300"
+                    }`}>
+                    {mode === "UPI" ? "GPay/UPI" : mode.charAt(0) + mode.slice(1).toLowerCase()}
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1">
                 <input
                   type="number"
                   value={splitAmt}
                   onChange={(e) => setSplitAmt(e.target.value)}
-                  placeholder="Enter amount"
+                  placeholder="₹ Amount"
                   min={1}
-                  max={Number(amount) - 1 || undefined}
-                  className="w-full border-2 border-indigo-200 rounded-lg px-3 py-2 text-sm font-bold text-indigo-600 bg-white focus:outline-none focus:border-indigo-400 text-center placeholder-gray-300"
-                  style={{ colorScheme: "light", color: "#4338ca" }}
+                  className={`${inputClass} font-bold border-indigo-200 focus:border-indigo-400`}
+                  style={{ color: "#4338ca" }}
                 />
               </div>
             </div>
-          </>
+
+            {/* Total + Discount + Pending */}
+            {(Number(splitAmt) > 0) && (
+              <div className="flex items-center gap-1.5 pt-1 text-xs font-semibold text-gray-500">
+                <span>Total</span>
+                <span className="text-gray-800 font-extrabold">₹{Number(amount).toLocaleString("en-IN")}</span>
+                <span className="text-gray-300 mx-1">·</span>
+                <span className="text-orange-500">{paymentMode === "UPI" ? "GPay/UPI" : paymentMode.charAt(0) + paymentMode.slice(1).toLowerCase()} ₹{Math.max(0, Number(amount) - Number(splitAmt)).toLocaleString("en-IN")}</span>
+                <span className="text-gray-300">+</span>
+                <span className="text-indigo-500">{splitMode === "UPI" ? "GPay/UPI" : splitMode.charAt(0) + splitMode.slice(1).toLowerCase()} ₹{Number(splitAmt).toLocaleString("en-IN")}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4 pt-1 border-t border-gray-100">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Discount (₹)</label>
+                <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)}
+                  placeholder="0" min={0} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Balance / Pending (₹)</label>
+                <input type="number" value={pendingAmount} onChange={(e) => setPendingAmount(e.target.value)}
+                  placeholder="0" min={0} className={inputClass} />
+              </div>
+            </div>
+          </div>
         )}
       </div>
+
+      {/* ── Row 8: Payment Mode (hidden when split is active) ── */}
+      {!splitEnabled && (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Payment Mode</p>
+        <div className="grid grid-cols-4 gap-3">
+          {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setPaymentMode(mode)}
+              className={`py-2.5 px-3 rounded-xl text-sm font-bold transition-all border-2 ${
+                paymentMode === mode
+                  ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-200"
+                  : "bg-white border-gray-200 text-gray-500 hover:border-orange-300"
+              }`}
+            >
+              {mode === "UPI" ? "GPay/UPI" : mode.charAt(0) + mode.slice(1).toLowerCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+      )}
 
       {/* ── Row 9: Who made the sale? (admin only — not on receipt) ── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
