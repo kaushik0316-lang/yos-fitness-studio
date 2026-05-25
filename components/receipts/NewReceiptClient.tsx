@@ -277,7 +277,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
               <label className="block text-xs font-semibold text-gray-500 mb-1">Full Name *</label>
               <input
                 value={newMemberName}
-                onChange={(e) => setNewMemberName(e.target.value)}
+                onChange={(e) => setNewMemberName(toTitleCase(e.target.value))}
                 placeholder="Enter full name"
                 className={inputClass}
                 autoComplete="off"
@@ -301,7 +301,8 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
             <input
               value={memberSearch}
               onChange={(e) => {
-                setMemberSearch(e.target.value);
+                const v = toTitleCase(e.target.value);
+                setMemberSearch(v);
                 setShowMemberDropdown(true);
                 if (!e.target.value) setSelectedMemberId("");
               }}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import { useRouter } from "next/navigation";
 import { Pencil, Check, X } from "lucide-react";
 
@@ -83,7 +84,9 @@ export function EditReceiptButton({ paymentId, current }: Props) {
 
   // Debounced member search
   function onMemberType(val: string) {
-    setMemberQuery(val);
+    const tc = toTitleCase(val);
+    setMemberQuery(tc);
+    val = tc;
     setSelectedMemberId(null); // clear any previous selection
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (val.length < 1) { setMemberResults([]); setShowDropdown(false); return; }
