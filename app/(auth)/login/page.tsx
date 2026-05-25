@@ -246,6 +246,9 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     autoComplete="current-password"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     className="w-full rounded-xl pl-10 pr-12 py-3 text-sm text-white focus:outline-none transition-all duration-200 placeholder:text-gray-700"
                     style={{
                       background: "rgba(255,255,255,0.05)",
