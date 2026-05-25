@@ -94,7 +94,8 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   const [paymentMode, setPaymentMode] = useState<"CASH" | "UPI" | "CARD" | "CHEQUE">("CASH");
   const [splitEnabled, setSplitEnabled] = useState(false);
   const [splitMode, setSplitMode] = useState<"CASH" | "UPI" | "CARD" | "CHEQUE">("UPI");
-  const [splitAmt, setSplitAmt] = useState("");
+  const [splitAmt, setSplitAmt] = useState("");   // 2nd payment amount
+  const [splitAmt1, setSplitAmt1] = useState(""); // 1st payment amount (split mode only)
   const [notes, setNotes] = useState("");
   const [prevReceiptNo, setPrevReceiptNo] = useState("");
   const [prevAmount, setPrevAmount] = useState("");
@@ -180,7 +181,10 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
       setError("Please enter the new member's name.");
       return;
     }
-    if (!amount || Number(amount) <= 0) {
+    const totalAmt = splitEnabled
+      ? (Number(splitAmt1) || 0) + (Number(splitAmt) || 0)
+      : Number(amount);
+    if (totalAmt <= 0) {
       setError("Please enter a valid amount.");
       return;
     }
@@ -195,7 +199,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
         paymentType,
         categoryLabel: categoryInput,
         periodLabel: periodInput,
-        amount: Number(amount),
+        amount: splitEnabled ? (Number(splitAmt1) || 0) + (Number(splitAmt) || 0) : Number(amount),
         discount: Number(discount) || 0,
         pendingAmount: Number(pendingAmount) || 0,
         paymentMode,
@@ -521,7 +525,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Payment Details</p>
           <button
             type="button"
-            onClick={() => { setSplitEnabled(!splitEnabled); setSplitAmt(""); }}
+            onClick={() => { setSplitEnabled(!splitEnabled); setSplitAmt(""); setSplitAmt1(""); }}
             className="text-xs font-bold px-3 py-1 rounded-full border-2 border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-all bg-white"
           >
             {splitEnabled ? "✕ Remove split" : "+ Split payment"}
@@ -567,13 +571,8 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
               <div className="flex-1">
                 <input
                   type="number"
-                  value={splitEnabled && splitAmt && Number(splitAmt) > 0
-                    ? String(Math.max(0, Number(amount) - Number(splitAmt))) : amount}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    if (splitAmt) setAmount(String(v + Number(splitAmt)));
-                    else setAmount(e.target.value);
-                  }}
+                  value={splitAmt1}
+                  onChange={(e) => setSplitAmt1(e.target.value)}
                   placeholder="₹ Amount"
                   min={1}
                   className={`${inputClass} text-orange-600 font-bold border-orange-200 focus:border-orange-400`}
@@ -608,15 +607,13 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
               </div>
             </div>
 
-            {/* Total + Discount + Pending */}
-            {(Number(splitAmt) > 0) && (
-              <div className="flex items-center gap-1.5 pt-1 text-xs font-semibold text-gray-500">
-                <span>Total</span>
-                <span className="text-gray-800 font-extrabold">₹{Number(amount).toLocaleString("en-IN")}</span>
-                <span className="text-gray-300 mx-1">·</span>
-                <span className="text-orange-500">{paymentMode === "UPI" ? "GPay/UPI" : paymentMode.charAt(0) + paymentMode.slice(1).toLowerCase()} ₹{Math.max(0, Number(amount) - Number(splitAmt)).toLocaleString("en-IN")}</span>
-                <span className="text-gray-300">+</span>
-                <span className="text-indigo-500">{splitMode === "UPI" ? "GPay/UPI" : splitMode.charAt(0) + splitMode.slice(1).toLowerCase()} ₹{Number(splitAmt).toLocaleString("en-IN")}</span>
+            {/* Auto-computed total */}
+            {(Number(splitAmt1) > 0 || Number(splitAmt) > 0) && (
+              <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
+                <span className="text-xs text-gray-400 font-semibold uppercase tracking-widest">Total</span>
+                <span className="text-base font-extrabold text-gray-800">
+                  ₹{((Number(splitAmt1) || 0) + (Number(splitAmt) || 0)).toLocaleString("en-IN")}
+                </span>
               </div>
             )}
 
