@@ -555,11 +555,11 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
           /* ── Split payment ── */
           <div className="space-y-3">
             {/* Row 1 — primary */}
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1.5 flex-shrink-0">
+            <div className="space-y-2">
+              <div className="grid grid-cols-4 gap-1.5">
                 {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
                   <button key={mode} type="button" onClick={() => setPaymentMode(mode)}
-                    className={`py-1.5 px-2.5 rounded-lg text-xs font-bold border-2 transition-all whitespace-nowrap ${
+                    className={`py-2 px-1 rounded-lg text-xs font-bold border-2 transition-all ${
                       paymentMode === mode
                         ? "bg-orange-500 border-orange-500 text-white"
                         : "bg-white border-gray-200 text-gray-500 hover:border-orange-300"
@@ -568,24 +568,29 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
                   </button>
                 ))}
               </div>
-              <div className="flex-1">
-                <input
-                  type="number"
-                  value={splitAmt1}
-                  onChange={(e) => setSplitAmt1(e.target.value)}
-                  placeholder="₹ Amount"
-                  min={1}
-                  className={`${inputClass} text-orange-600 font-bold border-orange-200 focus:border-orange-400`}
-                />
-              </div>
+              <input
+                type="number"
+                value={splitAmt1}
+                onChange={(e) => setSplitAmt1(e.target.value)}
+                placeholder="₹ Amount"
+                min={1}
+                className={`${inputClass} text-orange-600 font-bold border-orange-200 focus:border-orange-400`}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 border-t border-gray-100" />
+              <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">+</span>
+              <div className="flex-1 border-t border-gray-100" />
             </div>
 
             {/* Row 2 — split */}
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1.5 flex-shrink-0">
+            <div className="space-y-2">
+              <div className="grid grid-cols-4 gap-1.5">
                 {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
                   <button key={mode} type="button" onClick={() => setSplitMode(mode)}
-                    className={`py-1.5 px-2.5 rounded-lg text-xs font-bold border-2 transition-all whitespace-nowrap ${
+                    className={`py-2 px-1 rounded-lg text-xs font-bold border-2 transition-all ${
                       splitMode === mode
                         ? "bg-indigo-500 border-indigo-500 text-white"
                         : "bg-white border-gray-200 text-gray-500 hover:border-indigo-300"
@@ -594,17 +599,15 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
                   </button>
                 ))}
               </div>
-              <div className="flex-1">
-                <input
-                  type="number"
-                  value={splitAmt}
-                  onChange={(e) => setSplitAmt(e.target.value)}
-                  placeholder="₹ Amount"
-                  min={1}
-                  className={`${inputClass} font-bold border-indigo-200 focus:border-indigo-400`}
-                  style={{ color: "#4338ca" }}
-                />
-              </div>
+              <input
+                type="number"
+                value={splitAmt}
+                onChange={(e) => setSplitAmt(e.target.value)}
+                placeholder="₹ Amount"
+                min={1}
+                className={`${inputClass} font-bold border-indigo-200 focus:border-indigo-400`}
+                style={{ color: "#4338ca" }}
+              />
             </div>
 
             {/* Auto-computed total */}
