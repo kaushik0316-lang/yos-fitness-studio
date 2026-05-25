@@ -565,7 +565,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
             onClick={() => { setSplitEnabled(!splitEnabled); setSplitAmt(""); }}
             className={`text-xs font-bold px-3 py-1 rounded-full border-2 transition-all ${
               splitEnabled
-                ? "bg-orange-500 border-orange-500 text-white"
+                ? "bg-white border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400"
                 : "bg-white border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500"
             }`}
           >
@@ -573,9 +573,8 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
           </button>
         </div>
 
-        {/* Primary mode */}
-        <div>
-          {splitEnabled && <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2">1st payment</p>}
+        {!splitEnabled ? (
+          /* ── Single mode ── */
           <div className="grid grid-cols-4 gap-3">
             {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
               <button
@@ -592,49 +591,86 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
               </button>
             ))}
           </div>
-          {splitEnabled && splitAmt && Number(splitAmt) > 0 && Number(amount) > 0 && (
-            <p className="text-xs text-gray-500 mt-2 font-medium">
-              Amount via {paymentMode === "UPI" ? "GPay/UPI" : paymentMode.charAt(0) + paymentMode.slice(1).toLowerCase()}:{" "}
-              <span className="text-gray-800 font-bold">₹{Math.max(0, Number(amount) - Number(splitAmt)).toLocaleString()}</span>
-            </p>
-          )}
-        </div>
+        ) : (
+          /* ── Split mode: two side-by-side cards ── */
+          <>
+            {/* Totals bar */}
+            {Number(amount) > 0 && (
+              <div className="flex items-center justify-center gap-2 text-xs text-gray-400 font-medium">
+                <span>Total ₹{Number(amount).toLocaleString("en-IN")}</span>
+                {Number(splitAmt) > 0 && (
+                  <>
+                    <span>=</span>
+                    <span className="text-orange-500 font-bold">₹{Math.max(0, Number(amount) - Number(splitAmt)).toLocaleString("en-IN")}</span>
+                    <span>+</span>
+                    <span className="text-indigo-500 font-bold">₹{Number(splitAmt).toLocaleString("en-IN")}</span>
+                  </>
+                )}
+              </div>
+            )}
 
-        {/* Split / second payment */}
-        {splitEnabled && (
-          <div className="border-t border-gray-100 pt-4 space-y-3">
-            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">2nd payment</p>
-            <div className="grid grid-cols-4 gap-3">
-              {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setSplitMode(mode)}
-                  className={`py-2.5 px-3 rounded-xl text-sm font-bold transition-all border-2 ${
-                    splitMode === mode
-                      ? "bg-indigo-500 border-indigo-500 text-white shadow-md shadow-indigo-200"
-                      : "bg-white border-gray-200 text-gray-500 hover:border-indigo-300"
-                  }`}
-                >
-                  {mode === "UPI" ? "GPay/UPI" : mode.charAt(0) + mode.slice(1).toLowerCase()}
-                </button>
-              ))}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Card 1 — primary */}
+              <div className="border-2 border-orange-200 rounded-xl p-3 space-y-2 bg-orange-50/40">
+                <p className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">1st Payment</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setPaymentMode(mode)}
+                      className={`py-1.5 px-1 rounded-lg text-xs font-bold transition-all border-2 ${
+                        paymentMode === mode
+                          ? "bg-orange-500 border-orange-500 text-white"
+                          : "bg-white border-gray-200 text-gray-500 hover:border-orange-300"
+                      }`}
+                    >
+                      {mode === "UPI" ? "GPay/UPI" : mode.charAt(0) + mode.slice(1).toLowerCase()}
+                    </button>
+                  ))}
+                </div>
+                <div className="bg-white border border-orange-200 rounded-lg px-3 py-2 text-center">
+                  <p className="text-[10px] text-gray-400 font-medium">Amount</p>
+                  <p className="text-base font-extrabold text-orange-500">
+                    {Number(amount) > 0 && Number(splitAmt) > 0
+                      ? `₹${Math.max(0, Number(amount) - Number(splitAmt)).toLocaleString("en-IN")}`
+                      : <span className="text-gray-300">₹—</span>}
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 2 — split */}
+              <div className="border-2 border-indigo-200 rounded-xl p-3 space-y-2 bg-indigo-50/40">
+                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">2nd Payment</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setSplitMode(mode)}
+                      className={`py-1.5 px-1 rounded-lg text-xs font-bold transition-all border-2 ${
+                        splitMode === mode
+                          ? "bg-indigo-500 border-indigo-500 text-white"
+                          : "bg-white border-gray-200 text-gray-500 hover:border-indigo-300"
+                      }`}
+                    >
+                      {mode === "UPI" ? "GPay/UPI" : mode.charAt(0) + mode.slice(1).toLowerCase()}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  value={splitAmt}
+                  onChange={(e) => setSplitAmt(e.target.value)}
+                  placeholder="Enter amount"
+                  min={1}
+                  max={Number(amount) - 1 || undefined}
+                  className="w-full border-2 border-indigo-200 rounded-lg px-3 py-2 text-sm font-bold text-indigo-600 bg-white focus:outline-none focus:border-indigo-400 text-center placeholder-gray-300"
+                  style={{ colorScheme: "light", color: "#4338ca" }}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                Amount paid via {splitMode === "UPI" ? "GPay/UPI" : splitMode.charAt(0) + splitMode.slice(1).toLowerCase()} (₹)
-              </label>
-              <input
-                type="number"
-                value={splitAmt}
-                onChange={(e) => setSplitAmt(e.target.value)}
-                placeholder="e.g. 2000"
-                min={1}
-                max={Number(amount) - 1 || undefined}
-                className={inputClass}
-              />
-            </div>
-          </div>
+          </>
         )}
       </div>
 
