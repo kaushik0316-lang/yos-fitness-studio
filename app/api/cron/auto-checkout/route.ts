@@ -30,6 +30,7 @@ function shiftEndUTC(checkInTime: Date, shiftEndTime: string): Date {
 
 const MORNING_DEFAULT = "12:00";  // fallback morning shift end (noon)
 const EVENING_DEFAULT = "21:30";  // fallback evening shift end (9:30 PM)
+const SUNDAY_CLOSE    = "11:00";  // gym closes at 11 AM on Sundays
 
 type ShiftDef = { start: string; end: string };
 
@@ -56,6 +57,10 @@ function resolveCheckoutTime(
   shiftEndTime: string | null,
 ): string {
   const checkInIST = new Date(checkInTime.getTime() + IST_OFFSET_MS);
+
+  // Sunday: gym closes at 11 AM regardless of individual shift schedule
+  if (checkInIST.getUTCDay() === 0) return SUNDAY_CLOSE;
+
   const checkInMinutes = checkInIST.getUTCHours() * 60 + checkInIST.getUTCMinutes();
 
   // ── Use shifts array if available ──────────────────────────────────────────
