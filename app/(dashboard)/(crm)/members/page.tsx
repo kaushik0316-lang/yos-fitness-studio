@@ -15,6 +15,7 @@ type SearchParams = {
   inactive?: string;
   showGhosts?: string;
   page?: string;
+  sort?: string;
 };
 
 export default async function MembersPage({ searchParams }: { searchParams: SearchParams }) {
@@ -59,10 +60,19 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
         trainer: { select: { id: true, fullName: true } },
         _count: { select: { attendances: true } },
       },
-      orderBy: [
-        { joinDate: "desc" }, // most recently added first
-        { fullName: "asc" },
-      ],
+      orderBy: (() => {
+        switch (searchParams.sort) {
+          case "id_asc":      return [{ memberId: "asc" as const }];
+          case "name_asc":    return [{ fullName: "asc" as const }];
+          case "name_desc":   return [{ fullName: "desc" as const }];
+          case "join_asc":    return [{ joinDate: "asc" as const }];
+          case "join_desc":   return [{ joinDate: "desc" as const }];
+          case "visit_asc":   return [{ lastAttendanceDate: "asc" as const }];
+          case "visit_desc":  return [{ lastAttendanceDate: "desc" as const }];
+          case "id_desc":
+          default:            return [{ memberId: "desc" as const }];
+        }
+      })(),
       skip,
       take: pageSize,
     }),

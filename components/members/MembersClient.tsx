@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Plus, Search, Download, Eye, CheckCircle, Clock, Snowflake, UserMinus, UserPlus, Users } from "lucide-react";
+import { Plus, Search, Download, Eye, CheckCircle, Clock, Snowflake, UserMinus, UserPlus, Users, ArrowUpDown } from "lucide-react";
 import { AddMemberDialog } from "@/components/members/AddMemberDialog";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
@@ -115,6 +115,22 @@ export function MembersClient({ members, total, page, pageSize, packages, traine
             <option value="FROZEN">Frozen</option>
             <option value="INACTIVE">Inactive</option>
             <option value="PROSPECT">Prospect</option>
+          </select>
+
+          {/* Sort */}
+          <select
+            defaultValue={searchParams.get("sort") ?? "id_desc"}
+            onChange={(e) => updateQuery("sort", e.target.value)}
+            style={{ ...inputStyle, cursor: "pointer" }}
+          >
+            <option value="id_desc">Reg # ↓ (newest)</option>
+            <option value="id_asc">Reg # ↑ (oldest)</option>
+            <option value="name_asc">Name A → Z</option>
+            <option value="name_desc">Name Z → A</option>
+            <option value="join_desc">Join Date ↓</option>
+            <option value="join_asc">Join Date ↑</option>
+            <option value="visit_desc">Last Visit ↓</option>
+            <option value="visit_asc">Last Visit ↑</option>
           </select>
 
           {/* Ghost toggle */}
