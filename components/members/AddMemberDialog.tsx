@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Plus, User, Phone, Building2, ChevronRight, ChevronLeft, Check, Package } from "lucide-react";
+import { Loader2, Plus, ChevronLeft, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { createMember } from "@/lib/actions/members";
@@ -16,10 +16,17 @@ const schema = z.object({
   fullName: z.string().min(2, "Name is required"),
   phone: z.string().min(10, "Valid phone required"),
   whatsapp: z.string().optional(),
+  email: z.string().optional(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
-  address: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  bloodGroup: z.string().optional(),
+  weight: z.string().optional(),
+  height: z.string().optional(),
+  healthConditions: z.string().optional(),
+  intentionOfJoining: z.string().optional(),
   emergencyContact: z.string().optional(),
-  idCompany: z.enum(["YOS_FITNESS", "YOS_FITNESS_STUDIO"]),
+  emergencyPhone: z.string().optional(),
+  address: z.string().optional(),
   trainerId: z.string().optional(),
   notes: z.string().optional(),
   status: z.enum(["ACTIVE", "EXPIRED", "FROZEN", "INACTIVE", "PROSPECT"]),
@@ -42,6 +49,13 @@ type Props = {
 
 const STEPS = ["Personal Info", "Membership"];
 
+const inputCls = "w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors";
+const selectCls = `${inputCls} bg-white`;
+const labelCls = "block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5";
+
+const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+const INTENTIONS = ["WEIGHT LOSS", "MUSCLE GAIN", "GENERAL FITNESS", "REHABILITATION", "SPORTS PERFORMANCE", "FLEXIBILITY", "OTHER"];
+
 export function AddMemberDialog({ open, onClose, packages, trainers, userId }: Props) {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -49,7 +63,6 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      idCompany: "YOS_FITNESS",
       status: "ACTIVE",
       startDate: format(new Date(), "yyyy-MM-dd"),
       discount: "0",
@@ -57,9 +70,9 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
   });
 
   const selectedPackageId = watch("packageId");
-  const selectedCompany = watch("idCompany") as Company;
   const selectedPkg = packages.find((p) => p.id === selectedPackageId);
-  const filteredPackages = packages.filter((p) => !p.company || p.company === selectedCompany);
+  // Always YOS_FITNESS — Studio is for payments only
+  const filteredPackages = packages.filter((p) => !p.company || p.company === "YOS_FITNESS");
 
   function handleClose() { reset(); setStep(0); onClose(); }
 
@@ -68,6 +81,9 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
     try {
       const result = await createMember({
         ...data,
+        idCompany: "YOS_FITNESS",
+        weight: data.weight ? Number(data.weight) : undefined,
+        height: data.height ? Number(data.height) : undefined,
         paymentAmount: data.paymentAmount ? Number(data.paymentAmount) : undefined,
         discount: data.discount ? Number(data.discount) : 0,
       });
@@ -88,7 +104,6 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
           <DialogTitle className="text-white text-lg font-bold flex items-center gap-2">
             <Plus className="h-5 w-5" /> Add New Member
           </DialogTitle>
-          {/* Step indicator */}
           <div className="flex items-center gap-2 mt-3">
             {STEPS.map((s, i) => (
               <div key={i} className="flex items-center gap-2">
@@ -107,88 +122,122 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
 
-            {/* Step 0 — Personal Info */}
+            {/* ── Step 0 — Personal Info ── */}
             {step === 0 && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Full Name *</label>
-                    <input {...register("fullName")} className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors" placeholder="e.g. Rajesh Kumar" />
-                    {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName.message}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Phone *</label>
-                    <input {...register("phone")} className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors" placeholder="9876543210" />
-                    {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">WhatsApp</label>
-                    <input {...register("whatsapp")} className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors" placeholder="Same as phone" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Gender</label>
-                    <select {...register("gender")} className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors bg-white">
-                      <option value="">Select</option>
-                      <option value="MALE">Male</option>
-                      <option value="FEMALE">Female</option>
-                      <option value="OTHER">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Status</label>
-                    <select {...register("status")} className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors bg-white">
-                      <option value="ACTIVE">Active</option>
-                      <option value="PROSPECT">Prospect</option>
-                      <option value="INACTIVE">Inactive</option>
-                    </select>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Which gym? (for ID only)</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { value: "YOS_FITNESS", label: "Yos Fitness", color: "orange" },
-                        { value: "YOS_FITNESS_STUDIO", label: "Yos Fitness Studio", color: "indigo" },
-                      ].map((c) => {
-                        const isSelected = watch("idCompany") === c.value;
-                        return (
-                          <label key={c.value} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${isSelected ? "border-orange-400 bg-orange-50" : "border-gray-200 hover:border-gray-300"}`}>
-                            <input type="radio" {...register("idCompany")} value={c.value} className="hidden" />
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isSelected ? "border-orange-500" : "border-gray-300"}`}>
-                              {isSelected && <div className="w-2 h-2 rounded-full bg-orange-500" />}
-                            </div>
-                            <span className="text-sm font-medium text-gray-700">{c.label}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Assign Trainer</label>
-                    <select {...register("trainerId")} className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors bg-white">
-                      <option value="">No trainer</option>
-                      {trainers.map((t) => <option key={t.id} value={t.id}>{t.fullName}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Address</label>
-                    <input {...register("address")} className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors" placeholder="Area, City" />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Notes</label>
-                    <textarea {...register("notes")} rows={2} className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors resize-none" placeholder="Any notes about this member..." />
-                  </div>
+              <div className="grid grid-cols-2 gap-4">
+
+                {/* Basic */}
+                <div className="col-span-2">
+                  <label className={labelCls}>Full Name *</label>
+                  <input {...register("fullName")} className={inputCls} placeholder="e.g. Rajesh Kumar" />
+                  {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName.message}</p>}
                 </div>
-              </>
+
+                <div>
+                  <label className={labelCls}>Phone *</label>
+                  <input {...register("phone")} className={inputCls} placeholder="9876543210" />
+                  {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>}
+                </div>
+                <div>
+                  <label className={labelCls}>WhatsApp</label>
+                  <input {...register("whatsapp")} className={inputCls} placeholder="Same as phone" />
+                </div>
+
+                <div className="col-span-2">
+                  <label className={labelCls}>Email</label>
+                  <input {...register("email")} type="email" className={inputCls} placeholder="rajesh@gmail.com" />
+                </div>
+
+                <div>
+                  <label className={labelCls}>Gender</label>
+                  <select {...register("gender")} className={selectCls}>
+                    <option value="">Select</option>
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Date of Birth</label>
+                  <input {...register("dateOfBirth")} type="date" className={inputCls} />
+                </div>
+
+                {/* Health */}
+                <div>
+                  <label className={labelCls}>Blood Group</label>
+                  <select {...register("bloodGroup")} className={selectCls}>
+                    <option value="">Select</option>
+                    {BLOOD_GROUPS.map((b) => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Intention of Joining</label>
+                  <select {...register("intentionOfJoining")} className={selectCls}>
+                    <option value="">Select</option>
+                    {INTENTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={labelCls}>Weight (kg)</label>
+                  <input {...register("weight")} type="number" step="0.1" className={inputCls} placeholder="70" />
+                </div>
+                <div>
+                  <label className={labelCls}>Height (cm)</label>
+                  <input {...register("height")} type="number" step="0.1" className={inputCls} placeholder="170" />
+                </div>
+
+                <div className="col-span-2">
+                  <label className={labelCls}>Health Conditions</label>
+                  <input {...register("healthConditions")} className={inputCls} placeholder="Diabetes, BP, injuries, etc." />
+                </div>
+
+                {/* Emergency */}
+                <div>
+                  <label className={labelCls}>Emergency Contact</label>
+                  <input {...register("emergencyContact")} className={inputCls} placeholder="Contact name" />
+                </div>
+                <div>
+                  <label className={labelCls}>Emergency Phone</label>
+                  <input {...register("emergencyPhone")} className={inputCls} placeholder="9876543210" />
+                </div>
+
+                {/* Admin */}
+                <div>
+                  <label className={labelCls}>Status</label>
+                  <select {...register("status")} className={selectCls}>
+                    <option value="ACTIVE">Active</option>
+                    <option value="PROSPECT">Prospect</option>
+                    <option value="INACTIVE">Inactive</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Assign Trainer</label>
+                  <select {...register("trainerId")} className={selectCls}>
+                    <option value="">No trainer</option>
+                    {trainers.map((t) => <option key={t.id} value={t.id}>{t.fullName}</option>)}
+                  </select>
+                </div>
+
+                <div className="col-span-2">
+                  <label className={labelCls}>Address</label>
+                  <input {...register("address")} className={inputCls} placeholder="Area, City" />
+                </div>
+                <div className="col-span-2">
+                  <label className={labelCls}>Notes</label>
+                  <textarea {...register("notes")} rows={2} className={`${inputCls} resize-none`} placeholder="Any notes about this member..." />
+                </div>
+              </div>
             )}
 
-            {/* Step 1 — Membership */}
+            {/* ── Step 1 — Membership ── */}
             {step === 1 && (
               <>
                 <p className="text-sm text-gray-500">Assign a membership package and record the first payment. Skip if enrolling as a prospect.</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Package</label>
-                    <select {...register("packageId")} className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors bg-white">
+                    <label className={labelCls}>Package</label>
+                    <select {...register("packageId")} className={selectCls}>
                       <option value="">No package (Prospect / Walk-in)</option>
                       {filteredPackages.map((p) => (
                         <option key={p.id} value={p.id}>{p.name} — ₹{Number(p.price).toLocaleString("en-IN")}</option>
@@ -198,27 +247,28 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
                   {selectedPackageId && (
                     <>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Start Date</label>
-                        <input {...register("startDate")} type="date" className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors" />
+                        <label className={labelCls}>Start Date</label>
+                        <input {...register("startDate")} type="date" className={inputCls} />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Amount Paid (₹)
+                        <label className={labelCls}>
+                          Amount Paid (₹)
                           {selectedPkg && <span className="text-gray-400 font-normal ml-1">MRP: ₹{Number(selectedPkg.price).toLocaleString("en-IN")}</span>}
                         </label>
-                        <input {...register("paymentAmount")} type="number" defaultValue={selectedPkg ? Number(selectedPkg.price) : undefined} className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors" />
+                        <input {...register("paymentAmount")} type="number" defaultValue={selectedPkg ? Number(selectedPkg.price) : undefined} className={inputCls} />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Discount (₹)</label>
-                        <input {...register("discount")} type="number" defaultValue={0} className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors" />
+                        <label className={labelCls}>Discount (₹)</label>
+                        <input {...register("discount")} type="number" defaultValue={0} className={inputCls} />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Payment Mode</label>
-                        <select {...register("paymentMode")} className="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-orange-400 focus:outline-none transition-colors bg-white">
-                          <option value="CASH">💵 Cash</option>
-                          <option value="UPI">📱 UPI</option>
-                          <option value="CARD">💳 Card</option>
-                          <option value="BANK_TRANSFER">🏦 Bank Transfer</option>
-                          <option value="FREE">🎁 Free / Complimentary</option>
+                        <label className={labelCls}>Payment Mode</label>
+                        <select {...register("paymentMode")} className={selectCls}>
+                          <option value="CASH">Cash</option>
+                          <option value="UPI">UPI</option>
+                          <option value="CARD">Card</option>
+                          <option value="BANK_TRANSFER">Bank Transfer</option>
+                          <option value="FREE">Free / Complimentary</option>
                         </select>
                       </div>
                     </>
@@ -239,7 +289,7 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
               )}
               {step < STEPS.length - 1 ? (
                 <Button type="button" size="sm" onClick={() => setStep(s => s + 1)}>
-                  Next <ChevronRight className="h-4 w-4" />
+                  Next →
                 </Button>
               ) : (
                 <Button type="submit" size="sm" disabled={loading} className="px-6">
