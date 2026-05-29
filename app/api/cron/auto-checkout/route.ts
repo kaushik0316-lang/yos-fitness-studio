@@ -144,11 +144,32 @@ async function runAutoCheckout() {
   const errors: string[] = [];
 
   // Process each shift independently — one failure won't block the others
+  const MIN_SHIFT_MINUTES = 15;
+
   for (const s of toClose) {
     try {
       const emp = s.attendance.employee;
       const endTimeStr = resolveCheckoutTime(s.checkInTime, emp.shifts as ShiftDef[] | null, emp.shiftEndTime);
       const checkOutTime = shiftEndUTC(s.checkInTime, endTimeStr);
+
+      const durationMins = (checkOutTime.getTime() - s.checkInTime.getTime()) / 60_000;
+
+      if (durationMins < MIN_SHIFT_MINUTES) {
+        // Too short — discard the shift entirely
+        await prisma.attendanceShift.delete({ where: { id: s.id } });
+
+        // Revert day status to ABSENT if no other shifts remain
+        const remaining = await prisma.attendanceShift.count({ where: { attendanceId: s.attendanceId } });
+        if (remaining === 0) {
+          await prisma.employeeAttendance.update({
+            where: { id: s.attendanceId },
+            data: { status: "ABSENT" },
+          });
+        }
+
+        closed.push(`${emp.fullName} → discarded (< ${MIN_SHIFT_MINUTES} min)`);
+        continue;
+      }
 
       await prisma.attendanceShift.update({
         where: { id: s.id },

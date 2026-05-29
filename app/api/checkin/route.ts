@@ -144,6 +144,32 @@ export async function POST(req: NextRequest) {
     let action: "checkin" | "checkout";
 
     if (openShift) {
+      const durationMins = (now.getTime() - openShift.checkInTime.getTime()) / 60_000;
+
+      if (durationMins < 15) {
+        // Shift too short — delete it instead of recording checkout
+        await prisma.attendanceShift.delete({ where: { id: openShift.id } });
+
+        // If this was the only shift, revert attendance status back to ABSENT
+        const remainingShifts = attendance.shifts.filter((s) => s.id !== openShift.id);
+        if (remainingShifts.length === 0) {
+          await prisma.employeeAttendance.update({
+            where: { id: attendance.id },
+            data: { status: "ABSENT" },
+          });
+        }
+
+        const timeStr = now.toLocaleTimeString("en-IN", {
+          timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
+        });
+        return NextResponse.json({
+          action: "short_shift_discarded",
+          employee: { fullName: employee.fullName, employeeId: employee.employeeId },
+          time: timeStr,
+          message: `Shift discarded — ${employee.fullName}, you were checked in for less than 15 minutes. Please check in again if needed.`,
+        });
+      }
+
       // Check out of the open shift
       await prisma.attendanceShift.update({
         where: { id: openShift.id },
