@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Company } from "@prisma/client";
 
 const MAX_SANE_RECEIPT = 9999;
 
@@ -87,6 +88,59 @@ export async function POST() {
     }
 
     return NextResponse.json({ fixed: bad.length, results });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
+
+// PATCH — backfill null receipt numbers for imported payments
+export async function PATCH() {
+  try {
+    const session = await auth();
+    if (!session?.user || session.user.role !== "ADMIN")
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    // Find all payments with no receipt number, ordered by date
+    const nullPayments = await prisma.payment.findMany({
+      where: { receiptNumber: null },
+      select: { id: true, company: true, date: true,
+        member: { select: { fullName: true, memberId: true } } },
+      orderBy: [{ company: "asc" }, { date: "asc" }],
+    });
+
+    if (nullPayments.length === 0)
+      return NextResponse.json({ fixed: 0, message: "No payments with missing receipt numbers." });
+
+    // Group by company
+    const byCompany: Record<string, typeof nullPayments> = {};
+    for (const p of nullPayments) {
+      if (!byCompany[p.company]) byCompany[p.company] = [];
+      byCompany[p.company].push(p);
+    }
+
+    const results: string[] = [];
+    let totalFixed = 0;
+
+    for (const company of Object.keys(byCompany)) {
+      // Start from max existing receipt number for this company
+      const agg = await prisma.payment.aggregate({
+        _max: { receiptNumber: true },
+        where: { company: company as Company, receiptNumber: { not: null } },
+      });
+      let next = (agg._max.receiptNumber ?? 0) + 1;
+
+      for (const p of byCompany[company]) {
+        await prisma.payment.update({
+          where: { id: p.id },
+          data: { receiptNumber: next },
+        });
+        results.push(`✓ ${p.member.fullName} (${p.member.memberId}) [${company}]: → #${next}`);
+        next++;
+        totalFixed++;
+      }
+    }
+
+    return NextResponse.json({ fixed: totalFixed, results });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
