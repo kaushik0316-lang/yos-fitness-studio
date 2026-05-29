@@ -78,9 +78,9 @@ export async function DELETE() {
       return NextResponse.json({ deleted: 0, message: "No shifts under 15 minutes found." });
 
     // Collect unique attendance IDs affected
-    const affectedAttendanceIds = [...new Set(
+    const affectedAttendanceIds = Array.from(new Set(
       shifts.filter((s) => shortShiftIds.includes(s.id)).map((s) => s.attendanceId)
-    )];
+    ));
 
     // Delete the short shifts
     await prisma.attendanceShift.deleteMany({ where: { id: { in: shortShiftIds } } });
