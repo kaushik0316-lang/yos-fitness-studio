@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Package, Users, Loader2, Check, X, Shield, Eye, EyeOff, Wrench, Hash } from "lucide-react";
+import { Plus, Package, Users, Loader2, Check, X, Shield, Eye, EyeOff, Wrench, Hash, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, COMPANY_LABELS, COMPANY_COLORS } from "@/lib/utils";
@@ -28,6 +28,25 @@ export function SettingsClient({ packages, users }: Props) {
   const [activeTab, setActiveTab] = useState<"packages" | "users" | "security" | "data">("packages");
   const [backfilling, setBackfilling] = useState(false);
   const [backfillResult, setBackfillResult] = useState<{ fixed: number; results: string[] } | null>(null);
+  const [purgingShifts, setPurgingShifts] = useState(false);
+  const [purgeResult, setPurgeResult] = useState<{ deleted: number; daysReverted: number; message: string } | null>(null);
+
+  async function purgeShortShifts() {
+    if (!confirm("This will permanently delete all recorded shifts under 15 minutes and revert those days to Absent. Continue?")) return;
+    setPurgingShifts(true);
+    setPurgeResult(null);
+    try {
+      const res = await fetch("/api/admin/purge-short-shifts", { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setPurgeResult(data);
+      toast({ title: data.deleted > 0 ? `Done! ${data.deleted} short shifts deleted.` : "No short shifts found." });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setPurgingShifts(false);
+    }
+  }
 
   async function backfillReceiptNumbers() {
     setBackfilling(true);
@@ -345,6 +364,38 @@ export function SettingsClient({ packages, users }: Props) {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Purge short shifts */}
+          <div className="rounded-xl overflow-hidden" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="px-5 py-4 flex items-center gap-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="rounded-xl p-2" style={{ background: "rgba(239,68,68,0.12)" }}>
+                <Trash2 className="h-4 w-4 text-red-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-sm">Delete Shifts Under 15 Minutes</h3>
+                <p className="text-xs text-gray-500">Remove all historical shifts that lasted less than 15 minutes</p>
+              </div>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-sm text-gray-400 leading-relaxed">
+                Permanently deletes all past shifts where check-in to check-out was under 15 minutes. Days with no remaining valid shifts will be marked <span className="text-white font-medium">Absent</span>.
+              </p>
+              <button
+                onClick={purgeShortShifts}
+                disabled={purgingShifts}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-60"
+                style={{ background: "rgba(239,68,68,0.7)", boxShadow: "0 4px 16px rgba(239,68,68,0.2)" }}
+              >
+                {purgingShifts ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                {purgingShifts ? "Deleting..." : "Delete Short Shifts"}
+              </button>
+
+              {purgeResult && (
+                <div className="rounded-xl p-4" style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
+                  <p className="text-sm font-bold text-green-400">✓ {purgeResult.message}</p>
                 </div>
               )}
             </div>
