@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Package, Users, Loader2, Check, X, Shield, Eye, EyeOff } from "lucide-react";
+import { Plus, Package, Users, Loader2, Check, X, Shield, Eye, EyeOff, Wrench, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, COMPANY_LABELS, COMPANY_COLORS } from "@/lib/utils";
@@ -25,7 +25,25 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export function SettingsClient({ packages, users }: Props) {
-  const [activeTab, setActiveTab] = useState<"packages" | "users" | "security">("packages");
+  const [activeTab, setActiveTab] = useState<"packages" | "users" | "security" | "data">("packages");
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillResult, setBackfillResult] = useState<{ fixed: number; results: string[] } | null>(null);
+
+  async function backfillReceiptNumbers() {
+    setBackfilling(true);
+    setBackfillResult(null);
+    try {
+      const res = await fetch("/api/admin/fix-receipt-numbers", { method: "PATCH" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setBackfillResult(data);
+      toast({ title: data.fixed > 0 ? `Done! ${data.fixed} receipts numbered.` : "Nothing to fix — all payments already have receipt numbers." });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setBackfilling(false);
+    }
+  }
   const [showAddPkg, setShowAddPkg] = useState(false);
   const [savingPkg, setSavingPkg] = useState(false);
   const [newPkg, setNewPkg] = useState({ name: "", durationDays: "30", price: "", company: "YOS_FITNESS", notes: "" });
@@ -104,6 +122,7 @@ export function SettingsClient({ packages, users }: Props) {
           { key: "packages",  label: `Packages (${packages.length})`, icon: Package },
           { key: "users",     label: `Users (${users.length})`,       icon: Users   },
           { key: "security",  label: "Security",                       icon: Shield  },
+          { key: "data",      label: "Data Tools",                     icon: Wrench  },
         ].map((t) => (
           <button
             key={t.key}
@@ -283,6 +302,53 @@ export function SettingsClient({ packages, users }: Props) {
           <p className="text-xs text-gray-600 px-1">
             Use at least 8 characters. Avoid using this password anywhere else.
           </p>
+        </div>
+      )}
+
+      {/* Data Tools tab */}
+      {activeTab === "data" && (
+        <div className="max-w-lg space-y-4">
+          {/* Backfill receipt numbers */}
+          <div className="rounded-xl overflow-hidden" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="px-5 py-4 flex items-center gap-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="rounded-xl p-2" style={{ background: "rgba(249,115,22,0.12)" }}>
+                <Hash className="h-4 w-4 text-orange-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-sm">Backfill Receipt Numbers</h3>
+                <p className="text-xs text-gray-500">Assign receipt numbers to imported payments that have none</p>
+              </div>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-sm text-gray-400 leading-relaxed">
+                Imported payments from the old system don't have receipt numbers. This will assign new sequential numbers to all payments showing <span className="text-white font-mono">—</span> in the receipt column.
+              </p>
+              <button
+                onClick={backfillReceiptNumbers}
+                disabled={backfilling}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-60"
+                style={{ background: "linear-gradient(135deg, #f97316, #ea580c)", boxShadow: "0 4px 16px rgba(249,115,22,0.3)" }}
+              >
+                {backfilling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Hash className="h-4 w-4" />}
+                {backfilling ? "Assigning numbers..." : "Assign Receipt Numbers"}
+              </button>
+
+              {backfillResult && (
+                <div className="rounded-xl p-4 space-y-2" style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
+                  <p className="text-sm font-bold text-green-400">
+                    {backfillResult.fixed > 0 ? `✓ ${backfillResult.fixed} payments updated` : "✓ All payments already have receipt numbers"}
+                  </p>
+                  {backfillResult.results.length > 0 && (
+                    <div className="max-h-48 overflow-y-auto space-y-1 mt-2">
+                      {backfillResult.results.map((r, i) => (
+                        <p key={i} className="text-xs text-gray-400 font-mono">{r}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
