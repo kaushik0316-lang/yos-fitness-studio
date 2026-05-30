@@ -51,16 +51,17 @@ const STATUS_OPTS = [
 ];
 
 const SORT_OPTS = [
-  { value: "id_desc",    label: "Reg # ↓ (newest)" },
-  { value: "id_asc",     label: "Reg # ↑ (oldest)" },
-  { value: "name_asc",   label: "Name A → Z"       },
-  { value: "name_desc",  label: "Name Z → A"       },
+  { value: "",           label: "Newest Registered" },
+  { value: "id_desc",    label: "Reg # ↓"           },
+  { value: "id_asc",     label: "Reg # ↑"           },
+  { value: "name_asc",   label: "Name A → Z"        },
+  { value: "name_desc",  label: "Name Z → A"        },
   { value: "expiry_asc", label: "Expiry ↑ (soonest)"},
-  { value: "expiry_desc",label: "Expiry ↓"         },
-  { value: "join_desc",  label: "Join Date ↓"      },
-  { value: "join_asc",   label: "Join Date ↑"      },
-  { value: "visit_desc", label: "Last Visit ↓"     },
-  { value: "visit_asc",  label: "Last Visit ↑"     },
+  { value: "expiry_desc",label: "Expiry ↓"          },
+  { value: "join_desc",  label: "Join Date ↓"       },
+  { value: "join_asc",   label: "Join Date ↑"       },
+  { value: "visit_desc", label: "Last Visit ↓"      },
+  { value: "visit_asc",  label: "Last Visit ↑"      },
 ];
 
 function waLink(phone: string) {
@@ -190,7 +191,7 @@ export function MembersClient({
 
           {/* Sort */}
           <select
-            value={searchParams.get("sort") ?? "id_desc"}
+            value={searchParams.get("sort") ?? ""}
             onChange={(e) => updateQuery("sort", e.target.value)}
             style={{ ...inputStyle, cursor: "pointer" }}
           >
