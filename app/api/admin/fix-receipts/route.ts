@@ -22,15 +22,20 @@ export async function POST(req: Request) {
   // Use latest membership or latest payment's membership
   const membership = ranjani.memberships[0] ?? ranjani.payments[0]?.membership;
 
-  if (!membership) return NextResponse.json({ error: "No membership found", ranjani }, { status: 404 });
+  // Fall back to payment dates if no membership record
+  const startDate  = membership?.startDate  ?? ranjani.payments[0]?.startDate;
+  const expiryDate = membership?.expiryDate ?? ranjani.payments[0]?.expiryDate;
+  const packageId  = membership?.packageId  ?? ranjani.payments[0]?.packageId;
+
+  if (!expiryDate) return NextResponse.json({ error: "No expiry date found", ranjani }, { status: 404 });
 
   const updated = await prisma.member.update({
     where: { id: ranjani.id },
     data: {
-      currentPackageId: membership.packageId,
-      startDate: membership.startDate,
-      expiryDate: membership.expiryDate,
-      renewalDueDate: membership.expiryDate,
+      currentPackageId: packageId,
+      startDate,
+      expiryDate,
+      renewalDueDate: expiryDate,
       status: "ACTIVE",
     },
     select: { id: true, fullName: true, memberId: true, status: true, expiryDate: true },
