@@ -9,15 +9,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const FIXES: Record<string, string> = {
-    "G/F":  "General Fitness",
-    "g/f":  "General Fitness",
-    "GF":   "General Fitness",
-    "ST/P": "Student Package",
-    "st/p": "Student Package",
-    "STP":  "Student Package",
-    "T/P":  "Transformation Package",
-    "t/p":  "Transformation Package",
-    "TP":   "Transformation Package",
+    "G/F":        "General Fitness",
+    "GF":         "General Fitness",
+    "FIT":        "General Fitness",
+    "SUMMER SLOT":"General Fitness",
+    "ST/P":       "Student Package",
+    "STP":        "Student Package",
+    "S/P":        "Student Package",
+    "T/P":        "Transformation Package",
+    "TP":         "Transformation Package",
+    "P/T":        "Personal Training",
+    "PT":         "Personal Training",
+    "P/T+HIIT":   "Personal Training + HIIT",
+    "PT+HIIT":    "Personal Training + HIIT",
   };
 
   let payments = 0;
