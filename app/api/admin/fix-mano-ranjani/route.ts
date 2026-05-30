@@ -11,6 +11,23 @@ export async function GET() {
   if (!session?.user || session.user.role !== "ADMIN")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Receipt range 2681–2756 for Yos Studio
+  const receiptRange = await prisma.payment.findMany({
+    where: {
+      company: "YOS_FITNESS_STUDIO",
+      receiptNumber: { gte: 2681, lte: 2756 },
+    },
+    select: {
+      receiptNumber: true,
+      date: true,
+      amount: true,
+      paymentMode: true,
+      member: { select: { memberId: true, fullName: true, phone: true } },
+    },
+    orderBy: { receiptNumber: "asc" },
+  });
+
+  // Mano Ranjani fix preview
   const gowtham = await prisma.member.findFirst({
     where: { memberId: "YF-1815" },
     include: {
@@ -24,7 +41,7 @@ export async function GET() {
     select: { id: true, memberId: true, fullName: true, phone: true, status: true, expiryDate: true },
   });
 
-  return NextResponse.json({ gowtham, ranjaniCandidates });
+  return NextResponse.json({ receiptRange, totalInRange: receiptRange.length, gowtham, ranjaniCandidates });
 }
 
 export async function POST(req: Request) {
