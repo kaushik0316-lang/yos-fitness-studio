@@ -321,20 +321,22 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
               autoComplete="off"
             />
             {showMemberDropdown && (memberSearch.length > 0) && (
-              <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-64 overflow-y-auto">
+              <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-72 overflow-y-auto">
                 {filteredMembers.map((m) => (
                   <button
                     key={m.id}
                     type="button"
                     onMouseDown={() => handleSelectMember(m)}
-                    className="w-full text-left px-4 py-2.5 hover:bg-orange-50 transition-colors border-b border-gray-50 last:border-0"
+                    className="w-full text-left px-4 py-3 hover:bg-orange-50 transition-colors border-b border-gray-100 last:border-0"
                   >
-                    <span className="font-semibold text-sm text-gray-900">{toTitleCase(m.fullName)}</span>
-                    <span className="text-xs text-gray-400 ml-2">{m.memberId}</span>
-                    <span className="text-xs text-gray-400 ml-2">{m.phone}</span>
+                    <p className="font-bold text-sm text-gray-900 leading-tight">{toTitleCase(m.fullName)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 font-mono">
+                      {m.memberId}
+                      <span className="text-gray-300 mx-1.5">·</span>
+                      <span className="text-gray-500 font-sans">📱 {m.phone}</span>
+                    </p>
                   </button>
                 ))}
-                {/* Always show "+ New Member" option when typing */}
                 <button
                   type="button"
                   onMouseDown={handleNewMember}
@@ -348,10 +350,25 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
               </div>
             )}
             {selectedMember && (
-              <div className="mt-3 space-y-2">
-                <p className="text-xs text-emerald-600 font-medium">
-                  ✓ {selectedMember.memberId} — {toTitleCase(selectedMember.fullName)}
-                </p>
+              <div className="mt-3 rounded-xl border-2 border-emerald-200 bg-emerald-50 px-4 py-3 space-y-2">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">✓ Member confirmed</p>
+                    <p className="font-bold text-gray-900 text-sm">{toTitleCase(selectedMember.fullName)}</p>
+                    <p className="text-xs text-gray-500 font-mono mt-0.5">
+                      {selectedMember.memberId}
+                      <span className="text-gray-300 mx-1.5">·</span>
+                      <span className="text-gray-500 font-sans">📱 {selectedMember.phone}</span>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedMemberId(""); setMemberSearch(""); }}
+                    className="text-xs text-gray-400 hover:text-red-500 transition-colors mt-0.5"
+                  >
+                    ✕ Change
+                  </button>
+                </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1">
                     📱 Phone Number {isFakePhone(selectedMember.phone) ? <span className="text-orange-500">(none on record)</span> : ""}

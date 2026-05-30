@@ -8,6 +8,7 @@ import { toTitleCase } from "@/lib/utils/titleCase";
 import { WhatsAppButton } from "@/components/receipts/WhatsAppButton";
 import { EditReceiptButton } from "@/components/receipts/EditReceiptButton";
 import { SendPDFButton } from "@/components/receipts/SendPDFButton";
+import { ReassignMemberButton } from "@/components/receipts/ReassignMemberButton";
 
 export const dynamic = "force-dynamic";
 
@@ -139,6 +140,17 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
               expiryDate:    payment.expiryDate ? format(new Date(payment.expiryDate), "yyyy-MM-dd") : "",
               notes:         payment.notes ?? "",
               transactionRef: payment.transactionRef ?? "",
+            }}
+          />
+        )}
+        {session.user.role === "ADMIN" && (
+          <ReassignMemberButton
+            paymentId={payment.id}
+            currentMember={{
+              id:       payment.member.id,
+              name:     toTitleCase(payment.member.fullName),
+              memberId: payment.member.memberId,
+              phone:    payment.member.phone ?? "",
             }}
           />
         )}
