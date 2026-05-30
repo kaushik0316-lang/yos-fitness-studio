@@ -17,7 +17,6 @@ export default async function NewReceiptPage({ searchParams }: { searchParams: {
 
   const [members, employees] = await Promise.all([
     prisma.member.findMany({
-      where: { memberId: { not: { startsWith: "IMP-" } } },
       select: { id: true, memberId: true, fullName: true, phone: true },
       orderBy: { fullName: "asc" },
     }),
