@@ -14,13 +14,17 @@ export async function GET(req: Request) {
 
     const limit = Math.min(Number(new URL(req.url).searchParams.get("limit") ?? 8), 20);
 
+    // Token search: each word must match at least one field (any word order)
+    const tokens = q.split(/\s+/).filter(Boolean);
     const members = await prisma.member.findMany({
       where: {
-        OR: [
-          { fullName: { contains: q, mode: "insensitive" } },
-          { memberId: { contains: q, mode: "insensitive" } },
-          { phone: { contains: q } },
-        ],
+        AND: tokens.map((t) => ({
+          OR: [
+            { fullName: { contains: t, mode: "insensitive" } },
+            { memberId: { contains: t, mode: "insensitive" } },
+            { phone: { contains: t } },
+          ],
+        })),
       },
       select: { id: true, fullName: true, memberId: true, phone: true },
       orderBy: { fullName: "asc" },

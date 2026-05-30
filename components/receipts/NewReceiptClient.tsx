@@ -105,16 +105,17 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   const [newMemberName, setNewMemberName] = useState("");
   const [newMemberPhone, setNewMemberPhone] = useState("");
 
-  // Filtered members
+  // Token search: split by spaces so "m vishal" matches "Vishal M" in any order
   const filteredMembers = useMemo(() => {
     if (!memberSearch) return members.slice(0, 20);
-    const q = memberSearch.toLowerCase();
+    const tokens = memberSearch.toLowerCase().split(/\s+/).filter(Boolean);
     return members
-      .filter(
-        (m) =>
-          m.fullName.toLowerCase().includes(q) ||
-          m.memberId.toLowerCase().includes(q) ||
-          m.phone.includes(q)
+      .filter((m) =>
+        tokens.every((t) =>
+          m.fullName.toLowerCase().includes(t) ||
+          m.memberId.toLowerCase().includes(t) ||
+          m.phone.includes(t)
+        )
       )
       .slice(0, 20);
   }, [members, memberSearch]);
