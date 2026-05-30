@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { AddMemberDialog } from "@/components/members/AddMemberDialog";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
+import { MoveMembershipButton } from "@/components/members/MoveMembershipButton";
 import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
@@ -423,6 +424,17 @@ export function MembersClient({
                             >
                               <RefreshCw className="h-4 w-4" />
                             </Link>
+                          )}
+                          {/* Move Membership — admin only */}
+                          {userRole === "ADMIN" && (
+                            <MoveMembershipButton
+                              member={{
+                                id:       m.id,
+                                name:     toTitleCase(m.fullName),
+                                memberId: m.memberId,
+                                phone:    m.phone ?? "",
+                              }}
+                            />
                           )}
                         </div>
                       </td>
