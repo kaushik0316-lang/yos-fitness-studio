@@ -55,6 +55,22 @@ export async function POST(req: NextRequest) {
             status: "ACTIVE",
           },
         });
+
+        // Reset old member — check if they have any remaining active memberships
+        const oldMemberActiveMemberships = await tx.membership.count({
+          where: { memberId: oldMember.id },
+        });
+        if (oldMemberActiveMemberships === 0) {
+          await tx.member.update({
+            where: { id: oldMember.id },
+            data: {
+              currentPackageId: null,
+              expiryDate: null,
+              renewalDueDate: null,
+              status: "EXPIRED",
+            },
+          });
+        }
       }
 
       // Audit log
