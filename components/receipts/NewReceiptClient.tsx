@@ -81,6 +81,41 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
       setMemberSearch(`${member.memberId} — ${toTitleCase(member.fullName)}`);
     }
   }, [initialMemberId, members]);
+
+  // Auto-fill from latest payment when member is selected
+  useEffect(() => {
+    if (!selectedMemberId) return;
+    fetch(`/api/members/${selectedMemberId}/latest-payment`)
+      .then((r) => r.json())
+      .then((p) => {
+        if (p.error) return;
+        // Always fill previous receipt info
+        if (p.receiptNumber) setPrevReceiptNo(String(p.receiptNumber));
+        if (p.amount) setPrevAmount(String(Math.round(Number(p.amount))));
+        // Fill category and period
+        if (p.categoryLabel) setCategoryInput(p.categoryLabel);
+        if (p.periodLabel) setPeriodInput(p.periodLabel);
+        // Fill company
+        if (p.company) setCompany(p.company);
+        // For BALANCE: fill amount from pending, keep same dates
+        if (paymentType === "BALANCE") {
+          if (p.pendingAmount && Number(p.pendingAmount) > 0)
+            setAmount(String(Math.round(Number(p.pendingAmount))));
+          if (p.startDate) setStartDate(p.startDate.slice(0, 10));
+          if (p.expiryDate) setExpiryDate(p.expiryDate.slice(0, 10));
+        }
+        // For RENEWAL: start from day after expiry
+        if (paymentType === "RENEWAL") {
+          if (p.expiryDate) {
+            const nextDay = new Date(p.expiryDate);
+            nextDay.setDate(nextDay.getDate() + 1);
+            setStartDate(nextDay.toISOString().slice(0, 10));
+          }
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMemberId, paymentType]);
   const [categoryInput, setCategoryInput] = useState("General Fitness");
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [periodInput, setPeriodInput] = useState("1 Month");
