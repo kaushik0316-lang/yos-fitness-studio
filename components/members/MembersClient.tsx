@@ -22,6 +22,7 @@ type Member = {
   expiryDate: Date | null; lastAttendanceDate: Date | null;
   joinDate: Date; trainer: { id: string; fullName: string } | null;
   _count: { attendances: number };
+  payments?: { categoryLabel: string | null }[];
 };
 
 type Props = {
