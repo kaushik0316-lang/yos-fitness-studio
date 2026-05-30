@@ -56,16 +56,17 @@ export async function POST(req: Request) {
 
   for (const { keepId, deleteIds } of merges) {
     for (const deleteId of deleteIds) {
-      // Move payments & memberships to keep member
-      await prisma.payment.updateMany({ where: { memberId: deleteId }, data: { memberId: keepId } });
-      await prisma.membership.updateMany({ where: { memberId: deleteId }, data: { memberId: keepId } });
-      // Delete all other related records (IMP members won't have meaningful attendance/logs)
-      await prisma.memberAttendance.deleteMany({ where: { memberId: deleteId } });
-      await prisma.renewalFollowUp.deleteMany({ where: { memberId: deleteId } });
-      await prisma.messageLog.deleteMany({ where: { memberId: deleteId } });
-      // Now safe to delete the member
-      await prisma.member.delete({ where: { id: deleteId } });
-      results.push({ kept: keepId, deleted: deleteId });
+      try {
+        await prisma.payment.updateMany({ where: { memberId: deleteId }, data: { memberId: keepId } });
+        await prisma.membership.updateMany({ where: { memberId: deleteId }, data: { memberId: keepId } });
+        await prisma.memberAttendance.deleteMany({ where: { memberId: deleteId } });
+        await prisma.renewalFollowUp.deleteMany({ where: { memberId: deleteId } });
+        await prisma.messageLog.deleteMany({ where: { memberId: deleteId } });
+        await prisma.member.delete({ where: { id: deleteId } });
+        results.push({ kept: keepId, deleted: deleteId });
+      } catch (e: any) {
+        results.push({ kept: keepId, deleted: deleteId, error: e.message });
+      }
     }
   }
 
