@@ -342,7 +342,7 @@ export function MembersClient({
                       {/* Package + Expiry */}
                       <td className="px-4 py-4">
                         <p className="text-sm text-gray-400">
-                          {m.currentPackage?.name ?? <span className="text-gray-700">—</span>}
+                          {m.currentPackage?.name ?? m.payments?.[0]?.categoryLabel ?? <span className="text-gray-700">—</span>}
                         </p>
                         {m.expiryDate && (
                           <p className={cn("text-xs mt-0.5 font-medium",

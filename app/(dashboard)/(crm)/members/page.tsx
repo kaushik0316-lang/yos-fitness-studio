@@ -59,6 +59,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
         currentPackage: { select: { name: true } },
         trainer: { select: { id: true, fullName: true } },
         _count: { select: { attendances: true } },
+        payments: { orderBy: { date: "desc" }, take: 1, select: { categoryLabel: true } },
       },
       orderBy: (() => {
         switch (searchParams.sort) {
