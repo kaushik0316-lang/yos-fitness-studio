@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     for (const deleteId of deleteIds) {
       await prisma.payment.updateMany({ where: { memberId: deleteId }, data: { memberId: keepId } });
       await prisma.membership.updateMany({ where: { memberId: deleteId }, data: { memberId: keepId } });
-      await prisma.attendance.updateMany({ where: { memberId: deleteId }, data: { memberId: keepId } });
+      await prisma.memberAttendance.updateMany({ where: { memberId: deleteId }, data: { memberId: keepId } });
       await prisma.member.delete({ where: { id: deleteId } });
       results.push({ kept: keepId, deleted: deleteId });
     }
