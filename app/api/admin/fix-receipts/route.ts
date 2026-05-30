@@ -27,11 +27,10 @@ export async function POST(req: Request) {
   let payments = 0;
   let packages = 0;
 
+  // Use raw SQL for case-insensitive update
   for (const [from, to] of Object.entries(FIXES)) {
-    const p = await prisma.payment.updateMany({ where: { categoryLabel: from }, data: { categoryLabel: to } });
-    payments += p.count;
-    const pkg = await prisma.package.updateMany({ where: { name: from }, data: { name: to } });
-    packages += pkg.count;
+    const p = await prisma.$executeRaw`UPDATE "Payment" SET "categoryLabel" = ${to} WHERE LOWER(TRIM("categoryLabel")) = LOWER(${from})`;
+    payments += p;
   }
 
   // Show all distinct categoryLabel values
