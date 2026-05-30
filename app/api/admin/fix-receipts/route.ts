@@ -47,12 +47,13 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
+  let body: any;
+  try { body = await req.json(); } catch (e: any) { return NextResponse.json({ error: "Bad JSON: " + e.message }, { status: 400 }); }
   if (body.secret !== SECRET)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { merges } = body as { merges: { keepId: string; deleteIds: string[] }[] };
-  const results = [];
+  const merges: { keepId: string; deleteIds: string[] }[] = body.merges ?? [];
+  const results: any[] = [];
 
   for (const { keepId, deleteIds } of merges) {
     for (const deleteId of deleteIds) {
@@ -70,5 +71,5 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, merged: results.length, results });
+  return NextResponse.json({ ok: true, merged: results.filter((r:any)=>!r.error).length, results });
 }
