@@ -45,6 +45,16 @@ async function markAbsentForDate(targetDate: Date, force = false) {
     return { markedAbsent: 0, date: targetDate.toISOString().slice(0, 10), skipped: true };
   }
 
+  // Never mark today absent before 8 PM IST (gym is still open)
+  if (!force) {
+    const nowIST = new Date(Date.now() + IST_OFFSET_MS);
+    const todayDate = new Date(Date.UTC(nowIST.getUTCFullYear(), nowIST.getUTCMonth(), nowIST.getUTCDate()));
+    const isToday = targetDate.getTime() === todayDate.getTime();
+    if (isToday && nowIST.getUTCHours() < 20) {
+      return { markedAbsent: 0, date: targetDate.toISOString().slice(0, 10), skipped: true, reason: "gym still open" };
+    }
+  }
+
   const [activeEmployees, existingOnDate] = await Promise.all([
     prisma.employee.findMany({ where: { isActive: true }, select: { id: true, fullName: true } }),
     prisma.employeeAttendance.findMany({ where: { date: targetDate }, select: { employeeId: true } }),
