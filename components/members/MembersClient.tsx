@@ -70,6 +70,8 @@ const ABBR: Record<string, string> = {
   "gf":           "General Fitness",
   "fit":          "General Fitness",
   "summer slot":  "General Fitness",
+  "yos studio":   "General Fitness",
+  "yos fitness":  "General Fitness",
   "st/p":         "Student Package",
   "stp":          "Student Package",
   "s/p":          "Student Package",
