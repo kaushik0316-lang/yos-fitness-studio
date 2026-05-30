@@ -30,8 +30,12 @@ export async function POST(req: Request) {
     packages += pkg.count;
   }
 
-  // Also list current package names for review
-  const pkgList = await prisma.package.findMany({ select: { id: true, name: true, isActive: true } });
+  // Show all distinct categoryLabel values
+  const labels = await prisma.payment.findMany({
+    select: { categoryLabel: true },
+    distinct: ["categoryLabel"],
+    orderBy: { categoryLabel: "asc" },
+  });
 
-  return NextResponse.json({ ok: true, fixedPayments: payments, fixedPackages: packages, allPackages: pkgList });
+  return NextResponse.json({ ok: true, fixedPayments: payments, fixedPackages: packages, distinctLabels: labels.map(l => l.categoryLabel) });
 }
