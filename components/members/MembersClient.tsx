@@ -64,6 +64,20 @@ function waLink(phone: string) {
   return `https://wa.me/${num}`;
 }
 
+// Normalize package/category label — strip duration prefixes, expand abbreviations
+const ABBR: Record<string, string> = {
+  "g/f": "General Fitness", "gf": "General Fitness",
+  "sf": "Student Fitness",  "sp": "Student Package",
+};
+function cleanPackageLabel(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const lower = raw.trim().toLowerCase();
+  if (ABBR[lower]) return ABBR[lower];
+  // Strip duration prefix like "12 Months - " or "3 Months - "
+  const stripped = raw.replace(/^\d+\s+months?\s*[-–]\s*/i, "").trim();
+  return stripped || null;
+}
+
 export function MembersClient({
   members, total, page, pageSize, packages, trainers,
   userRole, userId, statusCounts, activeStatusFilter,
@@ -343,7 +357,10 @@ export function MembersClient({
                       {/* Package + Expiry */}
                       <td className="px-4 py-4">
                         <p className="text-sm text-gray-400">
-                          {m.currentPackage?.name ?? m.payments?.[0]?.categoryLabel ?? <span className="text-gray-700">—</span>}
+                          {(() => {
+                            const label = cleanPackageLabel(m.payments?.[0]?.categoryLabel) ?? cleanPackageLabel(m.currentPackage?.name);
+                            return label ?? <span className="text-gray-700">—</span>;
+                          })()}
                         </p>
                         {m.expiryDate && (
                           <p className={cn("text-xs mt-0.5 font-medium",
