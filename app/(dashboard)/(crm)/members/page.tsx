@@ -15,13 +15,12 @@ type SearchParams = {
   showGhosts?: string;
   page?: string;
   sort?: string;
-  pageSize?: string;
 };
 
 export default async function MembersPage({ searchParams }: { searchParams: SearchParams }) {
   const session = await auth();
   const page     = Number(searchParams.page ?? 1);
-  const pageSize = Math.min(Number(searchParams.pageSize ?? 25), 100);
+  const pageSize = 25;
   const skip     = (page - 1) * pageSize;
 
   const where: any = {};

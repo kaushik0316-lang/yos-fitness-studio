@@ -51,17 +51,10 @@ const STATUS_OPTS = [
 ];
 
 const SORT_OPTS = [
-  { value: "",           label: "Newest Registered" },
-  { value: "id_desc",    label: "Reg # ↓"           },
-  { value: "id_asc",     label: "Reg # ↑"           },
-  { value: "name_asc",   label: "Name A → Z"        },
-  { value: "name_desc",  label: "Name Z → A"        },
-  { value: "expiry_asc", label: "Expiry ↑ (soonest)"},
-  { value: "expiry_desc",label: "Expiry ↓"          },
-  { value: "join_desc",  label: "Join Date ↓"       },
-  { value: "join_asc",   label: "Join Date ↑"       },
-  { value: "visit_desc", label: "Last Visit ↓"      },
-  { value: "visit_asc",  label: "Last Visit ↑"      },
+  { value: "",           label: "Newest Registered"  },
+  { value: "name_asc",   label: "Name A → Z"         },
+  { value: "expiry_asc", label: "Expiry (soonest)"   },
+  { value: "visit_desc", label: "Last Visit"         },
 ];
 
 function waLink(phone: string) {
@@ -211,17 +204,6 @@ export function MembersClient({
           </button>
 
           <div className="flex items-center gap-2 ml-auto">
-            {/* Page size */}
-            <select
-              value={String(pageSize)}
-              onChange={(e) => updateQuery("pageSize", e.target.value)}
-              style={{ ...inputStyle, cursor: "pointer", padding: "0.5rem 0.75rem" }}
-            >
-              <option value="25">25 / page</option>
-              <option value="50">50 / page</option>
-              <option value="100">100 / page</option>
-            </select>
-
             {/* Full export */}
             <button
               onClick={() => { window.location.href = "/api/export/members"; }}
