@@ -4,13 +4,17 @@ import { Header } from "@/components/layout/Header";
 import { PaymentsClient } from "@/components/payments/PaymentsClient";
 import { ExportButtons } from "@/components/payments/ExportButtons";
 import { Company } from "@prisma/client";
-import { startOfDay, endOfDay, startOfMonth, endOfMonth } from "date-fns";
+import { startOfDay, endOfDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Payments" };
 
-type SearchParams = { company?: string; mode?: string; page?: string; dateFilter?: string; search?: string };
+type SearchParams = {
+  company?: string; mode?: string; page?: string; dateFilter?: string;
+  search?: string; paymentType?: string; sort?: string;
+  dateFrom?: string; dateTo?: string;
+};
 
 export default async function PaymentsPage({ searchParams }: { searchParams: SearchParams }) {
   const session = await auth();
@@ -20,12 +24,16 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   const today = new Date();
 
   const where: any = {};
-  if (searchParams.company && searchParams.company !== "ALL") {
+
+  if (searchParams.company && searchParams.company !== "ALL")
     where.company = searchParams.company as Company;
-  }
-  if (searchParams.mode && searchParams.mode !== "ALL") {
+
+  if (searchParams.mode && searchParams.mode !== "ALL")
     where.paymentMode = searchParams.mode;
-  }
+
+  if (searchParams.paymentType && searchParams.paymentType !== "ALL")
+    where.paymentType = searchParams.paymentType;
+
   if (searchParams.search) {
     const s = searchParams.search.trim();
     const receiptNum = parseInt(s.replace(/^#/, ""));
@@ -36,13 +44,30 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
       ...(!isNaN(receiptNum) ? [{ receiptNumber: receiptNum }] : []),
     ];
   }
-  if (searchParams.dateFilter === "today") {
+
+  // Date filters
+  if (searchParams.dateFrom || searchParams.dateTo) {
+    where.date = {};
+    if (searchParams.dateFrom) where.date.gte = startOfDay(parseISO(searchParams.dateFrom));
+    if (searchParams.dateTo)   where.date.lte = endOfDay(parseISO(searchParams.dateTo));
+  } else if (searchParams.dateFilter === "today") {
     where.date = { gte: startOfDay(today), lte: endOfDay(today) };
+  } else if (searchParams.dateFilter === "week") {
+    where.date = { gte: startOfWeek(today, { weekStartsOn: 1 }), lte: endOfWeek(today, { weekStartsOn: 1 }) };
   } else if (searchParams.dateFilter === "month") {
     where.date = { gte: startOfMonth(today), lte: endOfMonth(today) };
   }
 
-  const [payments, total, todayStats, monthStats, packages, members] = await Promise.all([
+  // Sort
+  const orderBy: any =
+    searchParams.sort === "amount_desc" ? { amount: "desc" } :
+    searchParams.sort === "amount_asc"  ? { amount: "asc" }  :
+    searchParams.sort === "receipt_asc" ? { receiptNumber: "asc" } :
+    searchParams.sort === "receipt_desc"? { receiptNumber: "desc" } :
+    searchParams.sort === "date_asc"    ? { date: "asc" } :
+    { date: "desc" };
+
+  const [payments, total, totalAmount, todayStats, monthStats, packages, members] = await Promise.all([
     prisma.payment.findMany({
       where,
       include: {
@@ -51,25 +76,21 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
         collectedBy: { select: { name: true } },
         soldBy: { select: { fullName: true, employeeId: true } },
       },
-      // startDate and expiryDate are scalar fields — always included automatically
-      orderBy: { date: "desc" },
+      orderBy,
       skip,
       take: pageSize,
     }),
     prisma.payment.count({ where }),
-    // Today's stats by company
+    prisma.payment.aggregate({ where, _sum: { amount: true } }),
     prisma.payment.groupBy({
       by: ["company"],
       where: { date: { gte: startOfDay(today), lte: endOfDay(today) } },
-      _sum: { amount: true },
-      _count: true,
+      _sum: { amount: true }, _count: true,
     }),
-    // Monthly stats by company
     prisma.payment.groupBy({
       by: ["company"],
       where: { date: { gte: startOfMonth(today), lte: endOfMonth(today) } },
-      _sum: { amount: true },
-      _count: true,
+      _sum: { amount: true }, _count: true,
     }),
     prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.member.findMany({
@@ -95,6 +116,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
         <PaymentsClient
           payments={payments as any}
           total={total}
+          totalAmount={Number(totalAmount._sum.amount ?? 0)}
           page={page}
           pageSize={pageSize}
           todayStats={todayStats}
@@ -104,8 +126,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
           userRole={session!.user.role}
           userId={session!.user.id}
           dateFilter={searchParams.dateFilter}
+          currentSort={searchParams.sort ?? "date_desc"}
         />
-        </div>
+      </div>
     </>
   );
 }
