@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Plus, CreditCard, IndianRupee, TrendingUp } from "lucide-react";
+import { Plus, CreditCard, IndianRupee, TrendingUp, Search } from "lucide-react";
 import { RecordPaymentDialog } from "@/components/payments/RecordPaymentDialog";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
@@ -64,6 +64,8 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [showRecord, setShowRecord] = useState(false);
+  const [search, setSearch] = useState(searchParams.get("search") ?? "");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function updateQuery(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -72,6 +74,19 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
     if (key !== "page") params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
   }
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (search.trim()) params.set("search", search.trim());
+      else params.delete("search");
+      params.delete("page");
+      router.push(`${pathname}?${params.toString()}`);
+    }, 400);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const todayYF  = Number(todayStats.find((s) => s.company === "YOS_FITNESS")?._sum.amount ?? 0);
   const todayYFS = Number(todayStats.find((s) => s.company === "YOS_FITNESS_STUDIO")?._sum.amount ?? 0);
@@ -110,6 +125,17 @@ export function PaymentsClient({ payments, total, page, pageSize, todayStats, mo
       {/* ── Toolbar ── */}
       <div className="rounded-2xl px-5 py-4 flex flex-wrap items-center gap-3"
         style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search member, receipt #…"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm outline-none"
+            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f9fafb" }}
+          />
+        </div>
         <select defaultValue={searchParams.get("company") ?? "ALL"} onChange={(e) => updateQuery("company", e.target.value)} style={selectStyle}>
           <option value="ALL">Both Companies</option>
           <option value="YOS_FITNESS">Yos Fitness</option>

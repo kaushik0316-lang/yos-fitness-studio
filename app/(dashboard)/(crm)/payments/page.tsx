@@ -10,7 +10,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Payments" };
 
-type SearchParams = { company?: string; mode?: string; page?: string; dateFilter?: string };
+type SearchParams = { company?: string; mode?: string; page?: string; dateFilter?: string; search?: string };
 
 export default async function PaymentsPage({ searchParams }: { searchParams: SearchParams }) {
   const session = await auth();
@@ -25,6 +25,16 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   }
   if (searchParams.mode && searchParams.mode !== "ALL") {
     where.paymentMode = searchParams.mode;
+  }
+  if (searchParams.search) {
+    const s = searchParams.search.trim();
+    const receiptNum = parseInt(s.replace(/^#/, ""));
+    where.OR = [
+      { member: { fullName: { contains: s, mode: "insensitive" } } },
+      { member: { memberId: { contains: s, mode: "insensitive" } } },
+      { member: { phone: { contains: s } } },
+      ...(!isNaN(receiptNum) ? [{ receiptNumber: receiptNum }] : []),
+    ];
   }
   if (searchParams.dateFilter === "today") {
     where.date = { gte: startOfDay(today), lte: endOfDay(today) };
