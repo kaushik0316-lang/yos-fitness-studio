@@ -6,6 +6,7 @@ import {
   ArrowLeft, Phone, User, Calendar, Package, CreditCard,
   Clock, RotateCcw, CheckCircle, MessageSquare, AlertTriangle, MapPin, Link2Off, BellOff,
 } from "lucide-react";
+import { EditMemberButton } from "@/components/members/EditMemberButton";
 import { toggleDoNotDisturb } from "@/lib/actions/members";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { MemberPhotoUpload } from "@/components/members/MemberPhotoUpload";
@@ -93,8 +94,11 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                   fullName={member.fullName}
                   photoUrl={member.photoUrl ?? null}
                 />
-                <div>
-                  <h2 className="text-xl font-extrabold text-gray-900">{toTitleCase(member.fullName)}</h2>
+                <div className="flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="text-xl font-extrabold text-gray-900">{toTitleCase(member.fullName)}</h2>
+                    <EditMemberButton member={member} />
+                  </div>
                   <p className="text-sm text-gray-400 font-mono mt-0.5">{member.memberId}</p>
                   <p className="text-xs text-gray-400 mt-0.5">Tap photo to update</p>
                 </div>
