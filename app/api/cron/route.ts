@@ -56,17 +56,55 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ success: true, results, timestamp: new Date().toISOString() });
 }
 
-// GET — manual trigger from UI (admin only check handled by middleware)
+// GET — called by Vercel cron scheduler daily
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get("x-cron-secret");
+  const secret =
+    req.headers.get("x-cron-secret") ??
+    req.headers.get("authorization")?.replace("Bearer ", "");
   if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const recentLogs = await prisma.automationLog.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 20,
-  });
+  // Run full automation (same as POST)
+  const results: Record<string, any> = {};
 
-  return NextResponse.json({ logs: recentLogs });
+  try {
+    const r = await runInactiveMembersCheck();
+    results.inactiveCheck = r;
+    await prisma.automationLog.create({
+      data: {
+        type: "INACTIVE_CHECK",
+        status: r.errors.length > 0 ? "PARTIAL" : "SUCCESS",
+        membersProcessed: r.processed,
+        messagesSent: r.messagesQueued,
+        errorMessage: r.errors.length > 0 ? r.errors.join("; ") : undefined,
+      },
+    });
+  } catch (e: any) {
+    results.inactiveCheck = { error: e.message };
+    await prisma.automationLog.create({
+      data: { type: "INACTIVE_CHECK", status: "FAILED", errorMessage: e.message },
+    });
+  }
+
+  try {
+    const r = await runRenewalReminders();
+    results.renewalReminders = r;
+    await prisma.automationLog.create({
+      data: {
+        type: "RENEWAL_REMINDER",
+        status: r.errors.length > 0 ? "PARTIAL" : "SUCCESS",
+        membersProcessed: r.processed,
+        messagesSent: r.messagesQueued,
+        errorMessage: r.errors.length > 0 ? r.errors.join("; ") : undefined,
+      },
+    });
+  } catch (e: any) {
+    results.renewalReminders = { error: e.message };
+    await prisma.automationLog.create({
+      data: { type: "RENEWAL_REMINDER", status: "FAILED", errorMessage: e.message },
+    });
+  }
+
+  return NextResponse.json({ success: true, results, timestamp: new Date().toISOString() });
 }
