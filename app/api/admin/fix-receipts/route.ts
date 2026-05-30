@@ -20,14 +20,18 @@ export async function POST(req: Request) {
     "TP":   "Transformation Package",
   };
 
-  let total = 0;
+  let payments = 0;
+  let packages = 0;
+
   for (const [from, to] of Object.entries(FIXES)) {
-    const r = await prisma.payment.updateMany({
-      where: { categoryLabel: from },
-      data:  { categoryLabel: to },
-    });
-    total += r.count;
+    const p = await prisma.payment.updateMany({ where: { categoryLabel: from }, data: { categoryLabel: to } });
+    payments += p.count;
+    const pkg = await prisma.package.updateMany({ where: { name: from }, data: { name: to } });
+    packages += pkg.count;
   }
 
-  return NextResponse.json({ ok: true, fixed: total });
+  // Also list current package names for review
+  const pkgList = await prisma.package.findMany({ select: { id: true, name: true, isActive: true } });
+
+  return NextResponse.json({ ok: true, fixedPayments: payments, fixedPackages: packages, allPackages: pkgList });
 }
