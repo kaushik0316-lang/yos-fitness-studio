@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
+import { TitleCaseInput } from "./TitleCaseInput";
 import type { UserRole } from "@prisma/client";
 
 type Props = {
@@ -23,6 +24,7 @@ export function CrmShell({ userRole, userName, userEmail, children }: Props) {
 
   return (
     <div className="dark flex h-screen overflow-hidden" style={{ background: "#0e0e0e" }}>
+      <TitleCaseInput />
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
