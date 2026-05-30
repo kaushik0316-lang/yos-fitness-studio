@@ -12,14 +12,19 @@ export async function GET(req: Request) {
 
     if (q.length < 1) return NextResponse.json([]);
 
+    const limit = Math.min(Number(new URL(req.url).searchParams.get("limit") ?? 8), 20);
+
     const members = await prisma.member.findMany({
       where: {
-        fullName: { contains: q, mode: "insensitive" },
-        NOT: { memberId: { startsWith: "IMP-" } },
+        OR: [
+          { fullName: { contains: q, mode: "insensitive" } },
+          { memberId: { contains: q, mode: "insensitive" } },
+          { phone: { contains: q } },
+        ],
       },
       select: { id: true, fullName: true, memberId: true, phone: true },
       orderBy: { fullName: "asc" },
-      take: 8,
+      take: limit,
     });
 
     return NextResponse.json(members);

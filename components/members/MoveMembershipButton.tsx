@@ -35,7 +35,8 @@ export function MoveMembershipButton({ member }: Props) {
       try {
         const res = await fetch(`/api/members/search?q=${encodeURIComponent(query)}&limit=10`);
         const data = await res.json();
-        setResults((data.members ?? []).filter((m: Member) => m.id !== member.id));
+        const list = Array.isArray(data) ? data : (data.members ?? []);
+        setResults(list.filter((m: Member) => m.id !== member.id));
       } catch {
         setResults([]);
       } finally {
