@@ -20,7 +20,8 @@ type Props = {
   };
 };
 
-const inputCls = "w-full px-3 py-2 rounded-xl text-sm outline-none border bg-white focus:border-orange-400 transition-colors text-gray-800";
+const inputCls = "w-full px-3 py-2 rounded-xl text-sm outline-none transition-colors";
+const inputStyle = { background: "#fff", color: "#111827", border: "1px solid #e5e7eb" };
 
 export function EditMemberButton({ member }: Props) {
   const router = useRouter();
@@ -84,14 +85,14 @@ export function EditMemberButton({ member }: Props) {
               {/* Name */}
               <div>
                 <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Full Name *</label>
-                <input value={form.fullName} onChange={(e) => set("fullName", e.target.value)} className={inputCls + " mt-1"} />
+                <input value={form.fullName} onChange={(e) => set("fullName", e.target.value)} className={inputCls + " mt-1"} style={inputStyle} />
               </div>
 
               {/* Contact */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Phone</label>
-                  <input type="tel" data-no-capitalize value={form.phone} onChange={(e) => set("phone", e.target.value)} className={inputCls + " mt-1"} />
+                  <input type="tel" data-no-capitalize value={form.phone} onChange={(e) => set("phone", e.target.value)} className={inputCls + " mt-1"} style={inputStyle} />
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">WhatsApp</label>
@@ -102,7 +103,7 @@ export function EditMemberButton({ member }: Props) {
               {/* Email */}
               <div>
                 <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Email</label>
-                <input type="email" data-no-capitalize value={form.email} onChange={(e) => set("email", e.target.value)} className={inputCls + " mt-1"} />
+                <input type="email" data-no-capitalize value={form.email} onChange={(e) => set("email", e.target.value)} className={inputCls + " mt-1"} style={inputStyle} />
               </div>
 
               {/* Gender */}
@@ -120,25 +121,25 @@ export function EditMemberButton({ member }: Props) {
               {/* Address */}
               <div>
                 <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Address</label>
-                <input value={form.address} onChange={(e) => set("address", e.target.value)} className={inputCls + " mt-1"} />
+                <input value={form.address} onChange={(e) => set("address", e.target.value)} className={inputCls + " mt-1"} style={inputStyle} />
               </div>
 
               {/* Emergency */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Emergency Contact</label>
-                  <input value={form.emergencyContact} onChange={(e) => set("emergencyContact", e.target.value)} className={inputCls + " mt-1"} />
+                  <input value={form.emergencyContact} onChange={(e) => set("emergencyContact", e.target.value)} className={inputCls + " mt-1"} style={inputStyle} />
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Emergency Phone</label>
-                  <input type="tel" data-no-capitalize value={form.emergencyPhone} onChange={(e) => set("emergencyPhone", e.target.value)} className={inputCls + " mt-1"} />
+                  <input type="tel" data-no-capitalize value={form.emergencyPhone} onChange={(e) => set("emergencyPhone", e.target.value)} className={inputCls + " mt-1"} style={inputStyle} />
                 </div>
               </div>
 
               {/* Notes */}
               <div>
                 <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Notes</label>
-                <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={2} className={inputCls + " mt-1 resize-none"} />
+                <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={2} className={inputCls + " mt-1 resize-none"} style={inputStyle} />
               </div>
 
               {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
