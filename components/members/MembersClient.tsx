@@ -66,8 +66,14 @@ function waLink(phone: string) {
 
 // Normalize package/category label — strip duration prefixes, expand abbreviations
 const ABBR: Record<string, string> = {
-  "g/f": "General Fitness", "gf": "General Fitness",
-  "sf": "Student Fitness",  "sp": "Student Package",
+  "g/f":  "General Fitness",
+  "gf":   "General Fitness",
+  "sf":   "Student Fitness",
+  "sp":   "Student Package",
+  "st/p": "Student Package",
+  "stp":  "Student Package",
+  "t/p":  "Transformation Package",
+  "tp":   "Transformation Package",
 };
 function cleanPackageLabel(raw: string | null | undefined): string | null {
   if (!raw) return null;
