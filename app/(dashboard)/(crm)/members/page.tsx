@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { MembersClient } from "@/components/members/MembersClient";
-import { ExportMembersButton } from "@/components/members/ExportMembersButton";
 import { MemberStatus } from "@prisma/client";
 import { subDays } from "date-fns";
 
@@ -16,17 +15,17 @@ type SearchParams = {
   showGhosts?: string;
   page?: string;
   sort?: string;
+  pageSize?: string;
 };
 
 export default async function MembersPage({ searchParams }: { searchParams: SearchParams }) {
   const session = await auth();
-  const page = Number(searchParams.page ?? 1);
-  const pageSize = 25;
-  const skip = (page - 1) * pageSize;
+  const page     = Number(searchParams.page ?? 1);
+  const pageSize = Math.min(Number(searchParams.pageSize ?? 25), 100);
+  const skip     = (page - 1) * pageSize;
 
   const where: any = {};
 
-  // Hide IMP-* ghost members only when explicitly opted out
   if (searchParams.showGhosts === "false") {
     where.memberId = { not: { startsWith: "IMP-" } };
   }
@@ -40,8 +39,10 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
     ];
   }
 
-  if (searchParams.status && searchParams.status !== "ALL") {
-    where.status = searchParams.status as MemberStatus;
+  // Default to ACTIVE if no status param
+  const statusParam = searchParams.status ?? "ACTIVE";
+  if (statusParam && statusParam !== "ALL") {
+    where.status = statusParam as MemberStatus;
   }
 
   if (searchParams.inactive === "true") {
@@ -52,7 +53,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
     ];
   }
 
-  const [members, total, packages, employees] = await Promise.all([
+  const [members, total, packages, employees, statusCounts] = await Promise.all([
     prisma.member.findMany({
       where,
       include: {
@@ -62,15 +63,17 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
       },
       orderBy: (() => {
         switch (searchParams.sort) {
-          case "id_asc":      return [{ memberId: "asc" as const }];
-          case "name_asc":    return [{ fullName: "asc" as const }];
-          case "name_desc":   return [{ fullName: "desc" as const }];
-          case "join_asc":    return [{ joinDate: "asc" as const }];
-          case "join_desc":   return [{ joinDate: "desc" as const }];
-          case "visit_asc":   return [{ lastAttendanceDate: "asc" as const }];
-          case "visit_desc":  return [{ lastAttendanceDate: "desc" as const }];
+          case "id_asc":     return [{ memberId: "asc" as const }];
+          case "name_asc":   return [{ fullName: "asc" as const }];
+          case "name_desc":  return [{ fullName: "desc" as const }];
+          case "join_asc":   return [{ joinDate: "asc" as const }];
+          case "join_desc":  return [{ joinDate: "desc" as const }];
+          case "expiry_asc": return [{ expiryDate: "asc" as const }];
+          case "expiry_desc":return [{ expiryDate: "desc" as const }];
+          case "visit_asc":  return [{ lastAttendanceDate: "asc" as const }];
+          case "visit_desc": return [{ lastAttendanceDate: "desc" as const }];
           case "id_desc":
-          default:            return [{ memberId: "desc" as const }];
+          default:           return [{ memberId: "desc" as const }];
         }
       })(),
       skip,
@@ -82,15 +85,17 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
       where: { isActive: true, role: { in: ["TRAINER", "MANAGER"] } },
       select: { id: true, fullName: true, role: true },
     }),
+    // Count per status (ignoring current filters for global counts)
+    prisma.member.groupBy({ by: ["status"], _count: { status: true } }),
   ]);
+
+  const countsMap: Record<string, number> = {};
+  for (const row of statusCounts) countsMap[row.status] = row._count.status;
 
   return (
     <>
       <Header title="Members" subtitle={`${total} members`} />
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="flex justify-end mb-4">
-          <ExportMembersButton />
-        </div>
         <MembersClient
           members={members as any}
           total={total}
@@ -100,6 +105,8 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
           trainers={employees}
           userRole={session!.user.role}
           userId={session!.user.id}
+          statusCounts={countsMap}
+          activeStatusFilter={statusParam}
         />
       </div>
     </>
