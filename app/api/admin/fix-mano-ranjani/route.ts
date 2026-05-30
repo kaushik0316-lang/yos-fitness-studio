@@ -61,12 +61,20 @@ export async function POST(req: Request) {
 
   // ── Fix old member status after membership was moved away ─────────────────
   if (body.action === "fix-old-member") {
-    const { memberId } = body;
-    if (!memberId) return NextResponse.json({ error: "memberId required" }, { status: 400 });
+    // Support lookup by database id OR by memberId code (e.g. "YF-1915") OR by name fragment
+    let record = body.memberId
+      ? await prisma.member.findUnique({ where: { id: body.memberId }, select: { id: true, fullName: true, memberId: true } })
+      : body.memberCode
+      ? await prisma.member.findFirst({ where: { memberId: body.memberCode }, select: { id: true, fullName: true, memberId: true } })
+      : body.name
+      ? await prisma.member.findFirst({ where: { fullName: { contains: body.name, mode: "insensitive" } }, select: { id: true, fullName: true, memberId: true } })
+      : null;
 
-    const remaining = await prisma.membership.count({ where: { memberId } });
+    if (!record) return NextResponse.json({ error: "Member not found" }, { status: 404 });
+
+    const remaining = await prisma.membership.count({ where: { memberId: record.id } });
     const member = await prisma.member.update({
-      where: { id: memberId },
+      where: { id: record.id },
       data: remaining === 0
         ? { currentPackageId: null, expiryDate: null, renewalDueDate: null, status: "EXPIRED" }
         : { status: "ACTIVE" },
