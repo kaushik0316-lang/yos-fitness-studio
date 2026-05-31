@@ -10,8 +10,6 @@ import { EditMemberButton } from "@/components/members/EditMemberButton";
 import { toggleDoNotDisturb } from "@/lib/actions/members";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { MemberPhotoUpload } from "@/components/members/MemberPhotoUpload";
-import { RenewMembershipDialog } from "@/components/members/RenewMembershipDialog";
-import { RecordPaymentDialog } from "@/components/payments/RecordPaymentDialog";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import {
   formatDate, formatCurrency, daysUntil, daysAgo,
@@ -27,7 +25,6 @@ type Props = {
 };
 
 export function MemberDetail({ member, packages, trainers, userRole, userId }: Props) {
-  const [showRenew, setShowRenew] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showAttendance, setShowAttendance] = useState(false);
   const [dnd, setDnd] = useState<boolean>(member.doNotDisturb ?? false);
@@ -68,15 +65,6 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
               <CreditCard className="h-4 w-4" />
               Record Payment
             </Link>
-          )}
-          {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
-            <button
-              onClick={() => setShowRenew(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-bold transition-colors shadow-lg shadow-orange-200"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Renew Membership
-            </button>
           )}
         </div>
       </div>
@@ -389,11 +377,6 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
       </div>
 
       {/* Dialogs */}
-      <RenewMembershipDialog
-        open={showRenew} onClose={() => setShowRenew(false)}
-        member={{ id: member.id, memberId: member.memberId, fullName: member.fullName }}
-        packages={packages} userId={userId}
-      />
       <MarkAttendanceDialog
         open={showAttendance} onClose={() => setShowAttendance(false)}
         member={{ id: member.id, memberId: member.memberId, fullName: member.fullName }}
