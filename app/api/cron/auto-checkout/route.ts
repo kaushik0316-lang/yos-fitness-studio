@@ -191,8 +191,9 @@ async function runAutoCheckout() {
 }
 
 function isAuthorized(req: NextRequest): boolean {
-  const secret = req.headers.get("x-cron-secret") ?? req.headers.get("authorization")?.replace("Bearer ", "");
-  return secret === process.env.CRON_SECRET;
+  const cronSecret = process.env.CRON_SECRET;
+  const secret = req.headers.get("x-cron-secret");
+  return !!(cronSecret && secret && secret === cronSecret);
 }
 
 export async function GET(req: NextRequest) {

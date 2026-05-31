@@ -100,7 +100,7 @@ function findByName(
     const mWords = memberWordsMap[mid] ?? [];
     const coverageByReceipt = topScore / rWords.length;          // how much of receipt matched
     const coverageByMember  = topScore / Math.max(mWords.length, 1); // how much of member matched
-    return coverageByReceipt >= 0.5 || coverageByMember >= 0.5;
+    return coverageByReceipt >= 0.67 || coverageByMember >= 0.67;
   });
 
   // Only return a match when there's exactly one confident candidate
@@ -260,6 +260,7 @@ export async function POST(req: NextRequest) {
           nameIndex[w].push(memberId);
         }
         ghostCreated++;
+        warnings.push(`Row ${i + 1}: "${name}" — no match found, created ghost member. Review and merge via Admin → Merge Duplicates.`);
       } catch (e: any) {
         errors++;
         warnings.push(`Row ${i + 1}: "${name}" — could not create member: ${e.message}`);

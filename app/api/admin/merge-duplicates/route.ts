@@ -51,6 +51,7 @@ type MemberRow = {
   gender: string | null; bloodGroup: string | null;
   emergencyContact: string | null; emergencyPhone: string | null;
   expiryDate: Date | null; renewalDueDate: Date | null;
+  trainerId: string | null; notes: string | null;
   _count: { payments: number; attendances: number };
 };
 
@@ -66,6 +67,7 @@ async function getDuplicateGroups(): Promise<DupeGroup[]> {
       gender: true, bloodGroup: true,
       emergencyContact: true, emergencyPhone: true,
       expiryDate: true, renewalDueDate: true,
+      trainerId: true, notes: true,
       _count: { select: { payments: true, attendances: true } },
     },
   }) as MemberRow[];
@@ -135,7 +137,7 @@ export async function GET() {
 
     return NextResponse.json({ duplicates });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }
 
@@ -178,6 +180,8 @@ export async function POST() {
             }
             const rank: Record<string, number> = { ACTIVE: 4, FROZEN: 3, EXPIRED: 2, INACTIVE: 1, PROSPECT: 0 };
             if ((rank[dup.status] ?? 0) > (rank[primary.status] ?? 0)) updates.status = dup.status;
+            if (!primary.trainerId && dup.trainerId) updates.trainerId = dup.trainerId;
+            if (dup.notes) updates.notes = primary.notes ? `${primary.notes} | ${dup.notes}` : dup.notes;
 
             if (Object.keys(updates).length > 0) {
               await tx.member.update({ where: { id: primary.id }, data: updates });
@@ -195,6 +199,6 @@ export async function POST() {
 
     return NextResponse.json({ merged: mergedCount, results });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }

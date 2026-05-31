@@ -144,6 +144,20 @@ export async function updateMember(id: string, input: Partial<z.infer<typeof cre
 
   const before = await prisma.member.findUnique({ where: { id } });
 
+  // Prevent manually setting an expired member to active without a payment
+  if (input.status === "ACTIVE" && before?.status === "EXPIRED") {
+    throw new Error("Cannot manually set an expired member to active. Please record a renewal payment instead.");
+  }
+
+  // Compute which fields actually changed for the audit log
+  const changedFields: string[] = [];
+  if (input.fullName && input.fullName !== before?.fullName) changedFields.push("fullName");
+  if (input.phone && input.phone !== before?.phone) changedFields.push("phone");
+  if (input.status && input.status !== before?.status) changedFields.push("status");
+  if (input.trainerId !== undefined && input.trainerId !== before?.trainerId) changedFields.push("trainerId");
+  if (input.address !== undefined && input.address !== before?.address) changedFields.push("address");
+  if (input.notes !== undefined && input.notes !== before?.notes) changedFields.push("notes");
+
   const updated = await prisma.member.update({
     where: { id },
     data: {
@@ -167,7 +181,7 @@ export async function updateMember(id: string, input: Partial<z.infer<typeof cre
       entity: "Member",
       entityId: id,
       oldValues: before as any,
-      newValues: input as any,
+      newValues: { ...input, _changedFields: changedFields } as any,
     },
   });
 

@@ -321,6 +321,7 @@ model Payment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([company, receiptNumber])
   @@index([date])
   @@index([company])
   @@index([memberId])

@@ -48,6 +48,10 @@ export async function updateBonus(recordId: string, bonus: number) {
     throw new Error("Unauthorized");
   }
 
+  if (typeof bonus !== "number" || bonus < 0) {
+    throw new Error("Bonus must be a non-negative number.");
+  }
+
   const record = await prisma.payrollRecord.findUnique({ where: { id: recordId } });
   if (!record) throw new Error("Record not found");
 

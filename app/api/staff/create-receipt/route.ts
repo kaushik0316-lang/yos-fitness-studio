@@ -33,9 +33,15 @@ export async function POST(req: NextRequest) {
     if (!systemUser) return NextResponse.json({ error: "System config error" }, { status: 500 });
 
     if (!amount || Number(amount) <= 0) return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+    if (discount !== undefined && Number(discount) < 0) return NextResponse.json({ error: "Discount cannot be negative" }, { status: 400 });
+    if (pendingAmount !== undefined && Number(pendingAmount) < 0) return NextResponse.json({ error: "Pending amount cannot be negative" }, { status: 400 });
     if (!memberId && !newMemberName?.trim()) return NextResponse.json({ error: "Member required" }, { status: 400 });
 
-    const payment = await prisma.$transaction(async (tx) => {
+    let payment: { id: string; receiptNumber: number | null } | null = null;
+    // Retry up to 5 times on receipt number collision
+    for (let attempt = 0; ; attempt++) {
+    try {
+    payment = await prisma.$transaction(async (tx) => {
       // Create new member on the fly if needed
       let resolvedMemberId = memberId ?? "";
       if (!resolvedMemberId && newMemberName?.trim()) {
@@ -103,9 +109,17 @@ export async function POST(req: NextRequest) {
 
       return created;
     });
+    break; // success
+    } catch (e: any) {
+      if (e.code === "P2002" && (e.meta?.target as string[] | undefined)?.includes("receiptNumber") && attempt < 4) {
+        continue;
+      }
+      return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
+    }
+    }
 
-    return NextResponse.json({ paymentId: payment.id, receiptNumber: payment.receiptNumber });
+    return NextResponse.json({ paymentId: payment!.id, receiptNumber: payment!.receiptNumber });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message ?? "Something went wrong" }, { status: 500 });
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }

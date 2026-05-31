@@ -11,8 +11,8 @@ import { z } from "zod";
 const paymentSchema = z.object({
   memberId: z.string(),
   amount: z.number().positive(),
-  discount: z.number().default(0),
-  pendingAmount: z.number().default(0),
+  discount: z.number().nonnegative().default(0),
+  pendingAmount: z.number().nonnegative().default(0),
   paymentMode: z.nativeEnum(PaymentMode),
   packageId: z.string().optional(),
   company: z.nativeEnum(Company),

@@ -24,6 +24,7 @@ const PUBLIC_PAGES = new Set([
 const PROTECTED_PREFIXES = [
   "/admin",
   "/attendance",
+  "/dashboard",
   "/automation",
   "/employee-attendance",
   "/members",

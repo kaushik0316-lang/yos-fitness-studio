@@ -20,6 +20,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Name, phone and gym selection are required." }, { status: 400 });
   }
 
+  const digitsOnly = phone.trim().replace(/\D/g, "");
+  if (digitsOnly.length !== 10) {
+    return NextResponse.json({ error: "Phone number must be exactly 10 digits." }, { status: 400 });
+  }
+
   // Generate next member ID inside a transaction (primaryCompany used for ID prefix only, not stored)
   const member = await prisma.$transaction(async (tx) => {
     const prefix = primaryCompany === "YOS_FITNESS" ? "YF" : "YFS";

@@ -24,6 +24,16 @@ export async function POST(req: NextRequest) {
   if (!from) return NextResponse.json({ error: "Source member not found" }, { status: 404 });
   if (!to)   return NextResponse.json({ error: "Target member not found" }, { status: 404 });
 
+  // Check if destination already has an active membership
+  const conflicting = await prisma.membership.findFirst({
+    where: { memberId: toMemberId, expiryDate: { gt: new Date() } },
+  });
+  if (conflicting) {
+    return NextResponse.json({
+      error: "Target member already has an active membership. Moving would create overlapping memberships. Resolve the existing membership first.",
+    }, { status: 409 });
+  }
+
   await prisma.$transaction(async (tx) => {
     // Move memberships
     await tx.membership.updateMany({ where: { memberId: fromMemberId }, data: { memberId: toMemberId } });

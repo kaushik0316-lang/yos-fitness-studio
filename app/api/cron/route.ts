@@ -6,8 +6,9 @@ import { runRenewalReminders } from "@/lib/automation/renewalReminders";
 // Call this endpoint daily via a cron job (Vercel Cron, GitHub Actions, etc.)
 // Header: x-cron-secret: <your CRON_SECRET>
 export async function POST(req: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET;
   const secret = req.headers.get("x-cron-secret");
-  if (secret !== process.env.CRON_SECRET) {
+  if (!cronSecret || !secret || secret !== cronSecret) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -58,10 +59,9 @@ export async function POST(req: NextRequest) {
 
 // GET — called by Vercel cron scheduler daily
 export async function GET(req: NextRequest) {
-  const secret =
-    req.headers.get("x-cron-secret") ??
-    req.headers.get("authorization")?.replace("Bearer ", "");
-  if (secret !== process.env.CRON_SECRET) {
+  const cronSecret = process.env.CRON_SECRET;
+  const secret = req.headers.get("x-cron-secret");
+  if (!cronSecret || !secret || secret !== cronSecret) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

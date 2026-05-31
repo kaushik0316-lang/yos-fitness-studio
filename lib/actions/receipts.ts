@@ -15,8 +15,8 @@ const receiptSchema = z.object({
   categoryLabel: z.string(),
   periodLabel: z.string(),
   amount: z.number().positive(),
-  discount: z.number().default(0),
-  pendingAmount: z.number().default(0),
+  discount: z.number().nonnegative().default(0),
+  pendingAmount: z.number().nonnegative().default(0),
   paymentMode: z.nativeEnum(PaymentMode),
   billDate: z.string().optional(), // "YYYY-MM-DD" — defaults to today if omitted
   startDate: z.string(), // "YYYY-MM-DD"
@@ -44,7 +44,11 @@ export async function createReceipt(input: z.infer<typeof receiptSchema>) {
     throw new Error("Please select a member or enter a new member name.");
   }
 
-  const payment = await prisma.$transaction(async (tx) => {
+  let payment: Awaited<ReturnType<typeof prisma.payment.create>>;
+  // Retry up to 5 times on receipt number collision (race condition guard)
+  for (let attempt = 0; ; attempt++) {
+    try {
+      payment = await prisma.$transaction(async (tx) => {
     // ── Create new member on the fly if needed ────────────────────────────
     let resolvedMemberId = data.memberId ?? "";
     if (!resolvedMemberId && data.newMemberName?.trim()) {
@@ -134,12 +138,20 @@ export async function createReceipt(input: z.infer<typeof receiptSchema>) {
       },
     });
 
-    return created;
-  });
+      return created;
+      });
+      break; // success — exit retry loop
+    } catch (e: any) {
+      if (e.code === "P2002" && (e.meta?.target as string[] | undefined)?.includes("receiptNumber") && attempt < 4) {
+        continue; // collision on receipt number — retry
+      }
+      throw e;
+    }
+  }
 
   revalidatePath("/payments");
   revalidatePath("/members");
   revalidatePath("/");
 
-  return { success: true, paymentId: payment.id };
+  return { success: true, paymentId: payment!.id };
 }

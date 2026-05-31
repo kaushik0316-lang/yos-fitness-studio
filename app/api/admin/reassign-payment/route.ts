@@ -28,6 +28,21 @@ export async function POST(req: NextRequest) {
     if (payment.memberId === newMemberId)
       return NextResponse.json({ error: "Already assigned to this member" }, { status: 400 });
 
+    // Check if destination member already has an active membership that would conflict
+    if (payment.membership) {
+      const conflicting = await prisma.membership.findFirst({
+        where: {
+          memberId: newMemberId,
+          expiryDate: { gt: new Date() },
+        },
+      });
+      if (conflicting) {
+        return NextResponse.json({
+          error: "Target member already has an active membership. Reassigning would create overlapping memberships. Resolve the existing membership first.",
+        }, { status: 409 });
+      }
+    }
+
     const oldMember = payment.member;
 
     await prisma.$transaction(async (tx) => {
@@ -92,6 +107,6 @@ export async function POST(req: NextRequest) {
       to: { name: newMember.fullName, memberId: newMember.memberId },
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }

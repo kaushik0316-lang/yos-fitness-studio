@@ -1,6 +1,25 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+const editSchema = z.object({
+  memberName: z.string().optional(),
+  memberPhone: z.string().optional().nullable(),
+  newMemberId: z.string().optional(),
+  date: z.string().optional(),
+  amount: z.number().positive().optional(),
+  discount: z.number().nonnegative().optional(),
+  pendingAmount: z.number().nonnegative().optional(),
+  paymentMode: z.string().optional(),
+  categoryLabel: z.string().optional(),
+  periodLabel: z.string().optional(),
+  startDate: z.string().optional(),
+  expiryDate: z.string().optional(),
+  notes: z.string().optional().nullable(),
+  transactionRef: z.string().optional().nullable(),
+  company: z.string().optional(),
+});
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -8,10 +27,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (!session?.user || session.user.role !== "ADMIN")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json();
+    const raw = await req.json();
+    const parsed = editSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input: " + parsed.error.errors[0]?.message }, { status: 400 });
+    }
     const { memberName, memberPhone, newMemberId, date, amount, discount, pendingAmount, paymentMode,
             categoryLabel, periodLabel, startDate, expiryDate,
-            notes, transactionRef, company } = body;
+            notes, transactionRef, company } = parsed.data;
 
     const payment = await prisma.payment.findUnique({
       where: { id: params.id },
@@ -73,6 +96,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }
