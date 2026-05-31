@@ -21,23 +21,19 @@ export async function POST(req: Request) {
   if (body.secret !== SECRET)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Rename duration-based package names to clean category names
-  const RENAMES: Record<string, string> = {
-    "1 Month - Yos Fitness":    "General Fitness",
-    "1 Month - Yos Studio":     "General Fitness",
-    "3 Months - Yos Fitness":   "General Fitness",
-    "3 Months - Yos Studio":    "General Fitness",
-    "6 Months - Yos Fitness":   "General Fitness",
-    "6 Months - Yos Studio":    "General Fitness",
-    "12 Months - Yos Fitness":  "General Fitness",
-    "12 Months - Yos Studio":   "General Fitness",
-  };
+  // Deactivate duration-based packages (they disappear from dropdowns, history preserved)
+  const DEACTIVATE = [
+    "1 Month - Yos Fitness", "1 Month - Yos Studio",
+    "3 Months - Yos Fitness", "3 Months - Yos Studio",
+    "6 Months - Yos Fitness", "6 Months - Yos Studio",
+    "12 Months - Yos Fitness", "12 Months - Yos Studio",
+  ];
 
-  let updated = 0;
-  for (const [from, to] of Object.entries(RENAMES)) {
-    const r = await prisma.package.updateMany({ where: { name: from }, data: { name: to } });
-    updated += r.count;
-  }
+  const r = await prisma.package.updateMany({
+    where: { name: { in: DEACTIVATE } },
+    data: { isActive: false },
+  });
+  const updated = r.count;
 
   const packages = await prisma.package.findMany({
     select: { id: true, name: true, isActive: true },
