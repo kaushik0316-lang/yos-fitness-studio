@@ -26,7 +26,9 @@ type Stats = { company: Company; _sum: { amount: any }; _count: number }[];
 type Props = {
   payments: Payment[]; total: number; totalAmount: number;
   page: number; pageSize: number;
-  todayStats: Stats; monthStats: Stats; packages: any[];
+  todayStats: Stats; monthStats: Stats;
+  filteredStats?: Stats | null; filteredLabel?: string;
+  packages: any[];
   members: { id: string; memberId: string; fullName: string }[];
   userRole: UserRole; userId: string;
   dateFilter?: string; currentSort: string;
@@ -84,7 +86,8 @@ function SortIcon({ col, current }: { col: string; current: string }) {
 
 export function PaymentsClient({
   payments, total, totalAmount, page, pageSize,
-  todayStats, monthStats, packages, members,
+  todayStats, monthStats, filteredStats, filteredLabel,
+  packages, members,
   userRole, userId, dateFilter, currentSort,
 }: Props) {
   const router   = useRouter();
@@ -126,6 +129,8 @@ export function PaymentsClient({
   const todayYFS = Number(todayStats.find((s) => s.company === "YOS_FITNESS_STUDIO")?._sum.amount ?? 0);
   const monthYF  = Number(monthStats.find((s) => s.company === "YOS_FITNESS")?._sum.amount ?? 0);
   const monthYFS = Number(monthStats.find((s) => s.company === "YOS_FITNESS_STUDIO")?._sum.amount ?? 0);
+  const filtYF   = filteredStats ? Number(filteredStats.find((s) => s.company === "YOS_FITNESS")?._sum.amount ?? 0) : null;
+  const filtYFS  = filteredStats ? Number(filteredStats.find((s) => s.company === "YOS_FITNESS_STUDIO")?._sum.amount ?? 0) : null;
   const totalPages = Math.ceil(total / pageSize);
   const from = (page - 1) * pageSize + 1;
   const to   = Math.min(page * pageSize, total);
@@ -134,12 +139,17 @@ export function PaymentsClient({
     <div className="space-y-4">
       {/* ── Stats strip ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
+        {(filteredStats && filteredLabel ? [
+          { label: `${filteredLabel} · Yos Fitness`, value: filtYF  ?? 0, accent: "#f97316", icon: IndianRupee },
+          { label: `${filteredLabel} · Yos Studio`,  value: filtYFS ?? 0, accent: "#6366f1", icon: IndianRupee },
+          { label: "Month · Yos Fitness",  value: monthYF,  accent: "#f97316", icon: TrendingUp  },
+          { label: "Month · Yos Studio",   value: monthYFS, accent: "#6366f1", icon: TrendingUp  },
+        ] : [
           { label: "Today · Yos Fitness",  value: todayYF,  accent: "#f97316", icon: IndianRupee },
           { label: "Today · Yos Studio",   value: todayYFS, accent: "#6366f1", icon: IndianRupee },
           { label: "Month · Yos Fitness",  value: monthYF,  accent: "#f97316", icon: TrendingUp  },
           { label: "Month · Yos Studio",   value: monthYFS, accent: "#6366f1", icon: TrendingUp  },
-        ].map((s) => (
+        ]).map((s) => (
           <div key={s.label} className="relative overflow-hidden rounded-2xl px-4 py-3 flex items-center gap-3"
             style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
             <div className="absolute inset-y-0 left-0 w-[3px] rounded-l-2xl" style={{ background: s.accent }} />
@@ -238,10 +248,10 @@ export function PaymentsClient({
                   Amount <SortIcon col="amount" current={currentSort} />
                 </th>
                 <th className="text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Mode</th>
-                <th className="text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Type</th>
-                <th className="text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest whitespace-nowrap">Valid Until</th>
-                <th className="text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Company</th>
-                <th className="text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Sold By</th>
+                <th className="hidden md:table-cell text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Type</th>
+                <th className="hidden lg:table-cell text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest whitespace-nowrap">Valid Until</th>
+                <th className="hidden lg:table-cell text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Company</th>
+                <th className="hidden md:table-cell text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Sold By</th>
               </tr>
             </thead>
             <tbody>
@@ -304,13 +314,13 @@ export function PaymentsClient({
                         </span>
                       </td>
                       {/* Type */}
-                      <td className="px-5 py-3.5">
+                      <td className="hidden md:table-cell px-5 py-3.5">
                         {type
                           ? <span className="px-2 py-1 rounded-lg text-xs font-semibold" style={{ background: type.bg, color: type.color }}>{type.label}</span>
                           : <span className="text-gray-700 text-xs">—</span>}
                       </td>
                       {/* Valid Until */}
-                      <td className="px-5 py-3.5 whitespace-nowrap">
+                      <td className="hidden lg:table-cell px-5 py-3.5 whitespace-nowrap">
                         {p.expiryDate ? (
                           <div>
                             <p className="text-sm font-semibold text-gray-300">{formatDate(p.expiryDate)}</p>
@@ -319,11 +329,11 @@ export function PaymentsClient({
                         ) : <span className="text-gray-700 text-sm">—</span>}
                       </td>
                       {/* Company */}
-                      <td className="px-5 py-3.5">
+                      <td className="hidden lg:table-cell px-5 py-3.5">
                         <span className="px-2 py-1 rounded-lg text-xs font-semibold" style={{ background: co.bg, color: co.color }}>{co.label}</span>
                       </td>
                       {/* Sold By */}
-                      <td className="px-5 py-3.5 text-sm">
+                      <td className="hidden md:table-cell px-5 py-3.5 text-sm">
                         {p.soldBy
                           ? <span className="font-semibold text-orange-400">{toTitleCase(p.soldBy.fullName)}</span>
                           : <span className="text-gray-600 text-xs">Common</span>}

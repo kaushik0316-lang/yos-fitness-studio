@@ -58,16 +58,20 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
     where.date = { gte: startOfMonth(today), lte: endOfMonth(today) };
   }
 
-  // Sort
+  // Sort — always add receiptNumber as tiebreaker within the same date
   const orderBy: any =
-    searchParams.sort === "amount_desc" ? { amount: "desc" } :
-    searchParams.sort === "amount_asc"  ? { amount: "asc" }  :
-    searchParams.sort === "receipt_asc" ? { receiptNumber: "asc" } :
-    searchParams.sort === "receipt_desc"? { receiptNumber: "desc" } :
-    searchParams.sort === "date_asc"    ? { date: "asc" } :
-    { date: "desc" };
+    searchParams.sort === "amount_desc" ? [{ amount: "desc" }, { receiptNumber: "desc" }] :
+    searchParams.sort === "amount_asc"  ? [{ amount: "asc"  }, { receiptNumber: "desc" }] :
+    searchParams.sort === "receipt_asc" ? [{ receiptNumber: "asc"  }] :
+    searchParams.sort === "receipt_desc"? [{ receiptNumber: "desc" }] :
+    searchParams.sort === "date_asc"    ? [{ date: "asc"  }, { receiptNumber: "asc"  }] :
+    [{ date: "desc" }, { receiptNumber: "desc" }];
 
-  const [payments, total, totalAmount, todayStats, monthStats, packages, members] = await Promise.all([
+  // When a filter is active, compute per-company stats for the current filter
+  const hasFilter = !!(searchParams.dateFilter || searchParams.dateFrom || searchParams.dateTo
+    || searchParams.company || searchParams.mode || searchParams.paymentType || searchParams.search);
+
+  const [payments, total, totalAmount, todayStats, monthStats, filteredStats, packages, members] = await Promise.all([
     prisma.payment.findMany({
       where,
       include: {
@@ -92,6 +96,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
       where: { date: { gte: startOfMonth(today), lte: endOfMonth(today) } },
       _sum: { amount: true }, _count: true,
     }),
+    hasFilter
+      ? prisma.payment.groupBy({ by: ["company"], where, _sum: { amount: true }, _count: true })
+      : Promise.resolve(null),
     prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.member.findMany({
       where: { memberId: { not: { startsWith: "IMP-" } } },
@@ -121,6 +128,14 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
           pageSize={pageSize}
           todayStats={todayStats}
           monthStats={monthStats}
+          filteredStats={filteredStats as any}
+          filteredLabel={
+            searchParams.dateFilter === "today" ? "Today" :
+            searchParams.dateFilter === "week"  ? "This Week" :
+            searchParams.dateFilter === "month" ? "This Month" :
+            searchParams.dateFrom || searchParams.dateTo ? "Selected Range" :
+            hasFilter ? "Filtered" : undefined
+          }
           packages={packages}
           members={members as any}
           userRole={session!.user.role}

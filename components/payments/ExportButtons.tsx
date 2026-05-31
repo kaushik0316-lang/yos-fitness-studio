@@ -11,58 +11,55 @@ const MONTHS = [
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = [CURRENT_YEAR - 2, CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1];
 
+const selectStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.06)",
+  border: "1px solid rgba(255,255,255,0.1)",
+  color: "#d1d5db",
+  borderRadius: "0.75rem",
+  padding: "0.4rem 0.65rem",
+  fontSize: "0.8125rem",
+  cursor: "pointer",
+  outline: "none",
+};
+
 export function ExportButtons() {
   const now = new Date();
-  const [month, setMonth] = useState(now.getMonth() + 1); // 1-12
+  const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
 
   const monthStr = `${year}-${String(month).padStart(2, "0")}`;
 
-  const selectClass =
-    "text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-orange-400 transition-colors bg-white text-gray-700 font-medium cursor-pointer";
-
-  const btnClass =
-    "border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-3 py-2 rounded-xl flex items-center gap-1.5 transition-colors";
-
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <select
-        value={month}
-        onChange={(e) => setMonth(Number(e.target.value))}
-        className={selectClass}
-      >
+      <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Export CSV:</span>
+
+      <select value={month} onChange={(e) => setMonth(Number(e.target.value))} style={selectStyle}>
         {MONTHS.map((name, i) => (
           <option key={name} value={i + 1}>{name}</option>
         ))}
       </select>
 
-      <select
-        value={year}
-        onChange={(e) => setYear(Number(e.target.value))}
-        className={selectClass}
-      >
+      <select value={year} onChange={(e) => setYear(Number(e.target.value))} style={selectStyle}>
         {YEARS.map((y) => (
           <option key={y} value={y}>{y}</option>
         ))}
       </select>
 
       <button
-        className={btnClass}
-        onClick={() => {
-          window.location.href = `/api/export/payments?company=YOS_FITNESS&month=${monthStr}`;
-        }}
+        onClick={() => { window.location.href = `/api/export/payments?company=YOS_FITNESS&month=${monthStr}`; }}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
+        style={{ background: "rgba(249,115,22,0.12)", color: "#fb923c", border: "1px solid rgba(249,115,22,0.25)" }}
       >
-        <Download size={14} />
+        <Download size={12} />
         Yos Fitness
       </button>
 
       <button
-        className={btnClass}
-        onClick={() => {
-          window.location.href = `/api/export/payments?company=YOS_FITNESS_STUDIO&month=${monthStr}`;
-        }}
+        onClick={() => { window.location.href = `/api/export/payments?company=YOS_FITNESS_STUDIO&month=${monthStr}`; }}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
+        style={{ background: "rgba(99,102,241,0.12)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.25)" }}
       >
-        <Download size={14} />
+        <Download size={12} />
         Yos Studio
       </button>
     </div>
