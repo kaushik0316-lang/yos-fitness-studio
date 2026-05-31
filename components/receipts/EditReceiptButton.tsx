@@ -21,6 +21,7 @@ type Props = {
     expiryDate: string;
     notes: string;
     transactionRef: string;
+    company: string;
   };
 };
 
@@ -242,13 +243,23 @@ export function EditReceiptButton({ paymentId, current }: Props) {
                 </div>
               </div>
 
-              {/* Payment mode */}
-              <div>
-                <label style={LBL}>Payment Mode</label>
-                <select style={INP} value={form.paymentMode}
-                  onChange={(e) => set("paymentMode", e.target.value)}>
-                  {MODES.map((m) => <option key={m} value={m}>{MODE_LABELS[m]}</option>)}
-                </select>
+              {/* Payment mode + Company */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div>
+                  <label style={LBL}>Payment Mode</label>
+                  <select style={INP} value={form.paymentMode}
+                    onChange={(e) => set("paymentMode", e.target.value)}>
+                    {MODES.map((m) => <option key={m} value={m}>{MODE_LABELS[m]}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={LBL}>Company</label>
+                  <select style={INP} value={form.company}
+                    onChange={(e) => set("company", e.target.value)}>
+                    <option value="YOS_FITNESS">Yos Fitness</option>
+                    <option value="YOS_FITNESS_STUDIO">Yos Studio</option>
+                  </select>
+                </div>
               </div>
 
               {/* Category + Period */}

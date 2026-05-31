@@ -140,6 +140,7 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
               expiryDate:    payment.expiryDate ? format(new Date(payment.expiryDate), "yyyy-MM-dd") : "",
               notes:         payment.notes ?? "",
               transactionRef: payment.transactionRef ?? "",
+              company:       payment.company,
             }}
           />
         )}

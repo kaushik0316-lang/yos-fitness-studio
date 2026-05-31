@@ -11,7 +11,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const body = await req.json();
     const { memberName, memberPhone, newMemberId, date, amount, discount, pendingAmount, paymentMode,
             categoryLabel, periodLabel, startDate, expiryDate,
-            notes, transactionRef } = body;
+            notes, transactionRef, company } = body;
 
     const payment = await prisma.payment.findUnique({
       where: { id: params.id },
@@ -56,6 +56,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         expiryDate:    expiryDate ? new Date(expiryDate) : undefined,
         notes:         notes         ?? undefined,
         transactionRef: transactionRef ?? undefined,
+        company:       company        || undefined,
       },
     });
 
