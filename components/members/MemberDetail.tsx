@@ -61,13 +61,13 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
             </button>
           )}
           {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "ACCOUNTANT") && (
-            <button
-              onClick={() => setShowPayment(true)}
+            <Link
+              href={`/payments/new?memberId=${member.id}`}
               className="flex items-center gap-2 px-4 py-2.5 border-2 border-violet-300 text-violet-700 hover:bg-violet-50 rounded-xl text-sm font-bold transition-colors"
             >
               <CreditCard className="h-4 w-4" />
               Record Payment
-            </button>
+            </Link>
           )}
           {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
             <button
@@ -391,11 +391,6 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
       {/* Dialogs */}
       <RenewMembershipDialog
         open={showRenew} onClose={() => setShowRenew(false)}
-        member={{ id: member.id, memberId: member.memberId, fullName: member.fullName }}
-        packages={packages} userId={userId}
-      />
-      <RecordPaymentDialog
-        open={showPayment} onClose={() => setShowPayment(false)}
         member={{ id: member.id, memberId: member.memberId, fullName: member.fullName }}
         packages={packages} userId={userId}
       />
