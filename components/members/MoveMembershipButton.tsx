@@ -48,24 +48,36 @@ export function MoveMembershipButton({ member }: Props) {
   async function handleMove() {
     if (!selected) return;
     if (!confirm(
-      `Move active membership from:\n\n"${member.name}" (${member.memberId})\n\nto:\n\n"${toTitleCase(selected.fullName)}" (${selected.memberId} · ${selected.phone})?\n\nThis will also move the linked payment receipt.`
+      `Move active membership from:\n\n"${member.name}" (${member.memberId})\n\nto:\n\n"${toTitleCase(selected.fullName)}" (${selected.memberId} · ${selected.phone})?`
     )) return;
 
     setSaving(true);
     setError("");
     try {
-      // Find the latest payment for this member
+      // Try to find latest payment — if found, use reassign-payment (moves receipt too)
       const payRes = await fetch(`/api/members/${member.id}/latest-payment`);
       const payData = await payRes.json();
-      if (!payRes.ok || !payData.paymentId) throw new Error(payData.error ?? "No payment found for this member");
 
-      const res = await fetch("/api/admin/reassign-payment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentId: payData.paymentId, newMemberId: selected.id }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed");
+      if (payRes.ok && payData.paymentId) {
+        // Has a payment — move both payment and membership
+        const res = await fetch("/api/admin/reassign-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentId: payData.paymentId, newMemberId: selected.id }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Failed");
+      } else {
+        // No payment (imported member) — move membership only
+        const res = await fetch("/api/admin/move-membership", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fromMemberId: member.id, toMemberId: selected.id }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Failed");
+      }
+
       setDone(true);
       setTimeout(() => { setOpen(false); router.refresh(); }, 1500);
     } catch (e: any) {
