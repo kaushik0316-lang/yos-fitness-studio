@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Company, PaymentMode } from "@prisma/client";
 import { z } from "zod";
 
 const editSchema = z.object({
@@ -11,14 +12,14 @@ const editSchema = z.object({
   amount: z.number().positive().optional(),
   discount: z.number().nonnegative().optional(),
   pendingAmount: z.number().nonnegative().optional(),
-  paymentMode: z.string().optional(),
+  paymentMode: z.nativeEnum(PaymentMode).optional(),
   categoryLabel: z.string().optional(),
   periodLabel: z.string().optional(),
   startDate: z.string().optional(),
   expiryDate: z.string().optional(),
   notes: z.string().optional().nullable(),
   transactionRef: z.string().optional().nullable(),
-  company: z.string().optional(),
+  company: z.nativeEnum(Company).optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -49,7 +50,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         where: { company },
         _max: { receiptNumber: true },
       });
-      newReceiptNumber = (maxReceipt._max.receiptNumber ?? 0) + 1;
+      newReceiptNumber = ((maxReceipt._max?.receiptNumber) ?? 0) + 1;
     }
 
     if (newMemberId) {
