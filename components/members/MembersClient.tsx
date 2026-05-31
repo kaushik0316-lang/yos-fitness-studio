@@ -122,7 +122,8 @@ export function MembersClient({
 
   function updateQuery(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
-    if (value === "" || value === "ALL") params.delete(key);
+    // For status, keep "ALL" in URL so server doesn't default back to ACTIVE
+    if (value === "") params.delete(key);
     else params.set(key, value);
     if (key !== "page") params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
