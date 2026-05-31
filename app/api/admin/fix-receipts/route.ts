@@ -21,19 +21,17 @@ export async function POST(req: Request) {
   if (body.secret !== SECRET)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Deactivate duration-based packages (they disappear from dropdowns, history preserved)
-  const DEACTIVATE = [
-    "1 Month - Yos Fitness", "1 Month - Yos Studio",
-    "3 Months - Yos Fitness", "3 Months - Yos Studio",
-    "6 Months - Yos Fitness", "6 Months - Yos Studio",
-    "12 Months - Yos Fitness", "12 Months - Yos Studio",
-  ];
-
-  const r = await prisma.package.updateMany({
-    where: { name: { in: DEACTIVATE } },
-    data: { isActive: false },
-  });
-  const updated = r.count;
+  // Keep only ONE active "General Fitness" package, deactivate the rest
+  const allGF = await prisma.package.findMany({ where: { name: "General Fitness" }, orderBy: { createdAt: "asc" } });
+  const keepId = allGF[0]?.id;
+  let updated = 0;
+  if (keepId && allGF.length > 1) {
+    const r = await prisma.package.updateMany({
+      where: { name: "General Fitness", id: { not: keepId } },
+      data: { isActive: false },
+    });
+    updated = r.count;
+  }
 
   const packages = await prisma.package.findMany({
     select: { id: true, name: true, isActive: true },
