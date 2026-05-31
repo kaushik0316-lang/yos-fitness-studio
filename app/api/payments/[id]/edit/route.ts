@@ -15,9 +15,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const payment = await prisma.payment.findUnique({
       where: { id: params.id },
-      select: { memberId: true },
+      select: { memberId: true, company: true, receiptNumber: true },
     });
     if (!payment) return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+
+    // If company is changing, assign next receipt number for the new company
+    let newReceiptNumber: number | undefined;
+    if (company && company !== payment.company) {
+      const maxReceipt = await prisma.payment.aggregate({
+        where: { company },
+        _max: { receiptNumber: true },
+      });
+      newReceiptNumber = (maxReceipt._max.receiptNumber ?? 0) + 1;
+    }
 
     if (newMemberId) {
       // Reassign payment to a different member
@@ -56,7 +66,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         expiryDate:    expiryDate ? new Date(expiryDate) : undefined,
         notes:         notes         ?? undefined,
         transactionRef: transactionRef ?? undefined,
-        company:       company        || undefined,
+        company:        company           || undefined,
+        receiptNumber:  newReceiptNumber  ?? undefined,
       },
     });
 
