@@ -53,6 +53,7 @@ function parseMonths(period: string): number {
 function addMonthsToDate(dateStr: string, months: number): string {
   const d = new Date(dateStr);
   d.setMonth(d.getMonth() + months);
+  d.setDate(d.getDate() - 1); // expiry = last day of period (e.g. 20 May + 1M = 19 Jun)
   return d.toISOString().split("T")[0];
 }
 
