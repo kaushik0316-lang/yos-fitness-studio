@@ -133,8 +133,9 @@ export function PaymentsClient({
   const monthYFS = Number(monthStats.find((s) => s.company === "YOS_FITNESS_STUDIO")?._sum.amount ?? 0);
   const filtYF   = filteredStats ? Number(filteredStats.find((s) => s.company === "YOS_FITNESS")?._sum.amount ?? 0) : null;
   const filtYFS  = filteredStats ? Number(filteredStats.find((s) => s.company === "YOS_FITNESS_STUDIO")?._sum.amount ?? 0) : null;
-  const selMonthYF  = Number(selectedMonthStats?.find((s) => s.company === "YOS_FITNESS")?._sum.amount ?? 0);
-  const selMonthYFS = Number(selectedMonthStats?.find((s) => s.company === "YOS_FITNESS_STUDIO")?._sum.amount ?? 0);
+  const selMonthYF    = Number(selectedMonthStats?.find((s) => s.company === "YOS_FITNESS")?._sum.amount ?? 0);
+  const selMonthYFS   = Number(selectedMonthStats?.find((s) => s.company === "YOS_FITNESS_STUDIO")?._sum.amount ?? 0);
+  const selMonthTotal = selMonthYF + selMonthYFS;
   // Label for month cards: use selectedMonthLabel if a specific month was chosen, else "Month"
   const monthCardLabel = selectedMonthLabel ?? "Month";
   const totalPages = Math.ceil(total / pageSize);
@@ -168,6 +169,21 @@ export function PaymentsClient({
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── Selected month combined total ── */}
+      <div className="relative overflow-hidden rounded-2xl px-5 py-3.5 flex items-center justify-between gap-4"
+        style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.08)" }}>
+        <div className="absolute inset-y-0 left-0 w-[3px] rounded-l-2xl" style={{ background: "linear-gradient(to bottom, #f97316, #6366f1)" }} />
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="rounded-xl p-2 shrink-0" style={{ background: "rgba(255,255,255,0.06)" }}>
+            <CreditCard className="h-3.5 w-3.5 text-gray-400" />
+          </div>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest truncate">
+            {monthCardLabel} · Total
+          </p>
+        </div>
+        <p className="text-xl font-extrabold text-white shrink-0">{formatCurrency(selMonthTotal)}</p>
       </div>
 
       {/* ── Toolbar ── */}
