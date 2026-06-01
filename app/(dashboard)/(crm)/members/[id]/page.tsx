@@ -12,6 +12,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
   const member = await prisma.member.findUnique({
     where: { id: params.id },
     include: {
+      _count: { select: { attendances: true } },
       currentPackage: true,
       trainer: { select: { id: true, fullName: true, role: true, phone: true } },
       memberships: {

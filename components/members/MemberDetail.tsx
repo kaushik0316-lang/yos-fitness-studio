@@ -391,6 +391,13 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
               <p className="text-sm text-gray-400">No active membership</p>
             )}
 
+            {member._count?.attendances != null && (
+              <div className="rounded-xl p-3 border bg-gray-50 border-gray-200 mt-3">
+                <p className="text-xs text-gray-500 mb-1">Total visits</p>
+                <p className="font-bold text-gray-900 text-sm">{member._count.attendances}</p>
+              </div>
+            )}
+
             {lastVisit !== null && (
               <div className={cn("rounded-xl p-3 border mt-3",
                 lastVisit >= 7 ? "bg-red-50 border-red-200" :
