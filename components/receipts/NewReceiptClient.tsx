@@ -451,6 +451,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">Previous Receipt No</label>
               <input
                 type="number"
+                inputMode="numeric"
                 value={prevReceiptNo}
                 onChange={(e) => setPrevReceiptNo(e.target.value)}
                 placeholder="e.g. 142"
@@ -461,6 +462,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">Previous Amount (₹)</label>
               <input
                 type="number"
+                inputMode="numeric"
                 value={prevAmount}
                 onChange={(e) => setPrevAmount(e.target.value)}
                 placeholder="e.g. 5000"
@@ -588,20 +590,20 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
 
         {!splitEnabled ? (
           /* ── Single payment ── */
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">Amount (₹) *</label>
-              <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
+              <input type="number" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)}
                 placeholder="0" min={1} required className={inputClass} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">Discount (₹)</label>
-              <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)}
+              <input type="number" inputMode="numeric" value={discount} onChange={(e) => setDiscount(e.target.value)}
                 placeholder="0" min={0} className={inputClass} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">Balance / Pending (₹)</label>
-              <input type="number" value={pendingAmount} onChange={(e) => setPendingAmount(e.target.value)}
+              <input type="number" inputMode="numeric" value={pendingAmount} onChange={(e) => setPendingAmount(e.target.value)}
                 placeholder="0" min={0} className={inputClass} />
             </div>
           </div>
@@ -610,7 +612,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
           <div className="space-y-3">
             {/* Row 1 — primary */}
             <div className="space-y-2">
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
                   <button key={mode} type="button" onClick={() => setPaymentMode(mode)}
                     className={`py-2 px-1 rounded-lg text-xs font-bold border-2 transition-all ${
@@ -624,6 +626,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
               </div>
               <input
                 type="number"
+                inputMode="numeric"
                 value={splitAmt1}
                 onChange={(e) => setSplitAmt1(e.target.value)}
                 placeholder="₹ Amount"
@@ -641,7 +644,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
 
             {/* Row 2 — split */}
             <div className="space-y-2">
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
                   <button key={mode} type="button" onClick={() => setSplitMode(mode)}
                     className={`py-2 px-1 rounded-lg text-xs font-bold border-2 transition-all ${
@@ -655,6 +658,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
               </div>
               <input
                 type="number"
+                inputMode="numeric"
                 value={splitAmt}
                 onChange={(e) => setSplitAmt(e.target.value)}
                 placeholder="₹ Amount"
@@ -677,12 +681,12 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
             <div className="grid grid-cols-2 gap-4 pt-1 border-t border-gray-100">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Discount (₹)</label>
-                <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)}
+                <input type="number" inputMode="numeric" value={discount} onChange={(e) => setDiscount(e.target.value)}
                   placeholder="0" min={0} className={inputClass} />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Balance / Pending (₹)</label>
-                <input type="number" value={pendingAmount} onChange={(e) => setPendingAmount(e.target.value)}
+                <input type="number" inputMode="numeric" value={pendingAmount} onChange={(e) => setPendingAmount(e.target.value)}
                   placeholder="0" min={0} className={inputClass} />
               </div>
             </div>
@@ -694,7 +698,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
       {!splitEnabled && (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Payment Mode</p>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
             <button
               key={mode}

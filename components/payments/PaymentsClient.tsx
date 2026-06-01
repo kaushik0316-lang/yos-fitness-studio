@@ -254,26 +254,26 @@ export function PaymentsClient({
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
                 {/* Sortable: Receipt # */}
-                <th className="text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest cursor-pointer hover:text-gray-400 whitespace-nowrap"
+                <th className="text-left px-3 sm:px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest cursor-pointer hover:text-gray-400 whitespace-nowrap"
                   onClick={() => toggleSort("receipt")}>
                   Receipt # <SortIcon col="receipt" current={currentSort} />
                 </th>
                 {/* Sortable: Date */}
-                <th className="text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest cursor-pointer hover:text-gray-400 whitespace-nowrap"
+                <th className="text-left px-3 sm:px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest cursor-pointer hover:text-gray-400 whitespace-nowrap"
                   onClick={() => toggleSort("date")}>
                   Date <SortIcon col="date" current={currentSort} />
                 </th>
-                <th className="text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Member</th>
+                <th className="text-left px-3 sm:px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Member</th>
                 {/* Sortable: Amount */}
-                <th className="text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest cursor-pointer hover:text-gray-400 whitespace-nowrap"
+                <th className="text-left px-3 sm:px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest cursor-pointer hover:text-gray-400 whitespace-nowrap"
                   onClick={() => toggleSort("amount")}>
                   Amount <SortIcon col="amount" current={currentSort} />
                 </th>
-                <th className="text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Mode</th>
-                <th className="hidden md:table-cell text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Type</th>
-                <th className="hidden lg:table-cell text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest whitespace-nowrap">Valid Until</th>
-                <th className="hidden lg:table-cell text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Company</th>
-                <th className="hidden md:table-cell text-left px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Sold By</th>
+                <th className="text-left px-3 sm:px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Mode</th>
+                <th className="hidden md:table-cell text-left px-3 sm:px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Type</th>
+                <th className="hidden lg:table-cell text-left px-3 sm:px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest whitespace-nowrap">Valid Until</th>
+                <th className="hidden lg:table-cell text-left px-3 sm:px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Company</th>
+                <th className="hidden md:table-cell text-left px-3 sm:px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Sold By</th>
               </tr>
             </thead>
             <tbody>
@@ -305,22 +305,22 @@ export function PaymentsClient({
                           : (idx % 2 === 0 ? "#161616" : "#181818"),
                       }}>
                       {/* Receipt # */}
-                      <td className="px-5 py-3.5">
+                      <td className="px-3 sm:px-5 py-3.5">
                         {p.receiptNumber
                           ? <span className="font-mono text-sm font-bold text-orange-400 group-hover:underline">#{p.receiptNumber}</span>
                           : <span className="text-gray-700 text-sm">—</span>}
                       </td>
                       {/* Date */}
-                      <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{formatDate(p.date)}</td>
+                      <td className="px-3 sm:px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{formatDate(p.date)}</td>
                       {/* Member */}
-                      <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-3 sm:px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
                         <Link href={`/members/${p.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
                           {toTitleCase(p.member.fullName)}
                         </Link>
                         <p className="text-xs text-gray-600 mt-0.5">{p.member.memberId}</p>
                       </td>
                       {/* Amount */}
-                      <td className="px-5 py-3.5">
+                      <td className="px-3 sm:px-5 py-3.5">
                         <p className="font-bold text-white">{formatCurrency(Number(p.amount))}</p>
                         {Number(p.discount) > 0 && (
                           <p className="text-xs text-emerald-500">−{formatCurrency(Number(p.discount))}</p>
@@ -330,19 +330,19 @@ export function PaymentsClient({
                         )}
                       </td>
                       {/* Mode */}
-                      <td className="px-5 py-3.5">
+                      <td className="px-3 sm:px-5 py-3.5">
                         <span className="px-2 py-1 rounded-lg text-xs font-semibold whitespace-nowrap" style={{ background: mode.bg, color: mode.color }}>
                           {MODE_ICONS[p.paymentMode]} {MODE_LABELS[p.paymentMode] ?? p.paymentMode}
                         </span>
                       </td>
                       {/* Type */}
-                      <td className="hidden md:table-cell px-5 py-3.5">
+                      <td className="hidden md:table-cell px-3 sm:px-5 py-3.5">
                         {type
                           ? <span className="px-2 py-1 rounded-lg text-xs font-semibold" style={{ background: type.bg, color: type.color }}>{type.label}</span>
                           : <span className="text-gray-700 text-xs">—</span>}
                       </td>
                       {/* Valid Until */}
-                      <td className="hidden lg:table-cell px-5 py-3.5 whitespace-nowrap">
+                      <td className="hidden lg:table-cell px-3 sm:px-5 py-3.5 whitespace-nowrap">
                         {p.expiryDate ? (
                           <div>
                             <p className="text-sm font-semibold text-gray-300">{formatDate(p.expiryDate)}</p>
@@ -351,11 +351,11 @@ export function PaymentsClient({
                         ) : <span className="text-gray-700 text-sm">—</span>}
                       </td>
                       {/* Company */}
-                      <td className="hidden lg:table-cell px-5 py-3.5">
+                      <td className="hidden lg:table-cell px-3 sm:px-5 py-3.5">
                         <span className="px-2 py-1 rounded-lg text-xs font-semibold" style={{ background: co.bg, color: co.color }}>{co.label}</span>
                       </td>
                       {/* Sold By */}
-                      <td className="hidden md:table-cell px-5 py-3.5 text-sm">
+                      <td className="hidden md:table-cell px-3 sm:px-5 py-3.5 text-sm">
                         {p.soldBy
                           ? <span className="font-semibold text-orange-400">{toTitleCase(p.soldBy.fullName)}</span>
                           : <span className="text-gray-600 text-xs">Common</span>}
@@ -369,7 +369,7 @@ export function PaymentsClient({
         </div>
 
         {/* ── Footer: count + pagination ── */}
-        <div className="flex items-center justify-between px-5 py-3 gap-4 flex-wrap"
+        <div className="flex items-center justify-between px-3 sm:px-5 py-3 gap-4 flex-wrap"
           style={{ borderTop: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.01)" }}>
           <p className="text-xs text-gray-500">
             {total === 0 ? "No results" : `Showing ${from}–${to} of ${total} payments · `}

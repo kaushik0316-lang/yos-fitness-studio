@@ -95,7 +95,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
   return (
     <>
       <Header title="Members" subtitle={`${total} members`} />
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-6">
         <MembersClient
           members={members as any}
           total={total}

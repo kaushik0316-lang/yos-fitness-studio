@@ -55,18 +55,18 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
   return (
     <div className="space-y-5">
       {/* ── Stats ── */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         {statCards.map((s) => (
-          <div key={s.label} className="relative overflow-hidden rounded-2xl p-5"
+          <div key={s.label} className="relative overflow-hidden rounded-2xl p-3 sm:p-5"
             style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
             <div className="absolute inset-x-0 top-0 h-[3px] rounded-t-2xl" style={{ background: s.accent }} />
             <div className="flex items-center justify-between mt-1">
               <div>
-                <p className="text-[11px] font-bold text-gray-600 uppercase tracking-widest">{s.label}</p>
-                <p className="text-3xl font-extrabold text-white mt-1">{s.value}</p>
+                <p className="text-[10px] sm:text-[11px] font-bold text-gray-600 uppercase tracking-widest">{s.label}</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-white mt-1">{s.value}</p>
               </div>
-              <div className="rounded-xl p-3" style={{ background: s.iconBg }}>
-                <s.icon className="h-5 w-5" style={{ color: s.accent }} />
+              <div className="rounded-xl p-2 sm:p-3" style={{ background: s.iconBg }}>
+                <s.icon className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: s.accent }} />
               </div>
             </div>
           </div>
@@ -89,8 +89,8 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
       {/* ── List panel ── */}
       <div className="rounded-2xl overflow-hidden" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
         {/* Search + tabs */}
-        <div className="flex items-center gap-4 px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="relative w-full sm:flex-1 sm:max-w-sm">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-600 pointer-events-none" />
             <input
               value={search}
@@ -106,7 +106,7 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
               { key: "checkedin" as const, label: `Checked In (${todayAttendance.length})` },
             ].map((tab) => (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                className="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                className="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all"
                 style={activeTab === tab.key
                   ? { background: "#f97316", color: "#fff" }
                   : { color: "#6b7280" }}>
@@ -156,9 +156,10 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                     </div>
                     {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "TRAINER") && (
                       <button onClick={() => setMarkFor(m)}
-                        className="flex items-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-bold transition-all flex-shrink-0 ml-4"
+                        className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-white rounded-xl text-xs sm:text-sm font-bold transition-all flex-shrink-0 ml-3 sm:ml-4"
                         style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}>
-                        <CheckCircle2 className="h-4 w-4" /> Check In
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>Check In</span>
                       </button>
                     )}
                   </div>

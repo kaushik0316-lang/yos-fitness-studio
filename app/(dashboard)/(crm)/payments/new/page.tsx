@@ -30,7 +30,7 @@ export default async function NewReceiptPage({ searchParams }: { searchParams: {
   return (
     <>
       <Header title="New Receipt" subtitle="Record a member payment" />
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-6">
         <NewReceiptClient
           members={members as any}
           employees={employees}

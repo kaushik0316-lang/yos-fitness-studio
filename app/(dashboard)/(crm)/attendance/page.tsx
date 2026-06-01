@@ -46,7 +46,7 @@ export default async function AttendancePage() {
         title="Member Attendance"
         subtitle={`${totalToday} checked in today`}
       />
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-6">
         <AttendanceClient
           todayAttendance={todayAttendance as any}
           notCheckedIn={notCheckedIn as any}

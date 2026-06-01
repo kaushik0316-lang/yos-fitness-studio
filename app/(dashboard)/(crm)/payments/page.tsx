@@ -130,12 +130,12 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   return (
     <>
       <Header title="Payments" subtitle="Complete payment history" />
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="flex justify-end items-center gap-3 mb-4">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-end sm:items-center gap-2 sm:gap-3 mb-4">
           <ExportButtons />
           <Link
             href="/payments/new"
-            className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 rounded-xl text-sm font-bold text-white transition-colors shadow-md shadow-orange-200"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 rounded-xl text-sm font-bold text-white transition-colors shadow-md shadow-orange-200 sm:w-auto"
           >
             + New Receipt
           </Link>

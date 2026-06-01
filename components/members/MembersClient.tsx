@@ -183,7 +183,7 @@ export function MembersClient({
         <div className="flex flex-wrap items-center gap-3">
 
           {/* Instant search */}
-          <div className="relative flex-1 min-w-[220px] max-w-sm">
+          <div className="relative flex-1 min-w-[160px] sm:min-w-[220px] max-w-sm">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
             <input
               value={search}
@@ -291,9 +291,12 @@ export function MembersClient({
                     className="accent-orange-500 cursor-pointer"
                   />
                 </th>
-                {["Member", "Status", "Package & Expiry", "Joined · Last Visit", "Trainer", ""].map((h) => (
-                  <th key={h} className="text-left px-4 py-3.5 text-[11px] font-bold text-gray-600 uppercase tracking-widest whitespace-nowrap">{h}</th>
-                ))}
+                <th className="text-left px-4 py-3.5 text-[11px] font-bold text-gray-600 uppercase tracking-widest whitespace-nowrap">Member</th>
+                <th className="hidden sm:table-cell text-left px-4 py-3.5 text-[11px] font-bold text-gray-600 uppercase tracking-widest whitespace-nowrap">Status</th>
+                <th className="text-left px-4 py-3.5 text-[11px] font-bold text-gray-600 uppercase tracking-widest whitespace-nowrap">Package &amp; Expiry</th>
+                <th className="hidden lg:table-cell text-left px-4 py-3.5 text-[11px] font-bold text-gray-600 uppercase tracking-widest whitespace-nowrap">Joined · Last Visit</th>
+                <th className="hidden lg:table-cell text-left px-4 py-3.5 text-[11px] font-bold text-gray-600 uppercase tracking-widest whitespace-nowrap">Trainer</th>
+                <th className="text-left px-4 py-3.5 text-[11px] font-bold text-gray-600 uppercase tracking-widest"></th>
               </tr>
             </thead>
             <tbody>
@@ -346,6 +349,11 @@ export function MembersClient({
                           <div>
                             <p className="font-semibold text-white">{toTitleCase(m.fullName)}</p>
                             <p className="text-xs text-gray-600 mt-0.5">{m.memberId}</p>
+                            {/* Inline status badge — only shown when Status column is hidden (< sm) */}
+                            <span className="sm:hidden inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md mt-0.5"
+                              style={{ background: sc.bg, color: sc.color }}>
+                              {sc.label}
+                            </span>
                             <a
                               href={waLink(m.phone)}
                               target="_blank"
@@ -361,7 +369,7 @@ export function MembersClient({
                       </td>
 
                       {/* Status */}
-                      <td className="px-4 py-4">
+                      <td className="hidden sm:table-cell px-4 py-4">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold"
                           style={{ background: sc.bg, color: sc.color }}>
                           <sc.icon className="h-3 w-3" />
@@ -394,7 +402,7 @@ export function MembersClient({
                       </td>
 
                       {/* Joined + Last Visit */}
-                      <td className="px-4 py-4">
+                      <td className="hidden lg:table-cell px-4 py-4">
                         <p className="text-xs text-gray-600">
                           Joined {formatDate(m.joinDate)}
                         </p>
@@ -411,7 +419,7 @@ export function MembersClient({
                       </td>
 
                       {/* Trainer */}
-                      <td className="px-4 py-4 text-sm text-gray-500">
+                      <td className="hidden lg:table-cell px-4 py-4 text-sm text-gray-500">
                         {m.trainer ? toTitleCase(m.trainer.fullName) : <span className="text-gray-700">—</span>}
                       </td>
 
@@ -419,13 +427,13 @@ export function MembersClient({
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-1">
                           <Link href={`/members/${m.id}`}
-                            className="p-2 rounded-xl text-gray-600 hover:text-white transition-colors"
+                            className="p-2.5 rounded-xl text-gray-600 hover:text-white transition-colors"
                             style={{ background: "rgba(255,255,255,0.04)" }} title="View profile">
                             <Eye className="h-4 w-4" />
                           </Link>
                           {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "TRAINER") && (
                             <button onClick={() => setMarkFor(m)}
-                              className="p-2 rounded-xl text-gray-600 hover:text-emerald-400 transition-colors"
+                              className="p-2.5 rounded-xl text-gray-600 hover:text-emerald-400 transition-colors"
                               style={{ background: "rgba(255,255,255,0.04)" }} title="Check in">
                               <CheckCircle className="h-4 w-4" />
                             </button>
@@ -434,7 +442,7 @@ export function MembersClient({
                           {isExpired && (userRole === "ADMIN" || userRole === "FRONT_DESK") && (
                             <Link
                               href={`/payments/new?memberId=${m.id}`}
-                              className="p-2 rounded-xl text-gray-600 hover:text-orange-400 transition-colors"
+                              className="p-2.5 rounded-xl text-gray-600 hover:text-orange-400 transition-colors"
                               style={{ background: "rgba(255,255,255,0.04)" }}
                               title="Quick renew"
                             >
