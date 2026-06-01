@@ -347,7 +347,9 @@ export function MembersClient({
                             {m.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-semibold text-white">{toTitleCase(m.fullName)}</p>
+                            <Link href={`/members/${m.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
+                              {toTitleCase(m.fullName)}
+                            </Link>
                             <p className="text-xs text-gray-600 mt-0.5">{m.memberId}</p>
                             {/* Inline status badge — only shown when Status column is hidden (< sm) */}
                             <span className="sm:hidden inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md mt-0.5"
