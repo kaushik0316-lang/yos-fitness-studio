@@ -56,9 +56,13 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
   const ATTENDANCES_DEFAULT = 10;
   const MEMBERSHIPS_DEFAULT = 5;
 
+  const membershipPayments = member.payments.filter(
+    (p: any) => p.paymentType === "ADMISSION" || p.paymentType === "RENEWAL"
+  );
+
   const visiblePayments = showAllPayments ? member.payments : member.payments.slice(0, PAYMENTS_DEFAULT);
   const visibleAttendances = showAllAttendances ? member.attendances : member.attendances.slice(0, ATTENDANCES_DEFAULT);
-  const visibleMemberships = showAllMemberships ? member.memberships : member.memberships.slice(0, MEMBERSHIPS_DEFAULT);
+  const visibleMemberships = showAllMemberships ? membershipPayments : membershipPayments.slice(0, MEMBERSHIPS_DEFAULT);
 
   const daysLeft = member.expiryDate ? daysUntil(member.expiryDate) : null;
   const lastVisit = member.lastAttendanceDate ? daysAgo(member.lastAttendanceDate) : null;
@@ -518,36 +522,60 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
             )}
           </div>
 
-          {/* Memberships */}
+          {/* Memberships — derived from Admission/Renewal payments */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-4">
               <div className="bg-emerald-50 rounded-xl p-1.5">
                 <RotateCcw className="h-4 w-4 text-emerald-600" />
               </div>
               Membership History
-              <span className="text-xs text-gray-400 font-normal ml-1">({member.memberships.length})</span>
+              <span className="text-xs text-gray-400 font-normal ml-1">({membershipPayments.length})</span>
             </h3>
-            {member.memberships.length === 0 ? (
-              <p className="text-sm text-gray-400">No memberships yet.</p>
+            {membershipPayments.length === 0 ? (
+              <p className="text-sm text-gray-400">No membership payments recorded.</p>
             ) : (
               <>
                 <div className="space-y-2 pr-1">
-                  {visibleMemberships.map((ms: any) => (
-                    <div key={ms.id} className="flex items-center justify-between p-3.5 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors">
-                      <div>
-                        <p className="font-bold text-gray-900 text-sm">{ms.package.name}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{formatDate(ms.startDate)} → {formatDate(ms.expiryDate)}</p>
-                      </div>
-                      <div className="text-right flex-shrink-0 ml-4">
-                        <p className="font-bold text-gray-900 text-sm">{formatCurrency(Number(ms.amount))}</p>
-                        {Number(ms.discount) > 0 && (
-                          <p className="text-xs text-emerald-600">−{formatCurrency(Number(ms.discount))}</p>
+                  {visibleMemberships.map((p: any) => (
+                    <Link key={p.id} href={`/payments/${p.id}/receipt?from=member`} className="flex items-start justify-between p-3.5 bg-gray-50 hover:bg-emerald-50 hover:border-emerald-100 border border-transparent rounded-xl transition-colors group">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                          {p.receiptNumber && (
+                            <span className="text-xs text-gray-400 font-mono">#{p.receiptNumber}</span>
+                          )}
+                          <span className={cn("text-xs px-2 py-0.5 rounded-md font-bold",
+                            p.paymentType === "ADMISSION" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"
+                          )}>
+                            {PAYMENT_TYPE_LABELS[p.paymentType] ?? p.paymentType}
+                          </span>
+                          {p.categoryLabel && (
+                            <span className="text-xs text-gray-600 font-medium">{p.categoryLabel}</span>
+                          )}
+                        </div>
+                        {p.periodLabel && (
+                          <p className="text-xs text-gray-500">{p.periodLabel}</p>
+                        )}
+                        {(p.startDate || p.expiryDate) && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {p.startDate ? formatDate(p.startDate) : "—"} → {p.expiryDate ? formatDate(p.expiryDate) : "—"}
+                          </p>
                         )}
                       </div>
-                    </div>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
+                        <p className="font-bold text-gray-900 text-sm group-hover:text-emerald-700 transition-colors">{formatCurrency(Number(p.amount))}</p>
+                        {Number(p.discount) > 0 && (
+                          <p className="text-xs text-emerald-600">−{formatCurrency(Number(p.discount))}</p>
+                        )}
+                        <span className={cn("text-xs px-2 py-0.5 rounded-lg font-bold",
+                          p.company === "YOS_FITNESS" ? "bg-orange-100 text-orange-700" : "bg-indigo-100 text-indigo-700"
+                        )}>
+                          {p.company === "YOS_FITNESS" ? "YF" : "YFS"}
+                        </span>
+                      </div>
+                    </Link>
                   ))}
                 </div>
-                {member.memberships.length > MEMBERSHIPS_DEFAULT && (
+                {membershipPayments.length > MEMBERSHIPS_DEFAULT && (
                   <button
                     onClick={() => setShowAllMemberships(p => !p)}
                     className="mt-3 flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-800 transition-colors"
@@ -555,7 +583,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                     {showAllMemberships ? (
                       <><ChevronUp className="h-3.5 w-3.5" /> Show less</>
                     ) : (
-                      <><ChevronDown className="h-3.5 w-3.5" /> Show {member.memberships.length - MEMBERSHIPS_DEFAULT} more</>
+                      <><ChevronDown className="h-3.5 w-3.5" /> Show {membershipPayments.length - MEMBERSHIPS_DEFAULT} more</>
                     )}
                   </button>
                 )}
