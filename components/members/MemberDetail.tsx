@@ -16,6 +16,15 @@ import {
   formatDate, formatCurrency, daysUntil, daysAgo,
   MEMBER_STATUS_COLORS, getInitials,
 } from "@/lib/utils";
+
+function calcAge(dateOfBirth: Date | string): number {
+  const dob = new Date(dateOfBirth);
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+  return age;
+}
 import { cn } from "@/lib/utils";
 import type { UserRole, MemberStatus } from "@prisma/client";
 
@@ -182,6 +191,64 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                   </div>
                 )}
               </div>
+
+              {/* Health & Body — only rendered if at least one field is present */}
+              {(member.dateOfBirth || member.weight || member.height || member.bloodGroup || member.intentionOfJoining || member.healthConditions) && (
+                <div className="mt-5 pt-4 border-t border-gray-100">
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Health &amp; Body</p>
+                  <div className="space-y-2.5">
+                    {member.dateOfBirth && (
+                      <div className="flex items-start gap-3 text-sm text-gray-600">
+                        <div className="bg-gray-100 rounded-lg p-1.5 mt-0.5 flex-shrink-0">
+                          <Calendar className="h-3.5 w-3.5 text-gray-500" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Date of Birth</p>
+                          <p className="font-medium">{formatDate(member.dateOfBirth)} <span className="text-gray-400 font-normal">(age {calcAge(member.dateOfBirth)})</span></p>
+                        </div>
+                      </div>
+                    )}
+                    {(member.weight || member.height) && (
+                      <div className="flex items-start gap-3 text-sm text-gray-600">
+                        <div className="bg-gray-100 rounded-lg p-1.5 mt-0.5 flex-shrink-0">
+                          <User className="h-3.5 w-3.5 text-gray-500" />
+                        </div>
+                        <div className="flex gap-4 flex-wrap">
+                          {member.weight && <span><span className="font-medium">{Number(member.weight)} kg</span> <span className="text-gray-400 text-xs">weight</span></span>}
+                          {member.height && <span><span className="font-medium">{Number(member.height)} cm</span> <span className="text-gray-400 text-xs">height</span></span>}
+                        </div>
+                      </div>
+                    )}
+                    {member.bloodGroup && (
+                      <div className="flex items-center gap-3 text-sm text-gray-600">
+                        <div className="bg-gray-100 rounded-lg p-1.5 flex-shrink-0">
+                          <AlertTriangle className="h-3.5 w-3.5 text-gray-500" />
+                        </div>
+                        <span><span className="font-medium">{member.bloodGroup}</span> <span className="text-gray-400 text-xs">blood group</span></span>
+                      </div>
+                    )}
+                    {member.intentionOfJoining && (
+                      <div className="flex items-center gap-3 text-sm text-gray-600">
+                        <div className="bg-gray-100 rounded-lg p-1.5 flex-shrink-0">
+                          <CheckCircle className="h-3.5 w-3.5 text-gray-500" />
+                        </div>
+                        <span><span className="font-medium">{member.intentionOfJoining}</span> <span className="text-gray-400 text-xs">goal</span></span>
+                      </div>
+                    )}
+                    {member.healthConditions && (
+                      <div className="flex items-start gap-3 text-sm text-gray-600">
+                        <div className="bg-gray-100 rounded-lg p-1.5 mt-0.5 flex-shrink-0">
+                          <MessageSquare className="h-3.5 w-3.5 text-gray-500" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Health / Injuries</p>
+                          <p className="leading-relaxed">{member.healthConditions}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {member.trainer && (
                 <div className="mt-5 pt-4 border-t border-gray-100">
