@@ -24,6 +24,11 @@ type Props = {
   userRole: UserRole; userId: string;
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  ACTIVE: "Active", EXPIRED: "Expired", FROZEN: "Frozen",
+  INACTIVE: "Inactive", PROSPECT: "Prospect",
+};
+
 export function MemberDetail({ member, packages, trainers, userRole, userId }: Props) {
   const [showPayment, setShowPayment] = useState(false);
   const [showAttendance, setShowAttendance] = useState(false);
@@ -47,11 +52,11 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
           <ArrowLeft className="h-4 w-4" />
           Back to Members
         </Link>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "TRAINER") && (
             <button
               onClick={() => setShowAttendance(true)}
-              className="flex items-center gap-2 px-4 py-2.5 border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 rounded-xl text-sm font-bold transition-colors"
+              className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold transition-colors shadow-sm"
             >
               <CheckCircle className="h-4 w-4" />
               Check In
@@ -60,7 +65,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
           {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "ACCOUNTANT") && (
             <Link
               href={`/payments/new?memberId=${member.id}`}
-              className="flex items-center gap-2 px-4 py-2.5 border-2 border-violet-300 text-violet-700 hover:bg-violet-50 rounded-xl text-sm font-bold transition-colors"
+              className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-bold transition-colors shadow-sm"
             >
               <CreditCard className="h-4 w-4" />
               Record Payment
@@ -71,9 +76,9 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ── Left: Profile ── */}
-        <div className="space-y-4">
-          {/* Identity card */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="flex flex-col gap-4">
+          {/* Identity card — second on mobile, first on desktop */}
+          <div className="order-2 lg:order-1 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             {/* Avatar */}
             <div className="px-6 pt-6 pb-5">
               <div className="flex items-center gap-4 mb-4">
@@ -94,7 +99,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
 
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={cn("px-2.5 py-1 rounded-lg text-xs font-bold", MEMBER_STATUS_COLORS[member.status as MemberStatus])}>
-                  {member.status}
+                  {STATUS_LABELS[member.status] ?? member.status}
                 </span>
               </div>
 
@@ -187,8 +192,8 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
             </div>
           </div>
 
-          {/* Membership status card */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          {/* Membership status card — first on mobile, second on desktop */}
+          <div className="order-1 lg:order-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
               <Package className="h-3.5 w-3.5" />
               Membership
@@ -297,7 +302,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
             {member.attendances.length === 0 ? (
               <p className="text-sm text-gray-400">No attendance records yet.</p>
             ) : (
-              <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
+              <div className="space-y-1 pr-1">
                 {member.attendances.map((a: any) => (
                   <div key={a.id} className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-gray-50 transition-colors">
                     <span className="text-sm font-medium text-gray-800">{formatDate(a.date)}</span>
@@ -322,7 +327,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
             {member.payments.length === 0 ? (
               <p className="text-sm text-gray-400">No payments recorded.</p>
             ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              <div className="space-y-2 pr-1">
                 {member.payments.map((p: any) => (
                   <Link key={p.id} href={`/payments/${p.id}/receipt?from=member`} className="flex items-center justify-between p-3.5 bg-gray-50 hover:bg-violet-50 hover:border-violet-100 border border-transparent rounded-xl transition-colors group">
                     <div>
@@ -355,7 +360,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
             {member.memberships.length === 0 ? (
               <p className="text-sm text-gray-400">No memberships yet.</p>
             ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              <div className="space-y-2 pr-1">
                 {member.memberships.map((ms: any) => (
                   <div key={ms.id} className="flex items-center justify-between p-3.5 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors">
                     <div>

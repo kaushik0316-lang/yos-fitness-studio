@@ -52,7 +52,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
         title={member.fullName}
         subtitle={`${member.memberId} · ${member.status}`}
       />
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-6">
         <MemberDetail
           member={member as any}
           packages={packages}

@@ -64,7 +64,7 @@ export function EditMemberButton({ member }: Props) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-500 hover:text-orange-600 hover:bg-orange-50 transition-colors border border-gray-200"
+        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-gray-500 hover:text-orange-600 hover:bg-orange-50 transition-colors border border-gray-200"
       >
         <Pencil className="h-3.5 w-3.5" /> Edit Details
       </button>
