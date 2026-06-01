@@ -84,6 +84,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
       selectedMonthLabel = parsed.toLocaleString("en-US", { month: "long", year: "numeric" });
     }
   }
+  selectedMonthLabel ??= today.toLocaleString("en-US", { month: "long", year: "numeric" });
 
   const [payments, total, totalAmount, todayStats, monthStats, filteredStats, selectedMonthStats, packages, members] = await Promise.all([
     prisma.payment.findMany({
