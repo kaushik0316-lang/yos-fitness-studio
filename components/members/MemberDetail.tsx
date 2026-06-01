@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ArrowLeft, Phone, User, Calendar, Package, CreditCard,
   Clock, RotateCcw, CheckCircle, MessageSquare, AlertTriangle, MapPin, Link2Off, BellOff,
+  Mail, ShieldAlert, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { EditMemberButton } from "@/components/members/EditMemberButton";
 import { toggleDoNotDisturb } from "@/lib/actions/members";
@@ -29,11 +30,26 @@ const STATUS_LABELS: Record<string, string> = {
   INACTIVE: "Inactive", PROSPECT: "Prospect",
 };
 
+const PAYMENT_TYPE_LABELS: Record<string, string> = {
+  ADMISSION: "Admission", RENEWAL: "Renewal", BALANCE: "Balance",
+};
+
 export function MemberDetail({ member, packages, trainers, userRole, userId }: Props) {
   const [showPayment, setShowPayment] = useState(false);
   const [showAttendance, setShowAttendance] = useState(false);
   const [dnd, setDnd] = useState<boolean>(member.doNotDisturb ?? false);
   const [dndLoading, setDndLoading] = useState(false);
+  const [showAllPayments, setShowAllPayments] = useState(false);
+  const [showAllAttendances, setShowAllAttendances] = useState(false);
+  const [showAllMemberships, setShowAllMemberships] = useState(false);
+
+  const PAYMENTS_DEFAULT = 5;
+  const ATTENDANCES_DEFAULT = 10;
+  const MEMBERSHIPS_DEFAULT = 5;
+
+  const visiblePayments = showAllPayments ? member.payments : member.payments.slice(0, PAYMENTS_DEFAULT);
+  const visibleAttendances = showAllAttendances ? member.attendances : member.attendances.slice(0, ATTENDANCES_DEFAULT);
+  const visibleMemberships = showAllMemberships ? member.memberships : member.memberships.slice(0, MEMBERSHIPS_DEFAULT);
 
   const daysLeft = member.expiryDate ? daysUntil(member.expiryDate) : null;
   const lastVisit = member.lastAttendanceDate ? daysAgo(member.lastAttendanceDate) : null;
@@ -141,6 +157,30 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                     <span>{member.address}</span>
                   </div>
                 )}
+                {member.email && (
+                  <a href={`mailto:${member.email}`} className="flex items-center gap-3 text-sm text-gray-600 hover:text-orange-600 transition-colors group">
+                    <div className="bg-gray-100 group-hover:bg-orange-100 rounded-lg p-1.5 transition-colors">
+                      <Mail className="h-3.5 w-3.5 text-gray-500 group-hover:text-orange-600 transition-colors" />
+                    </div>
+                    <span className="truncate">{member.email}</span>
+                  </a>
+                )}
+                {(member.emergencyContact || member.emergencyPhone) && (
+                  <div className="flex items-start gap-3 text-sm text-gray-600">
+                    <div className="bg-gray-100 rounded-lg p-1.5 mt-0.5">
+                      <ShieldAlert className="h-3.5 w-3.5 text-gray-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Emergency</p>
+                      {member.emergencyContact && <p className="font-medium">{member.emergencyContact}</p>}
+                      {member.emergencyPhone && (
+                        <a href={`tel:${member.emergencyPhone}`} className="hover:text-orange-600 transition-colors">
+                          {member.emergencyPhone}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {member.trainer && (
@@ -225,6 +265,15 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                          `${daysLeft} days remaining`}
                       </p>
                     )}
+                    {(expiryStatus === "expired" || expiryStatus === "critical") && (userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "ACCOUNTANT") && (
+                      <Link
+                        href={`/payments/new?memberId=${member.id}`}
+                        className="inline-flex items-center gap-1 mt-2 text-xs font-bold text-red-700 hover:text-orange-700 transition-colors"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Renew →
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>
@@ -257,6 +306,15 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                          daysLeft === 0 ? "Expires today!" :
                          `${daysLeft} days remaining`}
                       </p>
+                    )}
+                    {(expiryStatus === "expired" || expiryStatus === "critical") && (userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "ACCOUNTANT") && (
+                      <Link
+                        href={`/payments/new?memberId=${member.id}`}
+                        className="inline-flex items-center gap-1 mt-2 text-xs font-bold text-red-700 hover:text-orange-700 transition-colors"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Renew →
+                      </Link>
                     )}
                   </div>
                 )}
@@ -302,17 +360,31 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
             {member.attendances.length === 0 ? (
               <p className="text-sm text-gray-400">No attendance records yet.</p>
             ) : (
-              <div className="space-y-1 pr-1">
-                {member.attendances.map((a: any) => (
-                  <div key={a.id} className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-gray-50 transition-colors">
-                    <span className="text-sm font-medium text-gray-800">{formatDate(a.date)}</span>
-                    <span className="text-xs text-gray-400 font-mono">
-                      {a.checkInTime ? new Date(a.checkInTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "—"}
-                    </span>
-                    {a.remarks && <span className="text-xs text-gray-400 italic truncate max-w-[120px]">{a.remarks}</span>}
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="space-y-1 pr-1">
+                  {visibleAttendances.map((a: any) => (
+                    <div key={a.id} className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-gray-50 transition-colors">
+                      <span className="text-sm font-medium text-gray-800">{formatDate(a.date)}</span>
+                      <span className="text-xs text-gray-400 font-mono">
+                        {a.checkInTime ? new Date(a.checkInTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                      </span>
+                      {a.remarks && <span className="text-xs text-gray-400 italic truncate max-w-[120px]">{a.remarks}</span>}
+                    </div>
+                  ))}
+                </div>
+                {member.attendances.length > ATTENDANCES_DEFAULT && (
+                  <button
+                    onClick={() => setShowAllAttendances(p => !p)}
+                    className="mt-3 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    {showAllAttendances ? (
+                      <><ChevronUp className="h-3.5 w-3.5" /> Show less</>
+                    ) : (
+                      <><ChevronDown className="h-3.5 w-3.5" /> Show {member.attendances.length - ATTENDANCES_DEFAULT} more</>
+                    )}
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -323,29 +395,52 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                 <CreditCard className="h-4 w-4 text-violet-600" />
               </div>
               Payment History
+              <span className="text-xs text-gray-400 font-normal ml-1">({member.payments.length})</span>
             </h3>
             {member.payments.length === 0 ? (
               <p className="text-sm text-gray-400">No payments recorded.</p>
             ) : (
-              <div className="space-y-2 pr-1">
-                {member.payments.map((p: any) => (
-                  <Link key={p.id} href={`/payments/${p.id}/receipt?from=member`} className="flex items-center justify-between p-3.5 bg-gray-50 hover:bg-violet-50 hover:border-violet-100 border border-transparent rounded-xl transition-colors group">
-                    <div>
-                      <p className="font-bold text-gray-900 text-sm group-hover:text-violet-700 transition-colors">{formatCurrency(Number(p.amount))}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{p.package?.name ?? "General"} · {p.paymentMode}</p>
-                      <p className="text-xs text-gray-400">{formatDate(p.date)} · {p.collectedBy?.name}</p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={cn("text-xs px-2.5 py-1 rounded-lg font-bold",
-                        p.company === "YOS_FITNESS" ? "bg-orange-100 text-orange-700" : "bg-indigo-100 text-indigo-700"
-                      )}>
-                        {p.company === "YOS_FITNESS" ? "YF" : "YFS"}
-                      </span>
-                      <CreditCard className="h-3.5 w-3.5 text-gray-300 group-hover:text-violet-400 transition-colors" />
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              <>
+                <div className="space-y-2 pr-1">
+                  {visiblePayments.map((p: any) => (
+                    <Link key={p.id} href={`/payments/${p.id}/receipt?from=member`} className="flex items-center justify-between p-3.5 bg-gray-50 hover:bg-violet-50 hover:border-violet-100 border border-transparent rounded-xl transition-colors group">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-bold text-gray-900 text-sm group-hover:text-violet-700 transition-colors">{formatCurrency(Number(p.amount))}</p>
+                          {p.receiptNumber && (
+                            <span className="text-xs text-gray-400 font-mono">#{p.receiptNumber}</span>
+                          )}
+                          <span className="text-xs text-gray-500 font-medium">
+                            {PAYMENT_TYPE_LABELS[p.paymentType] ?? p.paymentType}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-0.5">{p.package?.name ?? "General"} · {p.paymentMode}</p>
+                        <p className="text-xs text-gray-400">{formatDate(p.date)} · {p.collectedBy?.name}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                        <span className={cn("text-xs px-2.5 py-1 rounded-lg font-bold",
+                          p.company === "YOS_FITNESS" ? "bg-orange-100 text-orange-700" : "bg-indigo-100 text-indigo-700"
+                        )}>
+                          {p.company === "YOS_FITNESS" ? "YF" : "YFS"}
+                        </span>
+                        <CreditCard className="h-3.5 w-3.5 text-gray-300 group-hover:text-violet-400 transition-colors" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                {member.payments.length > PAYMENTS_DEFAULT && (
+                  <button
+                    onClick={() => setShowAllPayments(p => !p)}
+                    className="mt-3 flex items-center gap-1 text-xs font-semibold text-violet-600 hover:text-violet-800 transition-colors"
+                  >
+                    {showAllPayments ? (
+                      <><ChevronUp className="h-3.5 w-3.5" /> Show less</>
+                    ) : (
+                      <><ChevronDown className="h-3.5 w-3.5" /> Show {member.payments.length - PAYMENTS_DEFAULT} more</>
+                    )}
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -356,26 +451,41 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                 <RotateCcw className="h-4 w-4 text-emerald-600" />
               </div>
               Membership History
+              <span className="text-xs text-gray-400 font-normal ml-1">({member.memberships.length})</span>
             </h3>
             {member.memberships.length === 0 ? (
               <p className="text-sm text-gray-400">No memberships yet.</p>
             ) : (
-              <div className="space-y-2 pr-1">
-                {member.memberships.map((ms: any) => (
-                  <div key={ms.id} className="flex items-center justify-between p-3.5 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors">
-                    <div>
-                      <p className="font-bold text-gray-900 text-sm">{ms.package.name}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(ms.startDate)} → {formatDate(ms.expiryDate)}</p>
+              <>
+                <div className="space-y-2 pr-1">
+                  {visibleMemberships.map((ms: any) => (
+                    <div key={ms.id} className="flex items-center justify-between p-3.5 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors">
+                      <div>
+                        <p className="font-bold text-gray-900 text-sm">{ms.package.name}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{formatDate(ms.startDate)} → {formatDate(ms.expiryDate)}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-4">
+                        <p className="font-bold text-gray-900 text-sm">{formatCurrency(Number(ms.amount))}</p>
+                        {Number(ms.discount) > 0 && (
+                          <p className="text-xs text-emerald-600">−{formatCurrency(Number(ms.discount))}</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right flex-shrink-0 ml-4">
-                      <p className="font-bold text-gray-900 text-sm">{formatCurrency(Number(ms.amount))}</p>
-                      {Number(ms.discount) > 0 && (
-                        <p className="text-xs text-emerald-600">−{formatCurrency(Number(ms.discount))}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+                {member.memberships.length > MEMBERSHIPS_DEFAULT && (
+                  <button
+                    onClick={() => setShowAllMemberships(p => !p)}
+                    className="mt-3 flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-800 transition-colors"
+                  >
+                    {showAllMemberships ? (
+                      <><ChevronUp className="h-3.5 w-3.5" /> Show less</>
+                    ) : (
+                      <><ChevronDown className="h-3.5 w-3.5" /> Show {member.memberships.length - MEMBERSHIPS_DEFAULT} more</>
+                    )}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
