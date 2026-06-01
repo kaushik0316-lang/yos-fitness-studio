@@ -27,6 +27,7 @@ type Props = {
   payments: Payment[]; total: number; totalAmount: number;
   page: number; pageSize: number;
   todayStats: Stats; monthStats: Stats;
+  selectedMonthStats?: Stats | null; selectedMonthLabel?: string;
   filteredStats?: Stats | null; filteredLabel?: string;
   packages: any[];
   members: { id: string; memberId: string; fullName: string }[];
@@ -86,7 +87,8 @@ function SortIcon({ col, current }: { col: string; current: string }) {
 
 export function PaymentsClient({
   payments, total, totalAmount, page, pageSize,
-  todayStats, monthStats, filteredStats, filteredLabel,
+  todayStats, monthStats, selectedMonthStats, selectedMonthLabel,
+  filteredStats, filteredLabel,
   packages, members,
   userRole, userId, dateFilter, currentSort,
 }: Props) {
@@ -131,6 +133,10 @@ export function PaymentsClient({
   const monthYFS = Number(monthStats.find((s) => s.company === "YOS_FITNESS_STUDIO")?._sum.amount ?? 0);
   const filtYF   = filteredStats ? Number(filteredStats.find((s) => s.company === "YOS_FITNESS")?._sum.amount ?? 0) : null;
   const filtYFS  = filteredStats ? Number(filteredStats.find((s) => s.company === "YOS_FITNESS_STUDIO")?._sum.amount ?? 0) : null;
+  const selMonthYF  = Number(selectedMonthStats?.find((s) => s.company === "YOS_FITNESS")?._sum.amount ?? 0);
+  const selMonthYFS = Number(selectedMonthStats?.find((s) => s.company === "YOS_FITNESS_STUDIO")?._sum.amount ?? 0);
+  // Label for month cards: use selectedMonthLabel if a specific month was chosen, else "Month"
+  const monthCardLabel = selectedMonthLabel ?? "Month";
   const totalPages = Math.ceil(total / pageSize);
   const from = (page - 1) * pageSize + 1;
   const to   = Math.min(page * pageSize, total);
@@ -142,13 +148,13 @@ export function PaymentsClient({
         {(filteredStats && filteredLabel ? [
           { label: `${filteredLabel} · Yos Fitness`, value: filtYF  ?? 0, accent: "#f97316", icon: IndianRupee },
           { label: `${filteredLabel} · Yos Studio`,  value: filtYFS ?? 0, accent: "#6366f1", icon: IndianRupee },
-          { label: "Month · Yos Fitness",  value: monthYF,  accent: "#f97316", icon: TrendingUp  },
-          { label: "Month · Yos Studio",   value: monthYFS, accent: "#6366f1", icon: TrendingUp  },
+          { label: `${monthCardLabel} · Yos Fitness`, value: selMonthYF,  accent: "#f97316", icon: TrendingUp  },
+          { label: `${monthCardLabel} · Yos Studio`,  value: selMonthYFS, accent: "#6366f1", icon: TrendingUp  },
         ] : [
-          { label: "Today · Yos Fitness",  value: todayYF,  accent: "#f97316", icon: IndianRupee },
-          { label: "Today · Yos Studio",   value: todayYFS, accent: "#6366f1", icon: IndianRupee },
-          { label: "Month · Yos Fitness",  value: monthYF,  accent: "#f97316", icon: TrendingUp  },
-          { label: "Month · Yos Studio",   value: monthYFS, accent: "#6366f1", icon: TrendingUp  },
+          { label: "Today · Yos Fitness",             value: todayYF,     accent: "#f97316", icon: IndianRupee },
+          { label: "Today · Yos Studio",              value: todayYFS,    accent: "#6366f1", icon: IndianRupee },
+          { label: `${monthCardLabel} · Yos Fitness`, value: selMonthYF,  accent: "#f97316", icon: TrendingUp  },
+          { label: `${monthCardLabel} · Yos Studio`,  value: selMonthYFS, accent: "#6366f1", icon: TrendingUp  },
         ]).map((s) => (
           <div key={s.label} className="relative overflow-hidden rounded-2xl px-4 py-3 flex items-center gap-3"
             style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
