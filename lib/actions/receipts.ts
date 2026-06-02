@@ -111,6 +111,23 @@ export async function createReceipt(input: z.infer<typeof receiptSchema>) {
       },
     });
 
+    // If this is a BALANCE payment referencing a previous receipt,
+    // reduce that receipt's pendingAmount by the amount just paid (floor at 0).
+    if (data.paymentType === "BALANCE" && data.previousReceiptNo) {
+      const original = await tx.payment.findFirst({
+        where: { company: data.company, receiptNumber: data.previousReceiptNo },
+        select: { id: true, pendingAmount: true },
+      });
+      if (original) {
+        const oldPending = Number(original.pendingAmount ?? 0);
+        const newPending = Math.max(0, oldPending - data.amount);
+        await tx.payment.update({
+          where: { id: original.id },
+          data: { pendingAmount: newPending },
+        });
+      }
+    }
+
     // Update member's last payment date, membership dates, and phone if provided
     const memberUpdate: Record<string, any> = {
       lastPaymentDate: new Date(),
