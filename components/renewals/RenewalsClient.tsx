@@ -6,6 +6,7 @@ import { RotateCcw, Phone, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { RenewMembershipDialog } from "@/components/members/RenewMembershipDialog";
 import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import type { UserRole } from "@prisma/client";
 
 type RenewalMember = {
@@ -96,7 +97,7 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
                       <CheckCircle2 className="h-5 w-5 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="font-semibold text-white">{r.member.fullName}</p>
+                      <p className="font-semibold text-white">{toTitleCase(r.member.fullName)}</p>
                       <p className="text-xs text-gray-600">{r.member.memberId} · {r.package.name}</p>
                     </div>
                   </div>
@@ -131,7 +132,7 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Link href={`/members/${m.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
-                            {m.fullName}
+                            {toTitleCase(m.fullName)}
                           </Link>
                           {lastVisit !== null && lastVisit >= 4 && (
                             <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5"
