@@ -101,11 +101,11 @@ export function PaymentsClient({
 
   function updateQuery(updates: Record<string, string>) {
     const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
     for (const [key, value] of Object.entries(updates)) {
       if (!value || value === "ALL") params.delete(key);
       else params.set(key, value);
     }
-    params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
   }
 
