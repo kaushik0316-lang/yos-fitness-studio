@@ -28,6 +28,7 @@ const receiptSchema = z.object({
   phoneOverride: z.string().optional(), // save phone to member profile if they had none
   splitPaymentMode: z.nativeEnum(PaymentMode).optional(),
   splitAmount: z.number().optional(),
+  cardCharge: z.number().nonnegative().optional(),
 });
 
 export async function createReceipt(input: z.infer<typeof receiptSchema>) {
@@ -93,6 +94,7 @@ export async function createReceipt(input: z.infer<typeof receiptSchema>) {
         paymentMode: data.paymentMode,
         splitPaymentMode: data.splitPaymentMode ?? null,
         splitAmount: data.splitAmount ?? null,
+        cardCharge: data.cardCharge && data.cardCharge > 0 ? data.cardCharge : null,
         company: data.company,
         collectedById: session.user.id,
         soldById: data.soldById ?? null,

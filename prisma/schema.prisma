@@ -305,6 +305,9 @@ model Payment {
   splitPaymentMode  PaymentMode?
   splitAmount       Decimal?     @db.Decimal(10, 2)
 
+  // Card surcharge (only set when card is the payment mode or one leg of a split)
+  cardCharge        Decimal?     @db.Decimal(10, 2)
+
   // Receipt / billing fields
   receiptNumber      Int?
   paymentType        PaymentType  @default(ADMISSION)
