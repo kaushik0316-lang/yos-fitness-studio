@@ -1,6 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+
+type TxClient = Omit<typeof prisma, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
+
+/**
+ * Recalculate a member's membership snapshot from their ADMISSION/RENEWAL payments.
+ * BALANCE payments are excluded — they do not represent a membership period.
+ * Called after a payment is reassigned (for both old and new member).
+ */
+async function recalcMemberSnapshot(tx: TxClient, memberId: string) {
+  const latest = await tx.payment.findFirst({
+    where: {
+      memberId,
+      paymentType: { in: ["ADMISSION", "RENEWAL"] },
+    },
+    orderBy: [
+      { expiryDate: "desc" },
+      { date: "desc" },
+    ],
+    select: {
+      startDate: true,
+      expiryDate: true,
+      packageId: true,
+    },
+  });
+
+  if (latest) {
+    await tx.member.update({
+      where: { id: memberId },
+      data: {
+        startDate:        latest.startDate,
+        expiryDate:       latest.expiryDate,
+        renewalDueDate:   latest.expiryDate,
+        status:           "ACTIVE",
+        currentPackageId: latest.packageId ?? null,
+      },
+    });
+  } else {
+    await tx.member.update({
+      where: { id: memberId },
+      data: {
+        startDate:        null,
+        expiryDate:       null,
+        renewalDueDate:   null,
+        status:           "EXPIRED",
+        currentPackageId: null,
+      },
+    });
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,41 +102,19 @@ export async function POST(req: NextRequest) {
         data: { memberId: newMemberId },
       });
 
-      // Reassign the linked membership if one exists
+      // Reassign the linked Membership row if one exists (old Path B payments)
       if (payment.membership) {
         await tx.membership.update({
           where: { id: payment.membership.id },
           data: { memberId: newMemberId },
         });
-
-        // Update new member's current package, expiry, etc.
-        await tx.member.update({
-          where: { id: newMemberId },
-          data: {
-            currentPackageId: payment.membership.packageId,
-            startDate: payment.membership.startDate,
-            expiryDate: payment.membership.expiryDate,
-            renewalDueDate: payment.membership.expiryDate,
-            status: "ACTIVE",
-          },
-        });
-
-        // Reset old member — check if they have any remaining active memberships
-        const oldMemberActiveMemberships = await tx.membership.count({
-          where: { memberId: oldMember.id },
-        });
-        if (oldMemberActiveMemberships === 0) {
-          await tx.member.update({
-            where: { id: oldMember.id },
-            data: {
-              currentPackageId: null,
-              expiryDate: null,
-              renewalDueDate: null,
-              status: "EXPIRED",
-            },
-          });
-        }
       }
+
+      // Recalculate both members' snapshots from their remaining ADMISSION/RENEWAL payments.
+      // This handles both Path A payments (no Membership row) and Path B (with Membership row).
+      // BALANCE payments are excluded inside recalcMemberSnapshot.
+      await recalcMemberSnapshot(tx, newMemberId);
+      await recalcMemberSnapshot(tx, oldMember.id);
 
       // Audit log
       await tx.auditLog.create({
