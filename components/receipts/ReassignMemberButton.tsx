@@ -35,7 +35,7 @@ export function ReassignMemberButton({ paymentId, currentMember }: Props) {
       try {
         const res = await fetch(`/api/members/search?q=${encodeURIComponent(query)}&limit=10`);
         const data = await res.json();
-        setResults((data.members ?? []).filter((m: Member) => m.id !== currentMember.id));
+        setResults((Array.isArray(data) ? data : []).filter((m: Member) => m.id !== currentMember.id));
       } catch {
         setResults([]);
       } finally {
