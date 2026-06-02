@@ -140,6 +140,8 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   const [isNewMember, setIsNewMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState("");
   const [newMemberPhone, setNewMemberPhone] = useState("");
+  const [cardChargePct, setCardChargePct] = useState("");
+  const [cardChargeAmt, setCardChargeAmt] = useState("");
 
   // Token search: split by spaces so "m vishal" matches "Vishal M" in any order
   const filteredMembers = useMemo(() => {
@@ -157,6 +159,48 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   }, [members, memberSearch]);
 
   const selectedMember = members.find((m) => m.id === selectedMemberId);
+
+  // Card charge helpers
+  const showCardCharge =
+    (!splitEnabled && paymentMode === "CARD") ||
+    (splitEnabled && (paymentMode === "CARD" || splitMode === "CARD"));
+
+  const cardLeg = (() => {
+    if (!splitEnabled && paymentMode === "CARD") {
+      return Math.max(0, (Number(amount) || 0) - (Number(discount) || 0));
+    }
+    if (splitEnabled) {
+      let leg = 0;
+      if (paymentMode === "CARD") leg += Number(splitAmt1) || 0;
+      if (splitMode === "CARD") leg += Number(splitAmt) || 0;
+      return leg;
+    }
+    return 0;
+  })();
+
+  // Reset card charge when card is no longer involved
+  useEffect(() => {
+    if (!showCardCharge) {
+      setCardChargePct("");
+      setCardChargeAmt("");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [splitEnabled, paymentMode, splitMode]);
+
+  // Recalculate flat amount when pct or card-leg amounts change
+  useEffect(() => {
+    const pct = parseFloat(cardChargePct);
+    if (!pct || pct <= 0) return;
+    let leg = 0;
+    if (!splitEnabled && paymentMode === "CARD") {
+      leg = Math.max(0, (Number(amount) || 0) - (Number(discount) || 0));
+    } else if (splitEnabled) {
+      if (paymentMode === "CARD") leg += Number(splitAmt1) || 0;
+      if (splitMode === "CARD") leg += Number(splitAmt) || 0;
+    }
+    if (leg > 0) setCardChargeAmt(String(Math.round(leg * pct / 100)));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardChargePct, amount, discount, splitAmt, splitAmt1, splitEnabled, paymentMode, splitMode]);
 
   function isFakePhone(p: string) {
     const d = p.replace(/\D/g, "");
@@ -242,6 +286,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
         paymentMode,
         splitPaymentMode: splitEnabled && splitAmt ? splitMode : undefined,
         splitAmount: splitEnabled && splitAmt ? Number(splitAmt) : undefined,
+        cardCharge: showCardCharge ? (Number(cardChargeAmt) || 0) : 0,
         billDate,
         startDate,
         expiryDate,
@@ -715,6 +760,46 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
           ))}
         </div>
       </div>
+      )}
+
+      {/* ── Card Charge (shown only when Card is the payment mode or a split leg) ── */}
+      {showCardCharge && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Card Charge</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Charge %</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={cardChargePct}
+                onChange={(e) => setCardChargePct(e.target.value)}
+                placeholder="e.g. 2"
+                min={0}
+                max={10}
+                step={0.1}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Charge ₹</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={cardChargeAmt}
+                onChange={(e) => setCardChargeAmt(e.target.value)}
+                placeholder="0"
+                min={0}
+                className={inputClass}
+              />
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-400 mt-2">
+            {cardLeg > 0
+              ? `Applied to ₹${cardLeg.toLocaleString("en-IN")} (card amount) · enter % to auto-calculate, or type ₹ directly`
+              : "Enter card amount above first"}
+          </p>
+        </div>
       )}
 
       {/* ── Row 9: Who made the sale? (admin only — not on receipt) ── */}

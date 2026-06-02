@@ -101,6 +101,8 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
   const discountNum = Number(payment.discount);
   const pendingNum = Number(payment.pendingAmount);
   const prevAmountNum = payment.previousAmount ? Number(payment.previousAmount) : null;
+  const cardChargeNum = payment.cardCharge ? Number(payment.cardCharge) : 0;
+  const totalCollected = amountNum - discountNum + cardChargeNum;
 
   const category =
     payment.categoryLabel ?? payment.package?.name ?? "General Fitness";
@@ -246,12 +248,12 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
           >
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
               <div>
-                <p style={label}>Amount Paid</p>
+                <p style={label}>{cardChargeNum > 0 ? "Total Collected" : "Amount Paid"}</p>
                 <p style={{ fontSize: "28px", fontWeight: 900, color: brand.accent, margin: "2px 0 0", letterSpacing: "-0.5px" }}>
-                  ₹{formatIndian(amountNum)}
+                  ₹{formatIndian(cardChargeNum > 0 ? totalCollected : amountNum)}
                 </p>
                 <p style={{ fontSize: "11px", color: "#9ca3af", fontStyle: "italic", margin: "4px 0 0" }}>
-                  {amountToWords(amountNum)} Rupees only
+                  {amountToWords(cardChargeNum > 0 ? totalCollected : amountNum)} Rupees only
                 </p>
               </div>
               <div style={{ textAlign: "right" }}>
@@ -279,13 +281,25 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
               </div>
             </div>
 
-            {/* Discount / pending / prev receipt */}
-            {(discountNum > 0 || pendingNum > 0 || payment.previousReceiptNo) && (
+            {/* Breakdown: card charge + discount + pending + prev receipt */}
+            {(cardChargeNum > 0 || discountNum > 0 || pendingNum > 0 || payment.previousReceiptNo) && (
               <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: `1px dashed ${brand.mutedBorder}`, display: "flex", flexDirection: "column", gap: "4px" }}>
+                {cardChargeNum > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: "11px", color: "#6b7280" }}>Base Amount</span>
+                    <span style={{ fontSize: "11px", fontWeight: 600, color: "#374151" }}>₹{formatIndian(amountNum)}</span>
+                  </div>
+                )}
                 {discountNum > 0 && (
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ fontSize: "11px", color: "#6b7280" }}>Discount</span>
                     <span style={{ fontSize: "11px", fontWeight: 700, color: "#059669" }}>− ₹{formatIndian(discountNum)}</span>
+                  </div>
+                )}
+                {cardChargeNum > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: "11px", color: "#6b7280" }}>Card Charge</span>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#7c3aed" }}>+ ₹{formatIndian(cardChargeNum)}</span>
                   </div>
                 )}
                 {pendingNum > 0 && (

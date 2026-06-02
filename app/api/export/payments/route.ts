@@ -66,10 +66,16 @@ export async function GET(request: Request) {
     "START",
     "END",
     "AMOUNT",
+    "CARD CHARGE",
+    "TOTAL COLLECTED",
     "BALANCE",
   ];
 
   const rows = payments.map((p) => {
+    const baseAmount = Number(p.amount);
+    const discountAmt = Number(p.discount ?? 0);
+    const cardChargeAmt = p.cardCharge ? Number(p.cardCharge) : 0;
+    const totalCollected = baseAmount - discountAmt + cardChargeAmt;
     const pendingAmount = Number(p.pendingAmount ?? 0);
     return [
       fmtDate(p.date),
@@ -83,7 +89,9 @@ export async function GET(request: Request) {
       p.periodLabel ?? "",
       fmtDate(p.startDate),
       fmtDate(p.expiryDate),
-      Number(p.amount),
+      baseAmount,
+      cardChargeAmt > 0 ? cardChargeAmt : "",
+      totalCollected,
       pendingAmount > 0 ? pendingAmount : "NIL",
     ];
   });
