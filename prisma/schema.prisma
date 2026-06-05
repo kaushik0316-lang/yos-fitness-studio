@@ -132,6 +132,7 @@ model User {
   employee          Employee?
   markedAttendances MemberAttendance[]
   collectedPayments Payment[]
+  voidedPayments    Payment[]  @relation("VoidedPayments")
   auditLogs         AuditLog[]
 
   @@map("users")
@@ -321,12 +322,20 @@ model Payment {
   // Membership created from this payment
   membership     Membership?
 
+  // Void / cancellation
+  isVoided      Boolean   @default(false)
+  voidedAt      DateTime?
+  voidedById    String?
+  voidedBy      User?     @relation("VoidedPayments", fields: [voidedById], references: [id], onDelete: SetNull)
+  voidReason    String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([date])
   @@index([company])
   @@index([memberId])
+  @@index([isVoided])
   @@map("payments")
 }
 
