@@ -129,7 +129,7 @@ export function DeleteMemberButton({ memberDbId, memberId, memberName }: Props) 
               </div>
 
               <p style={{ fontSize: "13px", color: "#374151", margin: 0 }}>
-                Members with payment history cannot be deleted. Set them to{" "}
+                Members with active payment records cannot be deleted. Set them to{" "}
                 <strong>Inactive</strong> instead.
               </p>
 

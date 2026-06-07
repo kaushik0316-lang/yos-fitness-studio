@@ -20,7 +20,7 @@ export async function DELETE(
         id:       true,
         memberId: true,
         fullName: true,
-        _count:   { select: { payments: true } },
+        _count:   { select: { payments: { where: { isVoided: false } } } },
       },
     });
 
@@ -33,7 +33,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           error:
-            "Member has payment history. Cannot delete. Set the member to Inactive instead.",
+            "Member has active payment records. Cannot delete. Set the member to Inactive instead.",
         },
         { status: 409 }
       );
