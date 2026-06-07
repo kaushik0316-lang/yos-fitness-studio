@@ -52,3 +52,7 @@ yarn-error.log*
 .env.neon
 .env.prod.tmp
 .env.temp
+.env.prod.pulled
+
+# Snapshot backup files — local only, never commit
+scripts/snapshot-backup-*.json
