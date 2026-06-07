@@ -9,6 +9,7 @@ import { WhatsAppButton } from "@/components/receipts/WhatsAppButton";
 import { EditReceiptButton } from "@/components/receipts/EditReceiptButton";
 import { SendPDFButton } from "@/components/receipts/SendPDFButton";
 import { ReassignMemberButton } from "@/components/receipts/ReassignMemberButton";
+import { VoidReceiptButton } from "@/components/receipts/VoidReceiptButton";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +88,7 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
       member: { select: { id: true, memberId: true, fullName: true, phone: true } },
       package: { select: { name: true, durationDays: true } },
       collectedBy: { select: { name: true } },
+      voidedBy: { select: { name: true } },
     },
   });
 
@@ -125,7 +127,8 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
         >
           ← {searchParams.from === "member" ? "Back to Member" : "Back"}
         </Link>
-        {session.user.role === "ADMIN" && (
+        {/* Edit and Reassign hidden on voided receipts — view/print/share only */}
+        {session.user.role === "ADMIN" && !payment.isVoided && (
           <EditReceiptButton
             paymentId={payment.id}
             current={{
@@ -146,7 +149,7 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
             }}
           />
         )}
-        {session.user.role === "ADMIN" && (
+        {session.user.role === "ADMIN" && !payment.isVoided && (
           <ReassignMemberButton
             paymentId={payment.id}
             currentMember={{
@@ -157,6 +160,9 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
             }}
           />
         )}
+        {session.user.role === "ADMIN" && !payment.isVoided && (
+          <VoidReceiptButton paymentId={payment.id} />
+        )}
         <SendPDFButton
           phone={payment.member.phone}
           memberName={payment.member.fullName}
@@ -164,6 +170,11 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
         />
         <span className="text-xs text-gray-400 ml-auto font-mono">
           Receipt #{payment.receiptNumber ?? "—"} · {companyShort}
+          {payment.isVoided && (
+            <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded-lg border border-red-300 align-middle">
+              VOIDED
+            </span>
+          )}
         </span>
       </div>
 
@@ -191,6 +202,29 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
             boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
           }}
         >
+          {/* ── VOID banner (shown when receipt is voided) ── */}
+          {payment.isVoided && (
+            <div
+              style={{
+                background: "#dc2626",
+                color: "#fff",
+                padding: "10px 24px",
+                textAlign: "center",
+              }}
+            >
+              <p style={{ fontWeight: 900, fontSize: "14px", letterSpacing: "0.18em", textTransform: "uppercase", margin: "0 0 3px" }}>
+                ⊘ Voided Receipt
+              </p>
+              <p style={{ fontSize: "11px", margin: 0, opacity: 0.85, lineHeight: 1.5 }}>
+                {payment.voidedAt
+                  ? `Voided on ${format(new Date(payment.voidedAt), "dd/MM/yyyy")}`
+                  : ""}
+                {payment.voidedBy?.name ? ` by ${payment.voidedBy.name}` : ""}
+                {payment.voidReason ? ` · ${payment.voidReason}` : ""}
+              </p>
+            </div>
+          )}
+
           {/* ── Header ── */}
           <div style={{ background: brand.headerBg, padding: "20px 24px 18px" }}>
             <p style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", color: isYFS ? "#fef3c7" : "#6b7280", textTransform: "uppercase", margin: "0 0 5px" }}>
