@@ -15,6 +15,7 @@ type Payment = {
   transactionRef: string | null; notes: string | null;
   receiptNumber: number | null;
   startDate: Date | null; expiryDate: Date | null;
+  isVoided: boolean;
   member: { id: string; memberId: string; fullName: string; phone: string };
   package: { name: string } | null;
   collectedBy: { name: string };
@@ -300,14 +301,27 @@ export function PaymentsClient({
                       className={cn("transition-colors group", p.receiptNumber ? "cursor-pointer hover:bg-white/[0.025]" : "")}
                       style={{
                         borderBottom: "1px solid rgba(255,255,255,0.04)",
-                        background: hasPending
-                          ? (idx % 2 === 0 ? "rgba(239,68,68,0.04)" : "rgba(239,68,68,0.06)")
-                          : (idx % 2 === 0 ? "#161616" : "#181818"),
+                        background: p.isVoided
+                          ? (idx % 2 === 0 ? "#161616" : "#181818")
+                          : hasPending
+                            ? (idx % 2 === 0 ? "rgba(239,68,68,0.04)" : "rgba(239,68,68,0.06)")
+                            : (idx % 2 === 0 ? "#161616" : "#181818"),
+                        opacity: p.isVoided ? 0.55 : 1,
                       }}>
                       {/* Receipt # */}
                       <td className="px-3 sm:px-5 py-3.5">
                         {p.receiptNumber
-                          ? <span className="font-mono text-sm font-bold text-orange-400 group-hover:underline">#{p.receiptNumber}</span>
+                          ? <span className="flex items-center gap-1.5">
+                              <span className={cn("font-mono text-sm font-bold", p.isVoided ? "text-gray-600 line-through" : "text-orange-400 group-hover:underline")}>
+                                #{p.receiptNumber}
+                              </span>
+                              {p.isVoided && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border"
+                                  style={{ background: "rgba(239,68,68,0.15)", color: "#f87171", borderColor: "rgba(239,68,68,0.25)" }}>
+                                  VOID
+                                </span>
+                              )}
+                            </span>
                           : <span className="text-gray-700 text-sm">—</span>}
                       </td>
                       {/* Date */}
@@ -321,11 +335,15 @@ export function PaymentsClient({
                       </td>
                       {/* Amount */}
                       <td className="px-3 sm:px-5 py-3.5">
-                        <p className="font-bold text-white">{formatCurrency(Number(p.amount))}</p>
+                        <p className={cn("font-bold", p.isVoided ? "text-gray-600 line-through" : "text-white")}>
+                          {formatCurrency(Number(p.amount))}
+                        </p>
                         {Number(p.discount) > 0 && (
-                          <p className="text-xs text-emerald-500">−{formatCurrency(Number(p.discount))}</p>
+                          <p className={cn("text-xs", p.isVoided ? "text-gray-700 line-through" : "text-emerald-500")}>
+                            −{formatCurrency(Number(p.discount))}
+                          </p>
                         )}
-                        {hasPending && (
+                        {hasPending && !p.isVoided && (
                           <p className="text-xs font-semibold text-red-400">⚠ ₹{Number(pending).toLocaleString("en-IN")} due</p>
                         )}
                       </td>

@@ -57,7 +57,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
   const MEMBERSHIPS_DEFAULT = 5;
 
   const membershipPayments = member.payments.filter(
-    (p: any) => p.paymentType === "ADMISSION" || p.paymentType === "RENEWAL"
+    (p: any) => (p.paymentType === "ADMISSION" || p.paymentType === "RENEWAL") && !p.isVoided
   );
 
   const visiblePayments = showAllPayments ? member.payments : member.payments.slice(0, PAYMENTS_DEFAULT);
@@ -481,12 +481,25 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
               <>
                 <div className="space-y-2 pr-1">
                   {visiblePayments.map((p: any) => (
-                    <Link key={p.id} href={`/payments/${p.id}/receipt?from=member`} className="flex items-center justify-between p-3.5 bg-gray-50 hover:bg-violet-50 hover:border-violet-100 border border-transparent rounded-xl transition-colors group">
+                    <Link key={p.id} href={`/payments/${p.id}/receipt?from=member`}
+                      className={cn(
+                        "flex items-center justify-between p-3.5 rounded-xl border transition-colors group",
+                        p.isVoided
+                          ? "bg-gray-50 border-gray-100 opacity-60"
+                          : "bg-gray-50 hover:bg-violet-50 hover:border-violet-100 border-transparent"
+                      )}>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-bold text-gray-900 text-sm group-hover:text-violet-700 transition-colors">{formatCurrency(Number(p.amount))}</p>
+                          <p className={cn("font-bold text-sm", p.isVoided ? "text-gray-400 line-through" : "text-gray-900 group-hover:text-violet-700 transition-colors")}>
+                            {formatCurrency(Number(p.amount))}
+                          </p>
                           {p.receiptNumber && (
-                            <span className="text-xs text-gray-400 font-mono">#{p.receiptNumber}</span>
+                            <span className={cn("text-xs font-mono", p.isVoided ? "text-gray-400" : "text-gray-400")}>#{p.receiptNumber}</span>
+                          )}
+                          {p.isVoided && (
+                            <span className="px-1.5 py-0.5 bg-red-100 text-red-500 text-[10px] font-bold rounded border border-red-200">
+                              VOID
+                            </span>
                           )}
                           <span className="text-xs text-gray-500 font-medium">
                             {PAYMENT_TYPE_LABELS[p.paymentType] ?? p.paymentType}
@@ -501,7 +514,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                         )}>
                           {p.company === "YOS_FITNESS" ? "YF" : "YFS"}
                         </span>
-                        <CreditCard className="h-3.5 w-3.5 text-gray-300 group-hover:text-violet-400 transition-colors" />
+                        <CreditCard className={cn("h-3.5 w-3.5", p.isVoided ? "text-gray-200" : "text-gray-300 group-hover:text-violet-400 transition-colors")} />
                       </div>
                     </Link>
                   ))}
