@@ -42,6 +42,8 @@ export async function GET(request: Request) {
     const end = new Date(year, mon, 1);
     where.date = { gte: start, lt: end };
   }
+  // Exclude voided receipts from all exports
+  where.isVoided = false;
 
   const payments = await prisma.payment.findMany({
     where,

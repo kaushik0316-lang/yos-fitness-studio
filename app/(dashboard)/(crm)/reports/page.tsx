@@ -35,17 +35,17 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
     newMembersThisMonth,
     renewalsThisMonth,
   ] = await Promise.all([
-    // Collections by payment mode this month
+    // Collections by payment mode this month (voided excluded)
     prisma.payment.groupBy({
       by: ["paymentMode"],
-      where: { date: { gte: monthStart, lte: monthEnd } },
+      where: { date: { gte: monthStart, lte: monthEnd }, isVoided: false },
       _sum: { amount: true },
       _count: true,
     }),
-    // Collections by company this month
+    // Collections by company this month (voided excluded)
     prisma.payment.groupBy({
       by: ["company"],
-      where: { date: { gte: monthStart, lte: monthEnd } },
+      where: { date: { gte: monthStart, lte: monthEnd }, isVoided: false },
       _sum: { amount: true },
       _count: true,
     }),
@@ -61,11 +61,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
       WHERE date >= ${monthStart} AND date <= ${monthEnd}
       GROUP BY date ORDER BY date ASC
     `,
-    // Monthly revenue trend (last 6 months)
+    // Monthly revenue trend (last 6 months, voided excluded)
     Promise.all(last6Months.map(async (m) => {
       const [yf, yfs] = await Promise.all([
-        prisma.payment.aggregate({ where: { company: Company.YOS_FITNESS, date: { gte: m.start, lte: m.end } }, _sum: { amount: true } }),
-        prisma.payment.aggregate({ where: { company: Company.YOS_FITNESS_STUDIO, date: { gte: m.start, lte: m.end } }, _sum: { amount: true } }),
+        prisma.payment.aggregate({ where: { company: Company.YOS_FITNESS, date: { gte: m.start, lte: m.end }, isVoided: false }, _sum: { amount: true } }),
+        prisma.payment.aggregate({ where: { company: Company.YOS_FITNESS_STUDIO, date: { gte: m.start, lte: m.end }, isVoided: false }, _sum: { amount: true } }),
       ]);
       return {
         label: m.label,
@@ -74,10 +74,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
         total: Number(yf._sum.amount ?? 0) + Number(yfs._sum.amount ?? 0),
       };
     })),
-    // Top packages this month
+    // Top packages this month (voided excluded)
     prisma.payment.groupBy({
       by: ["packageId"],
-      where: { date: { gte: monthStart, lte: monthEnd }, packageId: { not: null } },
+      where: { date: { gte: monthStart, lte: monthEnd }, packageId: { not: null }, isVoided: false },
       _sum: { amount: true },
       _count: true,
       orderBy: { _count: { packageId: "desc" } },

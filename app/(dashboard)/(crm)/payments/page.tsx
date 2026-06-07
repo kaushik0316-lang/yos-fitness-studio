@@ -71,6 +71,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   const hasFilter = !!(searchParams.dateFilter || searchParams.dateFrom || searchParams.dateTo
     || searchParams.company || searchParams.mode || searchParams.paymentType || searchParams.search);
 
+  // Stat queries always exclude voided receipts; list queries use `where` unchanged (Batch 5)
+  const statsWhere = { ...where, isVoided: false };
+
   // Parse statMonth param (format: YYYY-MM). Fall back to current month if invalid.
   let selectedMonthStart = startOfMonth(today);
   let selectedMonthEnd   = endOfMonth(today);
@@ -103,20 +106,20 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
     prisma.payment.aggregate({ where, _sum: { amount: true } }),
     prisma.payment.groupBy({
       by: ["company"],
-      where: { date: { gte: startOfDay(today), lte: endOfDay(today) } },
+      where: { date: { gte: startOfDay(today), lte: endOfDay(today) }, isVoided: false },
       _sum: { amount: true }, _count: true,
     }),
     prisma.payment.groupBy({
       by: ["company"],
-      where: { date: { gte: startOfMonth(today), lte: endOfMonth(today) } },
+      where: { date: { gte: startOfMonth(today), lte: endOfMonth(today) }, isVoided: false },
       _sum: { amount: true }, _count: true,
     }),
     hasFilter
-      ? prisma.payment.groupBy({ by: ["company"], where, _sum: { amount: true }, _count: true })
+      ? prisma.payment.groupBy({ by: ["company"], where: statsWhere, _sum: { amount: true }, _count: true })
       : Promise.resolve(null),
     prisma.payment.groupBy({
       by: ["company"],
-      where: { date: { gte: selectedMonthStart, lte: selectedMonthEnd } },
+      where: { date: { gte: selectedMonthStart, lte: selectedMonthEnd }, isVoided: false },
       _sum: { amount: true }, _count: true,
     }),
     prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
