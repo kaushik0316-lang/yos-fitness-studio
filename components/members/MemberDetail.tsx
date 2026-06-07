@@ -8,6 +8,7 @@ import {
   Mail, ShieldAlert, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { EditMemberButton } from "@/components/members/EditMemberButton";
+import { DeleteMemberButton } from "@/components/members/DeleteMemberButton";
 import { toggleDoNotDisturb } from "@/lib/actions/members";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { MemberPhotoUpload } from "@/components/members/MemberPhotoUpload";
@@ -77,10 +78,19 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
     <div className="space-y-6 max-w-6xl">
       {/* ── Back + Actions ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <Link href="/members" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Members
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/members" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Members
+          </Link>
+          {userRole === "ADMIN" && (
+            <DeleteMemberButton
+              memberDbId={member.id}
+              memberId={member.memberId}
+              memberName={member.fullName}
+            />
+          )}
+        </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "TRAINER") && (
             <button
@@ -102,6 +112,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
           )}
         </div>
       </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ── Left: Profile ── */}
