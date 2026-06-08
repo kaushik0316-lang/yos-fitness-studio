@@ -20,7 +20,7 @@ const STAFF_LINKS = [
 ];
 
 const MEMBER_LINKS = [
-  { label: "Member Portal", href: "/member-portal", emoji: "🏋️" },
+  { label: "Member Dashboard", href: "/member-portal", emoji: "🏠" },
   { label: "Check In", href: "/member-checkin", emoji: "✅" },
   { label: "My Membership", href: "/my-membership", emoji: "📅" },
 ];

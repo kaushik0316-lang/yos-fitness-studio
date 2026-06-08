@@ -285,13 +285,14 @@ export default function MarketingPage() {
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50 overflow-hidden">
                   <div className="py-1.5">
                     <Link href="/member-portal" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
-                      <span className="text-base">🏋️</span>
-                      <span className="font-medium text-sm">Member Portal</span>
+                      <span className="text-base">🏠</span>
+                      <span className="font-medium text-sm">Member Dashboard</span>
                     </Link>
                     <Link href="/member-checkin" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
                       <span className="text-base">✅</span>
                       <span className="font-medium text-sm">Check In</span>
                     </Link>
+                    <div className="mx-4 my-1 border-t border-gray-100" />
                     <Link href="/my-membership" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
                       <span className="text-base">📅</span>
                       <span className="font-medium text-sm">My Membership</span>
