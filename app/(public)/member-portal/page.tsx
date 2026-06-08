@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 type Phase = "input" | "loading" | "dashboard" | "setup" | "error";
-type SetupStep = "memberId" | "choosePin" | "confirmPin" | "done";
+type SetupStep = "memberId" | "phone" | "choosePin" | "confirmPin" | "done";
 
 interface MemberData {
   id: string; memberId: string; fullName: string;
@@ -65,13 +65,14 @@ export default function MemberPortalPage() {
   const submittingRef             = useRef(false);
 
   // Setup PIN state
-  const [setupStep, setSetupStep]       = useState<SetupStep>("memberId");
+  const [setupStep, setSetupStep]         = useState<SetupStep>("memberId");
   const [setupMemberId, setSetupMemberId] = useState("");
-  const [setupPin, setSetupPin]         = useState("");
-  const [confirmPin, setConfirmPin]     = useState("");
-  const [setupLoading, setSetupLoading] = useState(false);
-  const [setupError, setSetupError]     = useState("");
-  const [setupName, setSetupName]       = useState("");
+  const [setupPhone4, setSetupPhone4]     = useState("");
+  const [setupPin, setSetupPin]           = useState("");
+  const [confirmPin, setConfirmPin]       = useState("");
+  const [setupLoading, setSetupLoading]   = useState(false);
+  const [setupError, setSetupError]       = useState("");
+  const [setupName, setSetupName]         = useState("");
 
   // Check for ?setup=1 param
   useEffect(() => {
@@ -177,9 +178,13 @@ export default function MemberPortalPage() {
   async function handleSetupSubmit() {
     if (setupStep === "memberId") {
       if (!setupMemberId.trim()) { setSetupError("Please enter your Membership ID."); return; }
-      setSetupLoading(true); setSetupError("");
-      // Validate memberId exists — we'll do that when setting PIN
-      setSetupLoading(false);
+      setSetupError("");
+      setSetupStep("phone");
+      return;
+    }
+    if (setupStep === "phone") {
+      if (!/^\d{4}$/.test(setupPhone4)) { setSetupError("Please enter the last 4 digits of your phone number."); return; }
+      setSetupError("");
       setSetupStep("choosePin");
       return;
     }
@@ -195,7 +200,11 @@ export default function MemberPortalPage() {
         const res = await fetch("/api/member/setup-pin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ memberId: setupMemberId.trim().toUpperCase(), pin: setupPin }),
+          body: JSON.stringify({
+            memberId: setupMemberId.trim().toUpperCase(),
+            phone4:   setupPhone4,
+            pin:      setupPin,
+          }),
         });
         const data = await res.json();
         if (!res.ok) { setSetupError(data.error ?? "Something went wrong."); setSetupLoading(false); return; }
@@ -238,7 +247,7 @@ export default function MemberPortalPage() {
                 </div>
                 <h2 className="text-xl font-bold text-white mb-2">PIN Set Successfully!</h2>
                 <p className="text-gray-400 text-sm mb-8">Welcome, <strong className="text-white">{setupName}</strong>. You can now use your PIN to check in.</p>
-                <button onClick={() => { setPhase("input"); setSetupStep("memberId"); setSetupMemberId(""); setSetupPin(""); setConfirmPin(""); setSetupError(""); }}
+                <button onClick={() => { setPhase("input"); setSetupStep("memberId"); setSetupMemberId(""); setSetupPhone4(""); setSetupPin(""); setConfirmPin(""); setSetupError(""); }}
                   className="w-full py-4 rounded-2xl font-bold text-white text-sm"
                   style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)" }}>
                   Go to Login →
@@ -248,16 +257,16 @@ export default function MemberPortalPage() {
               <div className="rounded-3xl p-6" style={{ background: "#1c1c1c" }}>
                 {/* Step indicator */}
                 <div className="flex items-center gap-2 mb-6">
-                  {["memberId", "choosePin", "confirmPin"].map((step, i) => (
+                  {["memberId", "phone", "choosePin", "confirmPin"].map((step, i) => (
                     <div key={step} className="flex items-center gap-2 flex-1">
                       <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                         style={{
-                          background: setupStep === step ? "#22c55e" : ["memberId","choosePin","confirmPin"].indexOf(setupStep) > i ? "rgba(34,197,94,0.3)" : "#2a2a2a",
+                          background: setupStep === step ? "#22c55e" : ["memberId","phone","choosePin","confirmPin"].indexOf(setupStep) > i ? "rgba(34,197,94,0.3)" : "#2a2a2a",
                           color: setupStep === step ? "#fff" : "#6b7280",
                         }}>
                         {i + 1}
                       </div>
-                      {i < 2 && <div className="flex-1 h-px" style={{ background: ["memberId","choosePin","confirmPin"].indexOf(setupStep) > i ? "rgba(34,197,94,0.4)" : "#2a2a2a" }} />}
+                      {i < 3 && <div className="flex-1 h-px" style={{ background: ["memberId","phone","choosePin","confirmPin"].indexOf(setupStep) > i ? "rgba(34,197,94,0.4)" : "#2a2a2a" }} />}
                     </div>
                   ))}
                 </div>
@@ -275,6 +284,22 @@ export default function MemberPortalPage() {
                       autoFocus
                     />
                     <p className="text-xs text-gray-600 mt-2 text-center">Found on your membership card or receipt</p>
+                  </div>
+                )}
+
+                {setupStep === "phone" && (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Last 4 digits of your phone</label>
+                    <input
+                      type="tel" inputMode="numeric" maxLength={4} value={setupPhone4}
+                      onChange={(e) => { setSetupPhone4(e.target.value.replace(/\D/g,"")); setSetupError(""); }}
+                      onKeyDown={(e) => e.key === "Enter" && handleSetupSubmit()}
+                      placeholder="e.g. 9381"
+                      className="w-full px-4 py-3 rounded-xl text-white font-bold text-lg text-center outline-none focus:ring-2 focus:ring-green-500"
+                      style={{ background: "#111", border: "1px solid #2a2a2a", caretColor: "#22c55e" }}
+                      autoFocus
+                    />
+                    <p className="text-xs text-gray-600 mt-2 text-center">The number registered with the gym</p>
                   </div>
                 )}
 
@@ -332,6 +357,7 @@ export default function MemberPortalPage() {
                   onClick={handleSetupSubmit}
                   disabled={setupLoading ||
                     (setupStep === "memberId" && !setupMemberId.trim()) ||
+                    (setupStep === "phone" && setupPhone4.length < 4) ||
                     (setupStep === "choosePin" && setupPin.length < 4) ||
                     (setupStep === "confirmPin" && confirmPin.length < 4)}
                   className="w-full py-3.5 rounded-2xl font-bold text-white mt-5 disabled:opacity-40"
@@ -342,7 +368,7 @@ export default function MemberPortalPage() {
             )}
 
             <div className="text-center mt-6">
-              <button onClick={() => setPhase("input")} className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+              <button onClick={() => { setPhase("input"); setSetupStep("memberId"); setSetupMemberId(""); setSetupPhone4(""); setSetupPin(""); setConfirmPin(""); }} className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
                 ← Back to login
               </button>
             </div>

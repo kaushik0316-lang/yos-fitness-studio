@@ -15,23 +15,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { memberId, pin } = await req.json();
+    const { memberId, phone4, pin } = await req.json();
 
     if (!memberId || typeof memberId !== "string") {
       return NextResponse.json({ error: "Member ID is required." }, { status: 400 });
+    }
+    if (!phone4 || !/^\d{4}$/.test(String(phone4))) {
+      return NextResponse.json({ error: "Last 4 digits of phone number are required." }, { status: 400 });
     }
     if (!pin || !/^\d{4}$/.test(String(pin))) {
       return NextResponse.json({ error: "PIN must be exactly 4 digits." }, { status: 400 });
     }
 
-    // Look up member by memberId (YF-001 etc.)
+    // Look up member by memberId
     const member = await prisma.member.findUnique({
       where: { memberId: memberId.toUpperCase().trim() },
-      select: { id: true, fullName: true, memberId: true },
+      select: { id: true, fullName: true, memberId: true, phone: true },
     });
 
+    // Return same 404 whether ID not found or phone mismatch — don't leak which one failed
     if (!member) {
-      return NextResponse.json({ error: "Member ID not found. Please check and try again." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Member ID or phone number does not match. Please check and try again." },
+        { status: 404 }
+      );
+    }
+
+    // Verify last 4 digits of phone
+    const storedLast4 = member.phone.replace(/\D/g, "").slice(-4);
+    if (storedLast4 !== String(phone4)) {
+      return NextResponse.json(
+        { error: "Member ID or phone number does not match. Please check and try again." },
+        { status: 404 }
+      );
     }
 
     // Check PIN not already taken by a different member
@@ -40,7 +56,10 @@ export async function POST(req: NextRequest) {
       select: { id: true },
     });
     if (existing && existing.id !== member.id) {
-      return NextResponse.json({ error: "This PIN is already in use. Please choose a different PIN." }, { status: 409 });
+      return NextResponse.json(
+        { error: "This PIN is already in use. Please choose a different PIN." },
+        { status: 409 }
+      );
     }
 
     // Set the PIN
