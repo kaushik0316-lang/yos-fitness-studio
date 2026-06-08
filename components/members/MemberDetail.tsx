@@ -180,7 +180,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                     <div className="bg-gray-100 rounded-lg p-1.5 mt-0.5">
                       <MapPin className="h-3.5 w-3.5 text-gray-500" />
                     </div>
-                    <span>{member.address}</span>
+                    <span>{toTitleCase(member.address)}</span>
                   </div>
                 )}
                 {member.email && (
@@ -198,7 +198,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Emergency</p>
-                      {member.emergencyContact && <p className="font-medium">{member.emergencyContact}</p>}
+                      {member.emergencyContact && <p className="font-medium">{toTitleCase(member.emergencyContact)}</p>}
                       {member.emergencyPhone && (
                         <a href={`tel:${member.emergencyPhone}`} className="hover:text-orange-600 transition-colors">
                           {member.emergencyPhone}
