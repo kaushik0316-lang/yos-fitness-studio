@@ -176,6 +176,7 @@ model Member {
   renewalDueDate   DateTime?
   lastPaymentDate  DateTime?
   lastAttendanceDate DateTime?
+  pin                String?      @unique // 4-digit self-set PIN for member portal
 
   // Assigned trainer
   trainerId String?
@@ -193,6 +194,7 @@ model Member {
   @@index([status])
   @@index([expiryDate])
   @@index([lastAttendanceDate])
+  @@index([pin])
   @@map("members")
 }
 
