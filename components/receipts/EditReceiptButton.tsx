@@ -104,7 +104,7 @@ export function EditReceiptButton({ paymentId, current }: Props) {
   function pickMember(m: MemberResult) {
     setMemberQuery(m.fullName);
     setSelectedMemberId(m.id);
-    setForm((f) => ({ ...f, memberName: m.fullName }));
+    setForm((f) => ({ ...f, memberName: m.fullName, memberPhone: m.phone }));
     setShowDropdown(false);
     setMemberResults([]);
   }
