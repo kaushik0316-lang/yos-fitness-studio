@@ -1,0 +1,118 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { auth } from "@/lib/auth";
+
+function getISTDate(): Date {
+  const now = new Date();
+  const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+  istNow.setUTCHours(0, 0, 0, 0);
+  return istNow;
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+    const rl = checkRateLimit(`${ip}:member-checkin`, {
+      maxAttempts: 15, windowMs: 10 * 60 * 1000, blockMs: 20 * 60 * 1000,
+    });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Too many attempts. Try again in ${rl.retryAfterSeconds} seconds.` },
+        { status: 429 }
+      );
+    }
+
+    const body = await req.json();
+    const { pin } = body as { pin: string };
+
+    if (!pin || String(pin).length !== 4) {
+      return NextResponse.json({ error: "Invalid PIN." }, { status: 400 });
+    }
+
+    // Look up member by PIN
+    const member = await prisma.member.findUnique({
+      where: { pin: String(pin) },
+      select: {
+        id: true, memberId: true, fullName: true,
+        status: true, expiryDate: true,
+      },
+    });
+
+    if (!member) {
+      return NextResponse.json({ error: "Invalid PIN. Please try again." }, { status: 401 });
+    }
+
+    // Block expired members
+    if (member.status === "EXPIRED" || member.status === "INACTIVE") {
+      return NextResponse.json(
+        { error: "Your membership has expired. Please renew at the front desk." },
+        { status: 403 }
+      );
+    }
+
+    const todayIST  = getISTDate();
+    const now       = new Date();
+
+    // Block if already checked in today
+    const existing = await prisma.memberAttendance.findUnique({
+      where: { memberId_date: { memberId: member.id, date: todayIST } },
+    });
+    if (existing) {
+      const timeStr = existing.checkInTime.toLocaleTimeString("en-IN", {
+        timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
+      });
+      return NextResponse.json(
+        { error: `Already checked in today at ${timeStr}.` },
+        { status: 409 }
+      );
+    }
+
+    // Resolve markedById — use system user (first ADMIN) since this is a kiosk (no session)
+    const session = await auth().catch(() => null);
+    let markedById = session?.user?.id ?? null;
+
+    if (!markedById) {
+      const admin = await prisma.user.findFirst({
+        where: { role: "ADMIN" },
+        select: { id: true },
+      });
+      markedById = admin?.id ?? null;
+    }
+
+    if (!markedById) {
+      return NextResponse.json({ error: "System configuration error. Contact admin." }, { status: 500 });
+    }
+
+    // Mark attendance + update lastAttendanceDate
+    await prisma.$transaction([
+      prisma.memberAttendance.create({
+        data: {
+          memberId:   member.id,
+          date:       todayIST,
+          checkInTime: now,
+          markedById,
+        },
+      }),
+      prisma.member.update({
+        where: { id: member.id },
+        data:  { lastAttendanceDate: todayIST },
+      }),
+    ]);
+
+    const timeStr = now.toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
+    });
+
+    return NextResponse.json({
+      ok:       true,
+      fullName: member.fullName,
+      memberId: member.memberId,
+      time:     timeStr,
+      message:  `Welcome, ${member.fullName}! Checked in at ${timeStr}.`,
+    });
+  } catch (err) {
+    console.error("[member-checkin]", err);
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
+  }
+}

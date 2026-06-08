@@ -1,0 +1,57 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rateLimit";
+
+export async function POST(req: NextRequest) {
+  try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+    const rl = checkRateLimit(`${ip}:member-setup-pin`, {
+      maxAttempts: 10, windowMs: 15 * 60 * 1000, blockMs: 30 * 60 * 1000,
+    });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Too many attempts. Try again in ${rl.retryAfterSeconds} seconds.` },
+        { status: 429 }
+      );
+    }
+
+    const { memberId, pin } = await req.json();
+
+    if (!memberId || typeof memberId !== "string") {
+      return NextResponse.json({ error: "Member ID is required." }, { status: 400 });
+    }
+    if (!pin || !/^\d{4}$/.test(String(pin))) {
+      return NextResponse.json({ error: "PIN must be exactly 4 digits." }, { status: 400 });
+    }
+
+    // Look up member by memberId (YF-001 etc.)
+    const member = await prisma.member.findUnique({
+      where: { memberId: memberId.toUpperCase().trim() },
+      select: { id: true, fullName: true, memberId: true },
+    });
+
+    if (!member) {
+      return NextResponse.json({ error: "Member ID not found. Please check and try again." }, { status: 404 });
+    }
+
+    // Check PIN not already taken by a different member
+    const existing = await prisma.member.findUnique({
+      where: { pin: String(pin) },
+      select: { id: true },
+    });
+    if (existing && existing.id !== member.id) {
+      return NextResponse.json({ error: "This PIN is already in use. Please choose a different PIN." }, { status: 409 });
+    }
+
+    // Set the PIN
+    await prisma.member.update({
+      where: { id: member.id },
+      data: { pin: String(pin) },
+    });
+
+    return NextResponse.json({ ok: true, fullName: member.fullName, memberId: member.memberId });
+  } catch (err) {
+    console.error("[member/setup-pin]", err);
+    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
+  }
+}
