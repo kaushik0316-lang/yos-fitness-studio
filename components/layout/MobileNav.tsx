@@ -19,11 +19,18 @@ const STAFF_LINKS = [
   { label: "Register as Staff", href: "/join", emoji: "✍️" },
 ];
 
-export function MobileNav() {
-  const [open, setOpen] = useState(false);
-  const [staffOpen, setStaffOpen] = useState(false);
+const MEMBER_LINKS = [
+  { label: "Member Portal", href: "/member-portal", emoji: "🏋️" },
+  { label: "Check In", href: "/member-checkin", emoji: "✅" },
+  { label: "My Membership", href: "/my-membership", emoji: "📅" },
+];
 
-  function close() { setOpen(false); setStaffOpen(false); }
+export function MobileNav() {
+  const [open, setOpen]         = useState(false);
+  const [staffOpen, setStaffOpen]   = useState(false);
+  const [memberOpen, setMemberOpen] = useState(false);
+
+  function close() { setOpen(false); setStaffOpen(false); setMemberOpen(false); }
 
   return (
     <>
@@ -66,6 +73,39 @@ export function MobileNav() {
                 {label}
               </a>
             ))}
+          </div>
+
+          {/* Member Portal section */}
+          <div>
+            <button
+              onClick={() => setMemberOpen((v) => !v)}
+              className="w-full flex items-center justify-between px-6 py-4 text-sm font-bold text-gray-900 hover:bg-orange-50 transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <span className="text-base">🏋️</span>
+                Member Portal
+              </span>
+              <ChevronDown
+                className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${memberOpen ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
+            </button>
+
+            {memberOpen && (
+              <div className="bg-orange-50/60 border-t border-orange-100">
+                {MEMBER_LINKS.map(({ label, href, emoji }) => (
+                  <Link
+                    key={label}
+                    href={href}
+                    onClick={close}
+                    className="flex items-center gap-3 px-8 py-3.5 text-sm font-semibold text-gray-700 hover:text-orange-600 hover:bg-orange-50 transition-colors"
+                  >
+                    <span className="text-base">{emoji}</span>
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Staff Portal section */}

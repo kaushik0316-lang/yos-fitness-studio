@@ -276,6 +276,30 @@ export default function MarketingPage() {
               <a href="#location" className="hover:text-red-600 transition-colors">Find Us</a>
               <a href="#faq" className="hover:text-red-600 transition-colors">FAQ</a>
 
+              {/* Member Portal dropdown */}
+              <div className="relative group">
+                <button className="flex items-center gap-1 hover:text-orange-600 transition-colors select-none font-semibold text-orange-600">
+                  Member Portal
+                  <ChevronDown className="h-3.5 w-3.5 transition-transform duration-200 group-hover:rotate-180" aria-hidden="true" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50 overflow-hidden">
+                  <div className="py-1.5">
+                    <Link href="/member-portal" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                      <span className="text-base">🏋️</span>
+                      <span className="font-medium text-sm">Member Portal</span>
+                    </Link>
+                    <Link href="/member-checkin" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                      <span className="text-base">✅</span>
+                      <span className="font-medium text-sm">Check In</span>
+                    </Link>
+                    <Link href="/my-membership" className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                      <span className="text-base">📅</span>
+                      <span className="font-medium text-sm">My Membership</span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
               {/* Staff Portal dropdown */}
               <div className="relative group">
                 <button className="flex items-center gap-1 hover:text-red-600 transition-colors select-none">
@@ -1022,6 +1046,18 @@ export default function MarketingPage() {
                     { label: "Gym in Mylapore", href: "/gym-in-mylapore" },
                   ].map(({ label, href }) => (
                     <li key={label}><Link href={href} className="hover:text-red-400 transition-colors">{label}</Link></li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="text-white font-bold text-sm mb-4">Member Portal</p>
+                <ul className="space-y-2 text-sm">
+                  {[
+                    { label: "Member Portal", href: "/member-portal" },
+                    { label: "Check In", href: "/member-checkin" },
+                    { label: "My Membership", href: "/my-membership" },
+                  ].map(({ label, href }) => (
+                    <li key={label}><Link href={href} className="hover:text-orange-400 transition-colors">{label}</Link></li>
                   ))}
                 </ul>
               </div>
