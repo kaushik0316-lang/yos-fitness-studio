@@ -283,3 +283,17 @@ export async function toggleDoNotDisturb(memberId: string, value: boolean) {
   revalidatePath(`/members/${memberId}`);
   return { success: true };
 }
+
+export async function toggleKioskCheckin(memberId: string, value: boolean) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
+  if (session.user.role !== "ADMIN") throw new Error("Admin only");
+
+  await prisma.member.update({
+    where: { id: memberId },
+    data: { allowKioskCheckin: value },
+  });
+
+  revalidatePath(`/members/${memberId}`);
+  return { success: true };
+}

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { EditMemberButton } from "@/components/members/EditMemberButton";
 import { DeleteMemberButton } from "@/components/members/DeleteMemberButton";
-import { toggleDoNotDisturb } from "@/lib/actions/members";
+import { toggleDoNotDisturb, toggleKioskCheckin } from "@/lib/actions/members";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { MemberPhotoUpload } from "@/components/members/MemberPhotoUpload";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
@@ -49,6 +49,8 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
   const [showAttendance, setShowAttendance] = useState(false);
   const [dnd, setDnd] = useState<boolean>(member.doNotDisturb ?? false);
   const [dndLoading, setDndLoading] = useState(false);
+  const [kioskCheckin, setKioskCheckin] = useState<boolean>(member.allowKioskCheckin ?? false);
+  const [kioskLoading, setKioskLoading] = useState(false);
   const [showAllPayments, setShowAllPayments] = useState(false);
   const [showAllAttendances, setShowAllAttendances] = useState(false);
   const [showAllMemberships, setShowAllMemberships] = useState(false);
@@ -281,6 +283,36 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Notes</p>
                   <p className="text-sm text-gray-600 leading-relaxed">{member.notes}</p>
+                </div>
+              )}
+
+              {/* Kiosk Check-in Override toggle — admin only */}
+              {userRole === "ADMIN" && (
+                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className={`h-4 w-4 ${kioskCheckin ? "text-emerald-500" : "text-gray-400"}`} />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-700">Allow kiosk check-in</p>
+                      <p className="text-xs text-gray-400">Enable self-service check-in even if expired / inactive</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      setKioskLoading(true);
+                      const next = !kioskCheckin;
+                      setKioskCheckin(next);
+                      await toggleKioskCheckin(member.id, next);
+                      setKioskLoading(false);
+                    }}
+                    disabled={kioskLoading}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                      kioskCheckin ? "bg-emerald-500" : "bg-gray-200"
+                    } ${kioskLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                      kioskCheckin ? "translate-x-6" : "translate-x-1"
+                    }`} />
+                  </button>
                 </div>
               )}
 

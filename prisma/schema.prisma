@@ -177,6 +177,7 @@ model Member {
   lastPaymentDate  DateTime?
   lastAttendanceDate DateTime?
   pin                String?      @unique // 4-digit self-set PIN for member portal
+  allowKioskCheckin  Boolean      @default(false) // admin override: allow kiosk check-in even if EXPIRED/INACTIVE
 
   // Assigned trainer
   trainerId String?

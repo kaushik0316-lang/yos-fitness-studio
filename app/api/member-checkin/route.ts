@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       where: { pin: String(pin) },
       select: {
         id: true, memberId: true, fullName: true,
-        status: true, expiryDate: true,
+        status: true, expiryDate: true, allowKioskCheckin: true,
       },
     });
 
@@ -43,8 +43,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid PIN. Please try again." }, { status: 401 });
     }
 
-    // Block expired members
-    if (member.status === "EXPIRED" || member.status === "INACTIVE") {
+    // Block expired/inactive members unless admin has enabled kiosk override
+    if ((member.status === "EXPIRED" || member.status === "INACTIVE") && !member.allowKioskCheckin) {
       return NextResponse.json(
         { error: "Your membership has expired. Please renew at the front desk." },
         { status: 403 }
