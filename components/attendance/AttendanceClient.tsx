@@ -6,6 +6,7 @@ import Link from "next/link";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import { formatTime, daysAgo } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import type { UserRole } from "@prisma/client";
 
 type AttendanceRecord = {
@@ -142,7 +143,7 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Link href={`/members/${m.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
-                            {m.fullName}
+                            {toTitleCase(m.fullName)}
                           </Link>
                           {isInactive && (
                             <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md"
@@ -191,7 +192,7 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                     </div>
                     <div className="min-w-0">
                       <Link href={`/members/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
-                        {a.member.fullName}
+                        {toTitleCase(a.member.fullName)}
                       </Link>
                       <p className="text-xs text-gray-600 mt-0.5">{a.member.memberId} · {a.member.currentPackage?.name ?? "—"}</p>
                     </div>

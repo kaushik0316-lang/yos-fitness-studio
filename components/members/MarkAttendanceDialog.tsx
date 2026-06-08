@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { markMemberAttendance } from "@/lib/actions/attendance";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/utils";
+import { toTitleCase } from "@/lib/utils/titleCase";
 
 type Props = {
   open: boolean;
@@ -45,7 +46,7 @@ export function MarkAttendanceDialog({ open, onClose, member, userId }: Props) {
 
         <div className="space-y-4 py-2">
           <div className="bg-gray-50 rounded-lg p-3">
-            <p className="font-semibold text-gray-900">{member.fullName}</p>
+            <p className="font-semibold text-gray-900">{toTitleCase(member.fullName)}</p>
             <p className="text-sm text-gray-500">{member.memberId} · {formatDate(new Date())}</p>
           </div>
 

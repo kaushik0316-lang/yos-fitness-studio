@@ -10,6 +10,7 @@ import {
   LogOut, Clock,
 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import { TodayAttendanceWidget } from "@/components/dashboard/TodayAttendanceWidget";
 import { CollectionsWidget } from "@/components/dashboard/CollectionsWidget";
 import { InactiveMembersAlert } from "@/components/dashboard/InactiveMembersAlert";
@@ -311,7 +312,7 @@ export function StaffToolsClient({
                     >
                       <div className="min-w-0 flex-1">
                         <Link href={`/members/${m.id}`} className="font-semibold text-sm text-white hover:text-orange-400 transition-colors">
-                          {m.fullName}
+                          {toTitleCase(m.fullName)}
                         </Link>
                         <p className="text-xs mt-0.5" style={{ color: "#4b5563" }}>{m.memberId} · {m.phone}</p>
                       </div>
@@ -376,10 +377,10 @@ export function StaffToolsClient({
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                       style={{ background: "rgba(245,158,11,0.12)", color: "#fbbf24" }}>
-                      {s.fullName.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                      {toTitleCase(s.fullName).split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">{s.fullName}</p>
+                      <p className="text-sm font-semibold text-white">{toTitleCase(s.fullName)}</p>
                       <p className="text-xs" style={{ color: "#4b5563" }}>{s.role.replace(/_/g, " ")} · {s.employeeId}</p>
                     </div>
                   </div>

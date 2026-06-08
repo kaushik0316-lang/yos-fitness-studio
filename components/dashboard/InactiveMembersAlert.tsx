@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { AlertTriangle, ChevronRight, Clock } from "lucide-react";
 import { daysAgo, formatDate } from "@/lib/utils";
+import { toTitleCase } from "@/lib/utils/titleCase";
 
 type InactiveMember = {
   id: string; memberId: string; fullName: string; phone: string;
@@ -64,7 +65,7 @@ export function InactiveMembersAlert({ members }: Props) {
                     {m.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{m.fullName}</p>
+                    <p className="text-sm font-semibold text-white truncate">{toTitleCase(m.fullName)}</p>
                     <p className="text-xs text-gray-600">{m.memberId}</p>
                   </div>
                 </div>

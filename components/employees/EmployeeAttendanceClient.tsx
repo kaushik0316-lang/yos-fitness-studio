@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { markEmployeeAttendance } from "@/lib/actions/attendance";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import { StaffTab } from "./StaffTab";
 import { ManualAttendanceDialog } from "./ManualAttendanceDialog";
 import type { UserRole } from "@prisma/client";
@@ -162,7 +163,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
             <ChevronLeft className="h-4 w-4" /> Back
           </button>
           <div>
-            <p className="font-bold text-white">{detailEmp.fullName}</p>
+            <p className="font-bold text-white">{toTitleCase(detailEmp.fullName)}</p>
             <p className="text-xs text-gray-500">{detailEmp.role.replace("_"," ")} · {format(new Date(year, month-1, 1), "MMMM yyyy")}</p>
           </div>
         </div>
@@ -204,7 +205,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                             const sharedWith = s.deviceId
                               ? Array.from(deviceToEmployees[s.deviceId] ?? []).filter((id) => id !== detailEmp.id)
                               : [];
-                            const sharedNames = sharedWith.map((id) => allEmployees.find((e) => e.id === id)?.fullName ?? "Unknown").join(", ");
+                            const sharedNames = sharedWith.map((id) => toTitleCase(allEmployees.find((e) => e.id === id)?.fullName ?? "Unknown")).join(", ");
                             return (
                               <div key={s.shiftIndex} className="space-y-0.5">
                                 <div className="flex items-center gap-3 text-xs">
@@ -258,7 +259,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
         {editDay && detailEmp && (
           <ManualAttendanceDialog
             employeeId={detailEmp.id}
-            employeeName={detailEmp.fullName}
+            employeeName={toTitleCase(detailEmp.fullName)}
             date={editDay.dateStr}
             displayDate={editDay.displayDate}
             currentStatus={(attendanceMap[detailEmp.id]?.[editDay.dateStr]?.status as any) ?? null}
@@ -434,7 +435,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                             style={{ background: idx % 2 === 0 ? "#161616" : "#181818" }}>
                           <button onClick={() => setDetailEmp(emp)} className="text-left group/name">
                             <p className="font-bold text-white group-hover/name:text-orange-400 transition-colors flex items-center gap-1 text-[11px]">
-                              {emp.fullName || <span className="text-gray-700 italic text-[10px]">No name</span>}
+                              {emp.fullName ? toTitleCase(emp.fullName) : <span className="text-gray-700 italic text-[10px]">No name</span>}
                               <Clock className="h-2.5 w-2.5 text-gray-600 opacity-0 group-hover/name:opacity-100 transition-opacity" />
                             </p>
                             <p className="text-gray-700 text-[9px] font-medium mt-0.5">{emp.role.replace(/_/g," ")}</p>

@@ -7,6 +7,7 @@ import { generatePayrollAction, markPayrollPaid, updateBonus, clearPayrollAction
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, getMonthName } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import type { UserRole } from "@prisma/client";
 
 const CARD = { background: "#161616", border: "1px solid rgba(255,255,255,0.06)" };
@@ -222,7 +223,7 @@ export function PayrollClient({ records, month, year, userRole }: Props) {
               {records.map((r, i) => (
                 <tr key={r.id} style={{ borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : undefined }}>
                   <td className="px-4 py-3">
-                    <p className="font-semibold text-white">{r.employee.fullName}</p>
+                    <p className="font-semibold text-white">{toTitleCase(r.employee.fullName)}</p>
                     <p className="text-xs text-gray-500">{r.employee.employeeId} · {r.employee.role.replace("_", " ")}</p>
                   </td>
                   <td className="text-right px-4 py-3 text-emerald-400 font-medium">{r.presentDays}</td>

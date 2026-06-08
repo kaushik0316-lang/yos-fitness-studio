@@ -11,6 +11,7 @@ import { createMember } from "@/lib/actions/members";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import type { Company } from "@prisma/client";
+import { toTitleCase } from "@/lib/utils/titleCase";
 
 const schema = z.object({
   fullName: z.string().min(2, "Name is required"),
@@ -215,7 +216,7 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
                   <label className={labelCls}>Assign Trainer</label>
                   <select {...register("trainerId")} className={selectCls}>
                     <option value="">No trainer</option>
-                    {trainers.map((t) => <option key={t.id} value={t.id}>{t.fullName}</option>)}
+                    {trainers.map((t) => <option key={t.id} value={t.id}>{toTitleCase(t.fullName)}</option>)}
                   </select>
                 </div>
 

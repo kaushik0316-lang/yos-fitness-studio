@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Plus, Pencil, Eye, EyeOff, UserCheck, UserX } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import { setEmployeeActive } from "@/lib/actions/employees";
 import { toast } from "@/hooks/use-toast";
 import { AddEmployeeDialog } from "./AddEmployeeDialog";
@@ -158,7 +159,7 @@ function StaffRow({ emp, idx, salesThisMonth, pinRevealed, onTogglePin, onEdit, 
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-sm text-white">{emp.fullName}</span>
+          <span className="font-semibold text-sm text-white">{toTitleCase(emp.fullName)}</span>
           <span className="text-[10px] text-gray-600 font-medium">{emp.employeeId}</span>
           <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold", ROLE_COLORS[emp.role] ?? "bg-white/10 text-gray-400")}>
             {ROLE_LABELS[emp.role] ?? emp.role}
