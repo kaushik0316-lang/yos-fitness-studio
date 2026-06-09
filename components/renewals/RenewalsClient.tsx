@@ -161,7 +161,7 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
                 const daysExpired = daysLeft !== null && daysLeft < 0 ? Math.abs(daysLeft) : null;
                 const lastVisit   = m.lastAttendanceDate ? daysAgo(m.lastAttendanceDate) : null;
                 const waNumber    = m.whatsapp || m.phone;
-                const isExpired   = activeTab === "expired" || (activeTab === "30days" && daysLeft !== null && daysLeft < 0);
+                const isExpired   = activeTab === "expired";
 
                 return (
                   <div key={m.id}
@@ -184,12 +184,6 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
                             {toTitleCase(m.fullName)}
                           </Link>
                           <span className="text-[10px] font-bold text-gray-600 font-mono">{m.memberId}</span>
-                          {activeTab === "30days" && isExpired && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
-                              style={{ background: "rgba(239,68,68,0.15)", color: "#f87171" }}>
-                              Expired
-                            </span>
-                          )}
                           {lastVisit !== null && lastVisit >= 4 && (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5"
                               style={{ background: "rgba(249,115,22,0.12)", color: "#fb923c" }}>

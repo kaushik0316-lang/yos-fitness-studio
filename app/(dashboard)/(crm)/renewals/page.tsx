@@ -68,15 +68,6 @@ export default async function RenewalsPage() {
   // Re-sort expired list so null-expiry members go to the bottom
   const expiredSorted = [...expiredMembers].sort(sortDesc);
 
-  // "This Month" = expired + expiring within 30 days, sorted by expiryDate desc, nulls last
-  const expiring30Combined = [
-    ...expiredMembers,
-    ...expiring1,
-    ...expiring3,
-    ...expiring7,
-    ...expiring30Active,
-  ].sort(sortDesc);
-
   return (
     <>
       <Header title="Renewals" subtitle="Memberships expiring soon" />
@@ -86,7 +77,7 @@ export default async function RenewalsPage() {
           expiring1={expiring1 as any}
           expiring3={expiring3 as any}
           expiring7={expiring7 as any}
-          expiring30={expiring30Combined as any}
+          expiring30={expiring30Active as any}
           renewedToday={renewedToday as any}
           packages={packages}
           userRole={session!.user.role}
