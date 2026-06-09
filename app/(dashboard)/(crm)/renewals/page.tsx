@@ -57,26 +57,32 @@ export default async function RenewalsPage() {
     prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
   ]);
 
-  // "This Month" = expired + expiring within 30 days, sorted by expiryDate desc
+  // Sort helper: nulls always last, otherwise descending by date
+  function sortDesc(a: { expiryDate: Date | null }, b: { expiryDate: Date | null }) {
+    if (!a.expiryDate && !b.expiryDate) return 0;
+    if (!a.expiryDate) return 1;
+    if (!b.expiryDate) return -1;
+    return new Date(b.expiryDate).getTime() - new Date(a.expiryDate).getTime();
+  }
+
+  // Re-sort expired list so null-expiry members go to the bottom
+  const expiredSorted = [...expiredMembers].sort(sortDesc);
+
+  // "This Month" = expired + expiring within 30 days, sorted by expiryDate desc, nulls last
   const expiring30Combined = [
     ...expiredMembers,
     ...expiring1,
     ...expiring3,
     ...expiring7,
     ...expiring30Active,
-  ].sort((a, b) => {
-    if (!a.expiryDate && !b.expiryDate) return 0;
-    if (!a.expiryDate) return 1;
-    if (!b.expiryDate) return -1;
-    return new Date(b.expiryDate).getTime() - new Date(a.expiryDate).getTime();
-  });
+  ].sort(sortDesc);
 
   return (
     <>
       <Header title="Renewals" subtitle="Memberships expiring soon" />
       <div className="flex-1 overflow-y-auto p-6">
         <RenewalsClient
-          expiredMembers={expiredMembers as any}
+          expiredMembers={expiredSorted as any}
           expiring1={expiring1 as any}
           expiring3={expiring3 as any}
           expiring7={expiring7 as any}

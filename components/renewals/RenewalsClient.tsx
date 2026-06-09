@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { RotateCcw, Phone, AlertTriangle, CheckCircle2, MessageCircle, Clock } from "lucide-react";
+import { RotateCcw, Phone, AlertTriangle, CheckCircle2, MessageCircle, Clock, Search, X } from "lucide-react";
 import { RenewMembershipDialog } from "@/components/members/RenewMembershipDialog";
 import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
@@ -43,6 +43,7 @@ function getInitials(name: string) {
 export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7, expiring30, renewedToday, packages, userRole, userId }: Props) {
   const [activeTab, setActiveTab] = useState("expired");
   const [renewFor, setRenewFor] = useState<RenewalMember | null>(null);
+  const [search, setSearch] = useState("");
 
   const counts: Record<string, number> = {
     expired: expiredMembers.length, "1day": expiring1.length,
@@ -50,12 +51,21 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
     "30days": expiring30.length, renewed: renewedToday.length,
   };
 
-  const currentList: RenewalMember[] =
+  const rawList: RenewalMember[] =
     activeTab === "expired" ? expiredMembers :
     activeTab === "1day" ? expiring1 :
     activeTab === "3days" ? expiring3 :
     activeTab === "7days" ? expiring7 :
     activeTab === "30days" ? expiring30 : [];
+
+  const q = search.trim().toLowerCase();
+  const currentList = q
+    ? rawList.filter((m) =>
+        m.fullName.toLowerCase().includes(q) ||
+        m.memberId.toLowerCase().includes(q) ||
+        m.phone.includes(q)
+      )
+    : rawList;
 
   const activeTabConfig = TABS.find((t) => t.key === activeTab)!;
 
@@ -66,7 +76,7 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;
           return (
-            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+            <button key={tab.key} onClick={() => { setActiveTab(tab.key); setSearch(""); }}
               className="relative overflow-hidden rounded-2xl p-4 text-left transition-all"
               style={{
                 background: isActive ? "rgba(255,255,255,0.06)" : "#161616",
@@ -83,14 +93,31 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
 
       {/* ── List ── */}
       <div className="rounded-2xl overflow-hidden" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
-        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-4 px-6 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+          <div className="flex items-center gap-3 flex-shrink-0">
             <h3 className="font-bold text-white">{activeTabConfig.label}</h3>
             <span className="text-xs font-bold px-2.5 py-1 rounded-full"
               style={{ background: activeTabConfig.badgeBg, color: activeTabConfig.badgeColor }}>
-              {counts[activeTab]}
+              {q ? `${currentList.length} / ${counts[activeTab]}` : counts[activeTab]}
             </span>
           </div>
+          {activeTab !== "renewed" && (
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-600 pointer-events-none" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name, ID, phone…"
+                className="w-full pl-8 pr-8 py-2 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:ring-1 focus:ring-white/20"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}
+              />
+              {search && (
+                <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {activeTab === "renewed" ? (
