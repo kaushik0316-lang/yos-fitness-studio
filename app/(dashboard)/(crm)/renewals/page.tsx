@@ -21,6 +21,12 @@ export default async function RenewalsPage() {
     id: true, memberId: true, fullName: true, phone: true, whatsapp: true,
     expiryDate: true, lastAttendanceDate: true,
     currentPackage: { select: { name: true } },
+    payments: {
+      where: { isVoided: false },
+      orderBy: { date: "desc" as const },
+      take: 1,
+      select: { amount: true, discount: true },
+    },
   };
 
   const [expiredMembers, expiring1, expiring3, expiring7, expiring30, renewedToday, packages] = await Promise.all([
