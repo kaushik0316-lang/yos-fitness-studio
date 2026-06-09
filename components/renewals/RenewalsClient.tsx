@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { RotateCcw, Phone, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { RotateCcw, Phone, AlertTriangle, CheckCircle2, MessageCircle, Clock } from "lucide-react";
 import { RenewMembershipDialog } from "@/components/members/RenewMembershipDialog";
 import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
-import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import type { UserRole } from "@prisma/client";
 
@@ -29,6 +28,16 @@ const TABS = [
   { key: "7days",   label: "In 7 Days",     shortLabel: "7 Days",    accent: "#eab308", badgeBg: "rgba(234,179,8,0.12)",   badgeColor: "#facc15" },
   { key: "renewed", label: "Renewed Today", shortLabel: "Renewed",   accent: "#10b981", badgeBg: "rgba(16,185,129,0.12)",  badgeColor: "#34d399" },
 ];
+
+function waLink(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  const num = digits.startsWith("91") && digits.length === 12 ? digits : `91${digits.slice(-10)}`;
+  return `https://wa.me/${num}`;
+}
+
+function getInitials(name: string) {
+  return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+}
 
 export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7, renewedToday, packages, userRole, userId }: Props) {
   const [activeTab, setActiveTab] = useState("expired");
@@ -110,7 +119,7 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
             )}
           </div>
         ) : (
-          <div className="max-h-[62vh] overflow-y-auto">
+          <div className="max-h-[62vh] overflow-y-auto divide-y divide-white/[0.04]">
             {currentList.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
                 <RotateCcw className="h-10 w-10 text-gray-700" />
@@ -119,57 +128,84 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
             ) : (
               currentList.map((m, idx) => {
                 const daysExpired = m.expiryDate ? Math.abs(daysUntil(m.expiryDate)) : null;
-                const lastVisit = m.lastAttendanceDate ? daysAgo(m.lastAttendanceDate) : null;
+                const lastVisit   = m.lastAttendanceDate ? daysAgo(m.lastAttendanceDate) : null;
+                const waNumber    = m.whatsapp || m.phone;
+                const isExpired   = activeTab === "expired";
+
                 return (
-                  <div key={m.id} className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-white/[0.02] group"
-                    style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", background: idx % 2 === 0 ? "#161616" : "#181818" }}>
-                    {/* Left */}
-                    <div className="flex items-center gap-4 min-w-0 flex-1">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-extrabold flex-shrink-0"
+                  <div key={m.id}
+                    className="px-5 py-4 hover:bg-white/[0.02] transition-colors"
+                    style={{ background: idx % 2 === 0 ? "#161616" : "#181818" }}>
+
+                    <div className="flex items-start gap-4">
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-extrabold flex-shrink-0 mt-0.5"
                         style={{ background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
-                        {m.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                        {getInitials(m.fullName)}
                       </div>
-                      <div className="min-w-0">
+
+                      {/* Main content */}
+                      <div className="flex-1 min-w-0">
+                        {/* Row 1: name + badges */}
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Link href={`/members/${m.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
+                          <Link href={`/members/${m.id}`}
+                            className="font-bold text-white hover:text-orange-400 transition-colors text-sm">
                             {toTitleCase(m.fullName)}
                           </Link>
+                          <span className="text-[10px] font-bold text-gray-600 font-mono">{m.memberId}</span>
                           {lastVisit !== null && lastVisit >= 4 && (
-                            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5"
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5"
                               style={{ background: "rgba(249,115,22,0.12)", color: "#fb923c" }}>
                               <AlertTriangle className="h-2.5 w-2.5" />{lastVisit}d absent
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-600 mt-0.5">
-                          {m.memberId}{m.currentPackage ? ` · ${m.currentPackage.name}` : ""}
-                        </p>
-                      </div>
-                    </div>
 
-                    {/* Right */}
-                    <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                      <div className="text-right hidden sm:block">
-                        <p className="text-xs text-gray-600">Expiry</p>
-                        <p className="text-sm font-bold" style={{ color: activeTab === "expired" ? "#f87171" : "#fb923c" }}>
-                          {formatDate(m.expiryDate)}
-                        </p>
-                        {activeTab === "expired" && daysExpired !== null && (
-                          <p className="text-xs text-red-500/70">{daysExpired}d ago</p>
-                        )}
+                        {/* Row 2: package + expiry */}
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
+                          {m.currentPackage && (
+                            <span className="text-xs text-gray-500">{m.currentPackage.name}</span>
+                          )}
+                          <span className="text-gray-700 text-xs">·</span>
+                          <span className="flex items-center gap-1 text-xs font-semibold"
+                            style={{ color: isExpired ? "#f87171" : "#fb923c" }}>
+                            <Clock className="h-3 w-3" />
+                            {m.expiryDate ? formatDate(m.expiryDate) : "—"}
+                            {isExpired && daysExpired !== null && (
+                              <span className="text-red-500/60 font-normal ml-0.5">({daysExpired}d ago)</span>
+                            )}
+                          </span>
+                        </div>
+
+                        {/* Row 3: phone + action buttons */}
+                        <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                          {/* Phone number text */}
+                          <a href={`tel:${m.phone}`}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white transition-colors px-2.5 py-1.5 rounded-lg"
+                            style={{ background: "rgba(255,255,255,0.06)" }}>
+                            <Phone className="h-3 w-3" />
+                            {m.phone}
+                          </a>
+
+                          {/* WhatsApp button */}
+                          <a href={waLink(waNumber)} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors"
+                            style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}
+                            title="WhatsApp">
+                            <MessageCircle className="h-3 w-3" />
+                            WhatsApp
+                          </a>
+
+                          {/* Renew button */}
+                          {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
+                            <button onClick={() => setRenewFor(m)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-xs font-bold transition-all ml-auto"
+                              style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}>
+                              <RotateCcw className="h-3 w-3" /> Renew
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <a href={`tel:${m.phone}`}
-                        className="p-2.5 rounded-xl text-gray-600 hover:text-white transition-colors"
-                        style={{ background: "rgba(255,255,255,0.06)" }} title="Call">
-                        <Phone className="h-4 w-4" />
-                      </a>
-                      {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
-                        <button onClick={() => setRenewFor(m)}
-                          className="flex items-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-bold transition-all"
-                          style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}>
-                          <RotateCcw className="h-3.5 w-3.5" /> Renew
-                        </button>
-                      )}
                     </div>
                   </div>
                 );

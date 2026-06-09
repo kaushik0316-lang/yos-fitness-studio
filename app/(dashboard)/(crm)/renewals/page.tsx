@@ -31,17 +31,17 @@ export default async function RenewalsPage() {
     prisma.member.findMany({
       where: { status: MemberStatus.ACTIVE, expiryDate: { gte: today, lte: in1Day } },
       select: { id: true, memberId: true, fullName: true, phone: true, whatsapp: true, expiryDate: true, currentPackage: { select: { name: true } } },
-      orderBy: { expiryDate: "asc" },
+      orderBy: { expiryDate: "desc" },
     }),
     prisma.member.findMany({
       where: { status: MemberStatus.ACTIVE, expiryDate: { gt: in1Day, lte: in3Days } },
       select: { id: true, memberId: true, fullName: true, phone: true, whatsapp: true, expiryDate: true, currentPackage: { select: { name: true } } },
-      orderBy: { expiryDate: "asc" },
+      orderBy: { expiryDate: "desc" },
     }),
     prisma.member.findMany({
       where: { status: MemberStatus.ACTIVE, expiryDate: { gt: in3Days, lte: in7Days } },
       select: { id: true, memberId: true, fullName: true, phone: true, whatsapp: true, expiryDate: true, currentPackage: { select: { name: true } } },
-      orderBy: { expiryDate: "asc" },
+      orderBy: { expiryDate: "desc" },
     }),
     prisma.membership.findMany({
       where: { createdAt: { gte: startOfDay(today), lte: endOfDay(today) } },
