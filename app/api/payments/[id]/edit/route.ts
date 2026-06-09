@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Company, PaymentMode } from "@prisma/client";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 
 const editSchema = z.object({
   memberName: z.string().optional(),
@@ -94,6 +95,34 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         receiptNumber:  newReceiptNumber  ?? undefined,
       },
     });
+
+    // ── Sync member denormalized fields from most recent payment ────────────
+    const targetMemberId = newMemberId ?? payment.memberId;
+    const latestPayment = await prisma.payment.findFirst({
+      where: { memberId: targetMemberId, isVoided: false, expiryDate: { not: null } },
+      orderBy: { date: "desc" },
+      select: { id: true, expiryDate: true, startDate: true, packageId: true, date: true },
+    });
+
+    if (latestPayment?.expiryDate) {
+      const now = new Date();
+      const newStatus = latestPayment.expiryDate > now ? "ACTIVE" : "EXPIRED";
+      await prisma.member.update({
+        where: { id: targetMemberId },
+        data: {
+          expiryDate:       latestPayment.expiryDate,
+          startDate:        latestPayment.startDate ?? undefined,
+          currentPackageId: latestPayment.packageId ?? undefined,
+          lastPaymentDate:  latestPayment.date,
+          renewalDueDate:   latestPayment.expiryDate,
+          status:           newStatus as any,
+        },
+      });
+    }
+
+    revalidatePath("/renewals");
+    revalidatePath("/members");
+    revalidatePath(`/members/${targetMemberId}`);
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {
