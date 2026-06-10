@@ -85,7 +85,7 @@ export function EditMemberButton({ member }: Props) {
               {/* Name */}
               <div>
                 <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Full Name *</label>
-                <input value={form.fullName} onChange={(e) => set("fullName", e.target.value)} className={inputCls + " mt-1"} style={inputStyle} />
+                <input value={form.fullName} onChange={(e) => set("fullName", e.target.value.replace(/\./g, " ").replace(/ {2,}/g, " "))} className={inputCls + " mt-1"} style={inputStyle} />
               </div>
 
               {/* Contact */}

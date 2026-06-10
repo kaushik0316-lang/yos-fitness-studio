@@ -130,7 +130,16 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
                 {/* Basic */}
                 <div className="col-span-2">
                   <label className={labelCls}>Full Name *</label>
-                  <input {...register("fullName")} className={inputCls} placeholder="e.g. Rajesh Kumar" />
+                  <input
+                    {...register("fullName")}
+                    className={inputCls}
+                    placeholder="e.g. Rajesh Kumar"
+                    onChange={(e) => {
+                      const cleaned = e.target.value.replace(/\./g, " ").replace(/ {2,}/g, " ");
+                      e.target.value = cleaned;
+                      register("fullName").onChange(e);
+                    }}
+                  />
                   {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName.message}</p>}
                 </div>
 
