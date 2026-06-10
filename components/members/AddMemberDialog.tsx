@@ -135,7 +135,7 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
                     className={inputCls}
                     placeholder="e.g. Rajesh Kumar"
                     onChange={(e) => {
-                      const cleaned = e.target.value.replace(/\./g, " ").replace(/ {2,}/g, " ");
+                      const cleaned = toTitleCase(e.target.value.replace(/\./g, " ").replace(/ {2,}/g, " "));
                       e.target.value = cleaned;
                       register("fullName").onChange(e);
                     }}
