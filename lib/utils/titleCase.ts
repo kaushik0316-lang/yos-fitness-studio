@@ -8,7 +8,7 @@ export function toTitleCase(str: string | null | undefined): string {
     .map((word, i) => {
       if (!word) return word;
       // Always capitalise first word and proper nouns; lowercase connecting words mid-sentence
-      if (i > 0 && LOWER_WORDS.has(word)) return word;
+      if (i > 0 && word.length > 1 && LOWER_WORDS.has(word)) return word;
       return word.charAt(0).toUpperCase() + word.slice(1);
     })
     .join(" ");
