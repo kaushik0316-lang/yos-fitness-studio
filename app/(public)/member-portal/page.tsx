@@ -35,7 +35,7 @@ function fmtTime(iso: string) {
 
 function Screen({ children, green }: { children: React.ReactNode; green?: boolean }) {
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden select-none"
+    <div className="min-h-screen flex flex-col relative overflow-x-hidden overflow-y-auto select-none"
       style={{ background: green
         ? "linear-gradient(150deg, #0c0c0c 0%, #080d11 55%, #0c1108 100%)"
         : "linear-gradient(150deg, #0c0c0c 0%, #0a0a0a 100%)" }}>
@@ -478,7 +478,7 @@ export default function MemberPortalPage() {
   const isExpired = member?.status === "EXPIRED";
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#0a0a0a" }}>
+    <div className="min-h-screen flex flex-col overflow-y-auto" style={{ background: "#0a0a0a" }}>
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "#1c1c1c" }}>
         <div className="flex items-center gap-2">
