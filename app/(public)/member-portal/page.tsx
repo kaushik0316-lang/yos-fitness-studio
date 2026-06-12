@@ -543,7 +543,7 @@ export default function MemberPortalPage() {
               </div>
               <div>
                 <p className="text-white text-sm font-semibold">Not checked in yet</p>
-                <p className="text-xs text-gray-600">Use Check In below</p>
+                {!isExpired && <p className="text-xs text-gray-600">Use Check In below</p>}
               </div>
             </div>
           )}
@@ -551,19 +551,34 @@ export default function MemberPortalPage() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3">
-          <Link href="/member-checkin"
-            className="flex flex-col gap-3 rounded-3xl p-5 transition-opacity active:opacity-70"
-            style={{ background: "#1c1c1c" }}>
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
-              style={{ background: "rgba(34,197,94,0.15)" }}>
-              <CheckCircle2 className="h-6 w-6 text-green-400" />
+          {isExpired ? (
+            <div className="flex flex-col gap-3 rounded-3xl p-5 opacity-40 cursor-not-allowed"
+              style={{ background: "#1c1c1c" }}>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                style={{ background: "rgba(107,114,128,0.15)" }}>
+                <CheckCircle2 className="h-6 w-6 text-gray-600" />
+              </div>
+              <div>
+                <p className="text-gray-500 font-bold text-sm">Check In</p>
+                <p className="text-xs mt-0.5" style={{ color: "#4b5563" }}>Renew your membership</p>
+              </div>
+              <ChevronRight className="h-4 w-4 self-end" style={{ color: "#374151" }} />
             </div>
-            <div>
-              <p className="text-white font-bold text-sm">Check In</p>
-              <p className="text-xs mt-0.5" style={{ color: "#6b7280" }}>Mark today&apos;s attendance</p>
-            </div>
-            <ChevronRight className="h-4 w-4 self-end" style={{ color: "#374151" }} />
-          </Link>
+          ) : (
+            <Link href="/member-checkin"
+              className="flex flex-col gap-3 rounded-3xl p-5 transition-opacity active:opacity-70"
+              style={{ background: "#1c1c1c" }}>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                style={{ background: "rgba(34,197,94,0.15)" }}>
+                <CheckCircle2 className="h-6 w-6 text-green-400" />
+              </div>
+              <div>
+                <p className="text-white font-bold text-sm">Check In</p>
+                <p className="text-xs mt-0.5" style={{ color: "#6b7280" }}>Mark today&apos;s attendance</p>
+              </div>
+              <ChevronRight className="h-4 w-4 self-end" style={{ color: "#374151" }} />
+            </Link>
+          )}
 
           <Link href="/my-membership"
             className="flex flex-col gap-3 rounded-3xl p-5 transition-opacity active:opacity-70"
