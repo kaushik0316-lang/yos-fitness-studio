@@ -27,7 +27,7 @@ export async function GET() {
       nameMap.get(key)!.push(m);
     }
 
-    const duplicateNames = [...nameMap.entries()]
+    const duplicateNames = Array.from(nameMap.entries())
       .filter(([, members]) => members.length > 1)
       .map(([name, members]) => ({ name, members }))
       .sort((a, b) => a.name.localeCompare(b.name));
