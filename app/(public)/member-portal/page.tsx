@@ -60,9 +60,11 @@ export default function MemberPortalPage() {
   const [pin, setPin]             = useState("");
   const [errorMsg, setErrorMsg]   = useState("");
   const [member, setMember]       = useState<MemberData | null>(null);
-  const [todayCheckIn, setToday]      = useState<string | null>(null);
-  const [todayCheckOut, setCheckOut]  = useState<string | null>(null);
-  const [autoCheckedOut, setAutoOut]  = useState(false);
+  const [todayCheckIn, setToday]          = useState<string | null>(null);
+  const [todayCheckOut, setCheckOut]      = useState<string | null>(null);
+  const [autoCheckedOut, setAutoOut]      = useState(false);
+  const [attendanceId, setAttendanceId]   = useState<string | null>(null);
+  const [checkingOut, setCheckingOut]     = useState(false);
   const [shaking, setShaking]     = useState(false);
   const submittingRef             = useRef(false);
 
@@ -95,6 +97,7 @@ export default function MemberPortalPage() {
             setToday(data.todayCheckIn);
             setCheckOut(data.todayCheckOut ?? null);
             setAutoOut(data.autoCheckedOut ?? false);
+            setAttendanceId(data.todayAttendanceId ?? null);
             setPin(stored);
             setPhase("dashboard");
           } else {
@@ -170,10 +173,33 @@ export default function MemberPortalPage() {
 
   function signOut() {
     sessionStorage.removeItem("member_pin");
-    setPin(""); setMember(null); setToday(null); setCheckOut(null); setAutoOut(false);
+    setPin(""); setMember(null); setToday(null); setCheckOut(null); setAutoOut(false); setAttendanceId(null);
     setErrorMsg(""); submittingRef.current = false;
     const isSetup = new URLSearchParams(window.location.search).get("setup") === "1";
     setPhase(isSetup ? "setup" : "input");
+  }
+
+  async function handleCheckOut() {
+    if (!attendanceId || checkingOut) return;
+    setCheckingOut(true);
+    try {
+      const res = await fetch("/api/member-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attendanceId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCheckOut(new Date().toISOString());
+        setAttendanceId(null);
+      } else {
+        setErrorMsg(data.error ?? "Checkout failed.");
+      }
+    } catch {
+      setErrorMsg("Network error. Please try again.");
+    } finally {
+      setCheckingOut(false);
+    }
   }
 
   // ── SETUP PIN ──────────────────────────────────────────────────────────────
@@ -558,9 +584,18 @@ export default function MemberPortalPage() {
                   </span>
                 </div>
               ) : (
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-gray-600 flex-shrink-0" />
-                  <span className="text-xs text-gray-500">Not checked out yet</span>
+                <div className="flex items-center justify-between mt-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-gray-600 flex-shrink-0" />
+                    <span className="text-xs text-gray-500">Not checked out yet</span>
+                  </div>
+                  <button
+                    onClick={handleCheckOut}
+                    disabled={checkingOut}
+                    className="text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-50"
+                    style={{ background: "rgba(29,78,216,0.2)", color: "#93c5fd", border: "1px solid rgba(29,78,216,0.3)" }}>
+                    {checkingOut ? "…" : "Check Out"}
+                  </button>
                 </div>
               )}
             </div>

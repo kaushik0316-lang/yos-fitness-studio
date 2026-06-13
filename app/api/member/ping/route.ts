@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     const todayIST = getISTDate();
     const todayAttendance = await prisma.memberAttendance.findUnique({
       where: { memberId_date: { memberId: member.id, date: todayIST } },
-      select: { checkInTime: true, checkOutTime: true, autoCheckedOut: true },
+      select: { id: true, checkInTime: true, checkOutTime: true, autoCheckedOut: true },
     });
 
     return NextResponse.json({
@@ -60,9 +60,10 @@ export async function POST(req: NextRequest) {
         expiryDate:   member.expiryDate?.toISOString() ?? null,
         packageName:  member.currentPackage?.name ?? null,
       },
-      todayCheckIn:  todayAttendance ? todayAttendance.checkInTime.toISOString()  : null,
-      todayCheckOut: todayAttendance?.checkOutTime?.toISOString() ?? null,
-      autoCheckedOut: todayAttendance?.autoCheckedOut ?? false,
+      todayAttendanceId: todayAttendance?.id ?? null,
+      todayCheckIn:      todayAttendance ? todayAttendance.checkInTime.toISOString() : null,
+      todayCheckOut:     todayAttendance?.checkOutTime?.toISOString() ?? null,
+      autoCheckedOut:    todayAttendance?.autoCheckedOut ?? false,
     });
   } catch (err) {
     console.error("[member/ping]", err);
