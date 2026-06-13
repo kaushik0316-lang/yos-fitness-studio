@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, CheckCircle2, Users, Clock, CalendarCheck, LogOut } from "lucide-react";
+import { Search, CheckCircle2, Clock, CalendarCheck, LogOut, Dumbbell } from "lucide-react";
 import Link from "next/link";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import { formatTime, daysAgo } from "@/lib/utils";
-import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import type { UserRole } from "@prisma/client";
 
@@ -27,9 +26,25 @@ type Props = {
 };
 
 export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, userId, userRole }: Props) {
-  const [activeTab, setActiveTab] = useState<"pending" | "checkedin">("pending");
+  const [activeTab, setActiveTab] = useState<"inGym" | "visited" | "pending">("inGym");
   const [search, setSearch] = useState("");
   const [markFor, setMarkFor] = useState<Member | null>(null);
+
+  const inGym = useMemo(() => todayAttendance.filter((a) => !a.checkOutTime), [todayAttendance]);
+
+  const filteredInGym = useMemo(() => {
+    const q = search.toLowerCase();
+    return inGym.filter((a) =>
+      a.member.fullName.toLowerCase().includes(q) || a.member.memberId.toLowerCase().includes(q)
+    );
+  }, [inGym, search]);
+
+  const filteredVisited = useMemo(() => {
+    const q = search.toLowerCase();
+    return todayAttendance.filter((a) =>
+      a.member.fullName.toLowerCase().includes(q) || a.member.memberId.toLowerCase().includes(q)
+    );
+  }, [todayAttendance, search]);
 
   const filteredPending = useMemo(() => {
     const q = search.toLowerCase();
@@ -38,19 +53,18 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
     );
   }, [notCheckedIn, search]);
 
-  const filteredCheckedIn = useMemo(() => {
-    const q = search.toLowerCase();
-    return todayAttendance.filter((a) =>
-      a.member.fullName.toLowerCase().includes(q) || a.member.memberId.toLowerCase().includes(q)
-    );
-  }, [todayAttendance, search]);
-
   const pct = totalActive > 0 ? Math.round((todayAttendance.length / totalActive) * 100) : 0;
 
   const statCards = [
-    { icon: CheckCircle2, label: "Checked In",   value: todayAttendance.length, accent: "#10b981", iconBg: "rgba(16,185,129,0.12)"  },
-    { icon: Clock,        label: "Pending",       value: notCheckedIn.length,    accent: "#f97316", iconBg: "rgba(249,115,22,0.12)"  },
-    { icon: Users,        label: "Total Active",  value: totalActive,            accent: "#3b82f6", iconBg: "rgba(59,130,246,0.12)"  },
+    { icon: Dumbbell,      label: "In Gym Now",   value: inGym.length,           accent: "#10b981", iconBg: "rgba(16,185,129,0.12)" },
+    { icon: CalendarCheck, label: "Visited Today", value: todayAttendance.length, accent: "#a855f7", iconBg: "rgba(168,85,247,0.12)" },
+    { icon: Clock,         label: "Pending",       value: notCheckedIn.length,    accent: "#f97316", iconBg: "rgba(249,115,22,0.12)" },
+  ];
+
+  const tabs = [
+    { key: "inGym"   as const, label: `In Gym (${inGym.length})` },
+    { key: "visited" as const, label: `Visited (${todayAttendance.length})` },
+    { key: "pending" as const, label: `Pending (${notCheckedIn.length})` },
   ];
 
   return (
@@ -90,7 +104,8 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
       {/* ── List panel ── */}
       <div className="rounded-2xl overflow-hidden" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
         {/* Search + tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           <div className="relative w-full sm:flex-1 sm:max-w-sm">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-600 pointer-events-none" />
             <input
@@ -102,10 +117,7 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
             />
           </div>
           <div className="flex gap-1 rounded-xl p-1 flex-shrink-0" style={{ background: "rgba(255,255,255,0.05)" }}>
-            {[
-              { key: "pending"   as const, label: `Pending (${notCheckedIn.length})` },
-              { key: "checkedin" as const, label: `Checked In (${todayAttendance.length})` },
-            ].map((tab) => (
+            {tabs.map((tab) => (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                 className="px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all"
                 style={activeTab === tab.key
@@ -117,7 +129,93 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
           </div>
         </div>
 
-        {/* ── Pending list ── */}
+        {/* ── In Gym Now ── */}
+        {activeTab === "inGym" && (
+          <div className="max-h-[60vh] overflow-y-auto">
+            {filteredInGym.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Dumbbell className="h-10 w-10 text-gray-700" />
+                <p className="text-sm text-gray-500 font-medium">
+                  {search ? "No matches" : "Nobody in the gym right now"}
+                </p>
+              </div>
+            ) : (
+              filteredInGym.map((a, idx) => (
+                <div key={a.id}
+                  className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-white/[0.02]"
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", background: idx % 2 === 0 ? "#161616" : "#181818" }}>
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: "rgba(16,185,129,0.12)" }}>
+                      <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <Link href={`/members/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
+                        {toTitleCase(a.member.fullName)}
+                      </Link>
+                      <p className="text-xs text-gray-600 mt-0.5">{a.member.memberId} · {a.member.currentPackage?.name ?? "—"}</p>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0 ml-4">
+                    <p className="text-base font-extrabold text-emerald-400">{formatTime(a.checkInTime)}</p>
+                    <p className="text-xs text-gray-600">by {a.markedBy.name}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* ── Visited Today ── */}
+        {activeTab === "visited" && (
+          <div className="max-h-[60vh] overflow-y-auto">
+            {filteredVisited.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <CalendarCheck className="h-10 w-10 text-gray-700" />
+                <p className="text-sm text-gray-500 font-medium">
+                  {search ? "No matching check-ins" : "No check-ins yet today"}
+                </p>
+              </div>
+            ) : (
+              filteredVisited.map((a, idx) => {
+                const checkedOut = !!a.checkOutTime;
+                return (
+                  <div key={a.id}
+                    className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-white/[0.02]"
+                    style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", background: idx % 2 === 0 ? "#161616" : "#181818" }}>
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: checkedOut ? "rgba(59,130,246,0.12)" : "rgba(16,185,129,0.12)" }}>
+                        {checkedOut
+                          ? <LogOut className="h-5 w-5" style={{ color: "#60a5fa" }} />
+                          : <CheckCircle2 className="h-5 w-5 text-emerald-400" />}
+                      </div>
+                      <div className="min-w-0">
+                        <Link href={`/members/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
+                          {toTitleCase(a.member.fullName)}
+                        </Link>
+                        <p className="text-xs text-gray-600 mt-0.5">{a.member.memberId} · {a.member.currentPackage?.name ?? "—"}</p>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0 ml-4">
+                      <p className="text-sm font-extrabold text-emerald-400">{formatTime(a.checkInTime)}</p>
+                      {checkedOut ? (
+                        <p className="text-xs font-semibold mt-0.5" style={{ color: "#60a5fa" }}>
+                          out {formatTime(a.checkOutTime!)}
+                          {a.autoCheckedOut && <span className="ml-1 text-gray-600">(auto)</span>}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-emerald-700 mt-0.5">still inside</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* ── Pending ── */}
         {activeTab === "pending" && (
           <div className="max-h-[60vh] overflow-y-auto">
             {filteredPending.length === 0 ? (
@@ -163,55 +261,6 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                         <span>Check In</span>
                       </button>
                     )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-
-        {/* ── Checked-in list ── */}
-        {activeTab === "checkedin" && (
-          <div className="max-h-[60vh] overflow-y-auto">
-            {filteredCheckedIn.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <CalendarCheck className="h-10 w-10 text-gray-700" />
-                <p className="text-sm text-gray-500 font-medium">
-                  {search ? "No matching check-ins" : "No check-ins yet today"}
-                </p>
-              </div>
-            ) : (
-              filteredCheckedIn.map((a, idx) => {
-                const checkedOut = !!a.checkOutTime;
-                return (
-                  <div key={a.id}
-                    className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-white/[0.02]"
-                    style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", background: idx % 2 === 0 ? "#161616" : "#181818" }}>
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ background: checkedOut ? "rgba(59,130,246,0.12)" : "rgba(16,185,129,0.12)" }}>
-                        {checkedOut
-                          ? <LogOut className="h-5 w-5" style={{ color: "#60a5fa" }} />
-                          : <CheckCircle2 className="h-5 w-5 text-emerald-400" />}
-                      </div>
-                      <div className="min-w-0">
-                        <Link href={`/members/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
-                          {toTitleCase(a.member.fullName)}
-                        </Link>
-                        <p className="text-xs text-gray-600 mt-0.5">{a.member.memberId} · {a.member.currentPackage?.name ?? "—"}</p>
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0 ml-4">
-                      <p className="text-sm font-extrabold text-emerald-400">{formatTime(a.checkInTime)}</p>
-                      {checkedOut ? (
-                        <p className="text-xs font-semibold mt-0.5" style={{ color: "#60a5fa" }}>
-                          out {formatTime(a.checkOutTime!)}
-                          {a.autoCheckedOut && <span className="ml-1 text-gray-600">(auto)</span>}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-gray-600">by {a.markedBy.name}</p>
-                      )}
-                    </div>
                   </div>
                 );
               })
