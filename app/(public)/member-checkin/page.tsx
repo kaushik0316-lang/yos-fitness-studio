@@ -62,11 +62,19 @@ export default function MemberCheckinPage() {
   const [errorMsg, setErrorMsg]   = useState("");
   const [shaking, setShaking]     = useState(false);
   const submittingRef             = useRef(false);
+  const hiddenInputRef            = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (phase !== "success") return;
     const t = setTimeout(() => resetForm(), AUTO_RESET_MS);
     return () => clearTimeout(t);
+  }, [phase]);
+
+  // Auto-focus hidden input so mobile keyboard is available immediately
+  useEffect(() => {
+    if (phase === "input" || phase === "error") {
+      hiddenInputRef.current?.focus();
+    }
   }, [phase]);
 
   useEffect(() => {
@@ -173,8 +181,27 @@ export default function MemberCheckinPage() {
 
   return (
     <Screen>
+      {/* Hidden input so mobile soft keyboard can be triggered */}
+      <input
+        ref={hiddenInputRef}
+        type="tel"
+        inputMode="numeric"
+        pattern="\d*"
+        value=""
+        onChange={(e) => {
+          const last = e.target.value.slice(-1);
+          if (last >= "0" && last <= "9") pressKey(last);
+        }}
+        onKeyDown={(e) => { if (e.key === "Backspace") pressKey("⌫"); }}
+        style={{ position: "absolute", opacity: 0, width: 1, height: 1, pointerEvents: "none" }}
+        autoComplete="off"
+        readOnly={false}
+      />
       <LogoBar />
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-6">
+      <div
+        className="flex-1 flex flex-col items-center justify-center px-6 pb-6"
+        onClick={() => hiddenInputRef.current?.focus()}
+      >
         <div className="w-full max-w-[300px]">
           <div className="text-center mb-8">
             <p className="text-green-400/70 text-[11px] font-bold uppercase tracking-[0.2em] mb-2">
