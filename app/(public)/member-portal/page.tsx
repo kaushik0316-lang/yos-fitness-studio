@@ -174,8 +174,19 @@ export default function MemberPortalPage() {
   async function handleSetupSubmit() {
     if (setupStep === "memberId") {
       if (!setupMemberId.trim()) { setSetupError("Please enter your Membership ID."); return; }
-      setSetupError("");
-      setSetupStep("phone");
+      setSetupLoading(true); setSetupError("");
+      try {
+        const res = await fetch("/api/member/check-id", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ memberId: setupMemberId.trim() }),
+        });
+        const data = await res.json();
+        if (!res.ok) { setSetupError(data.error ?? "Member ID not found."); return; }
+        setSetupStep("phone");
+      } finally {
+        setSetupLoading(false);
+      }
       return;
     }
     if (setupStep === "phone") {
