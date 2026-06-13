@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, CheckCircle2, Users, Clock, CalendarCheck } from "lucide-react";
+import { Search, CheckCircle2, Users, Clock, CalendarCheck, LogOut } from "lucide-react";
 import Link from "next/link";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import { formatTime, daysAgo } from "@/lib/utils";
@@ -10,7 +10,7 @@ import { toTitleCase } from "@/lib/utils/titleCase";
 import type { UserRole } from "@prisma/client";
 
 type AttendanceRecord = {
-  id: string; checkInTime: Date; remarks: string | null;
+  id: string; checkInTime: Date; checkOutTime: Date | null; autoCheckedOut: boolean; remarks: string | null;
   member: { id: string; memberId: string; fullName: string; phone: string; currentPackage: { name: string } | null };
   markedBy: { name: string };
 };
@@ -181,28 +181,40 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                 </p>
               </div>
             ) : (
-              filteredCheckedIn.map((a, idx) => (
-                <div key={a.id}
-                  className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-white/[0.02]"
-                  style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", background: idx % 2 === 0 ? "#161616" : "#181818" }}>
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: "rgba(16,185,129,0.12)" }}>
-                      <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+              filteredCheckedIn.map((a, idx) => {
+                const checkedOut = !!a.checkOutTime;
+                return (
+                  <div key={a.id}
+                    className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-white/[0.02]"
+                    style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", background: idx % 2 === 0 ? "#161616" : "#181818" }}>
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: checkedOut ? "rgba(59,130,246,0.12)" : "rgba(16,185,129,0.12)" }}>
+                        {checkedOut
+                          ? <LogOut className="h-5 w-5" style={{ color: "#60a5fa" }} />
+                          : <CheckCircle2 className="h-5 w-5 text-emerald-400" />}
+                      </div>
+                      <div className="min-w-0">
+                        <Link href={`/members/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
+                          {toTitleCase(a.member.fullName)}
+                        </Link>
+                        <p className="text-xs text-gray-600 mt-0.5">{a.member.memberId} · {a.member.currentPackage?.name ?? "—"}</p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <Link href={`/members/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
-                        {toTitleCase(a.member.fullName)}
-                      </Link>
-                      <p className="text-xs text-gray-600 mt-0.5">{a.member.memberId} · {a.member.currentPackage?.name ?? "—"}</p>
+                    <div className="text-right flex-shrink-0 ml-4">
+                      <p className="text-sm font-extrabold text-emerald-400">{formatTime(a.checkInTime)}</p>
+                      {checkedOut ? (
+                        <p className="text-xs font-semibold mt-0.5" style={{ color: "#60a5fa" }}>
+                          out {formatTime(a.checkOutTime!)}
+                          {a.autoCheckedOut && <span className="ml-1 text-gray-600">(auto)</span>}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-600">by {a.markedBy.name}</p>
+                      )}
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0 ml-4">
-                    <p className="text-base font-extrabold text-emerald-400">{formatTime(a.checkInTime)}</p>
-                    <p className="text-xs text-gray-600">by {a.markedBy.name}</p>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}

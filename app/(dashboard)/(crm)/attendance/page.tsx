@@ -17,7 +17,8 @@ export default async function AttendancePage() {
   const [todayAttendance, activeMembers, totalToday] = await Promise.all([
     prisma.memberAttendance.findMany({
       where: { date: { gte: todayStart, lte: todayEnd } },
-      include: {
+      select: {
+        id: true, checkInTime: true, checkOutTime: true, autoCheckedOut: true, remarks: true,
         member: { select: { id: true, memberId: true, fullName: true, phone: true, currentPackage: { select: { name: true } } } },
         markedBy: { select: { name: true } },
       },
@@ -37,7 +38,7 @@ export default async function AttendancePage() {
   ]);
 
   // Members who have NOT checked in today
-  const checkedInIds = new Set(todayAttendance.map((a) => a.memberId));
+  const checkedInIds = new Set(todayAttendance.map((a) => a.member.id));
   const notCheckedIn = activeMembers.filter((m) => !checkedInIds.has(m.id));
 
   return (
