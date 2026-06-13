@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     const todayIST  = getISTDate();
     const now       = new Date();
 
-    // Block if already checked in today
+    // Check if already checked in today
     const existing = await prisma.memberAttendance.findUnique({
       where: { memberId_date: { memberId: member.id, date: todayIST } },
     });
@@ -62,8 +62,18 @@ export async function POST(req: NextRequest) {
       const timeStr = existing.checkInTime.toLocaleTimeString("en-IN", {
         timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
       });
+      // If they haven't checked out yet, offer checkout
+      if (!existing.checkOutTime) {
+        return NextResponse.json(
+          { checkoutPending: true, attendanceId: existing.id, checkedInAt: timeStr, fullName: member.fullName },
+          { status: 200 }
+        );
+      }
+      const outStr = existing.checkOutTime.toLocaleTimeString("en-IN", {
+        timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
+      });
       return NextResponse.json(
-        { error: `Already checked in today at ${timeStr}.` },
+        { error: `Already checked in at ${timeStr} and checked out at ${outStr}.` },
         { status: 409 }
       );
     }

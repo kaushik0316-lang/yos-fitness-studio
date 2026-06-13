@@ -187,7 +187,41 @@ async function runAutoCheckout() {
     }
   }
 
-  return { checkedOut: closed.length, employees: closed, ...(errors.length > 0 && { errors }) };
+  // ── MEMBER AUTO-CHECKOUT ─────────────────────────────────────────────────────
+  // Any member checked in 3+ hours ago with no checkout → set checkOutTime to checkInTime + 30 min
+  const THREE_HOURS_MS  = 3 * 60 * 60 * 1000;
+  const THIRTY_MIN_MS   = 30 * 60 * 1000;
+  const cutoff = new Date(now.getTime() - THREE_HOURS_MS);
+
+  const openMemberCheckIns = await prisma.memberAttendance.findMany({
+    where: { checkOutTime: null, checkInTime: { lte: cutoff } },
+    select: { id: true, checkInTime: true, member: { select: { fullName: true, memberId: true } } },
+  });
+
+  const membersClosed: string[] = [];
+  const memberErrors: string[] = [];
+
+  for (const record of openMemberCheckIns) {
+    try {
+      const checkOutTime = new Date(record.checkInTime.getTime() + THIRTY_MIN_MS);
+      await prisma.memberAttendance.update({
+        where: { id: record.id },
+        data: { checkOutTime, autoCheckedOut: true },
+      });
+      membersClosed.push(`${record.member.fullName} (${record.member.memberId})`);
+    } catch (err: any) {
+      memberErrors.push(`attendance ${record.id}: ${err?.message ?? String(err)}`);
+    }
+  }
+
+  return {
+    checkedOut: closed.length,
+    employees: closed,
+    membersAutoCheckedOut: membersClosed.length,
+    members: membersClosed,
+    ...(errors.length > 0 && { errors }),
+    ...(memberErrors.length > 0 && { memberErrors }),
+  };
 }
 
 function isAuthorized(req: NextRequest): boolean {

@@ -263,10 +263,12 @@ model MemberAttendance {
   memberId    String
   member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
   date        DateTime @db.Date
-  checkInTime DateTime
-  markedById  String
-  markedBy    User     @relation(fields: [markedById], references: [id])
-  remarks     String?
+  checkInTime  DateTime
+  checkOutTime DateTime?
+  autoCheckedOut Boolean @default(false)
+  markedById   String
+  markedBy     User     @relation(fields: [markedById], references: [id])
+  remarks      String?
 
   createdAt DateTime @default(now())
 
