@@ -74,16 +74,10 @@ export default function MemberPortalPage() {
   const [setupError, setSetupError]       = useState("");
   const [setupName, setSetupName]         = useState("");
 
-  // Check for ?setup=1 param
+  // Restore session — skip if ?setup=1 is in the URL
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("setup") === "1") setPhase("setup");
-    }
-  }, []);
-
-  // Restore session
-  useEffect(() => {
+    const isSetup = new URLSearchParams(window.location.search).get("setup") === "1";
+    if (isSetup) { setPhase("setup"); return; }
     const stored = sessionStorage.getItem("member_pin");
     if (stored) {
       setPhase("loading");
@@ -171,7 +165,9 @@ export default function MemberPortalPage() {
   function signOut() {
     sessionStorage.removeItem("member_pin");
     setPin(""); setMember(null); setToday(null);
-    setErrorMsg(""); setPhase("input"); submittingRef.current = false;
+    setErrorMsg(""); submittingRef.current = false;
+    const isSetup = new URLSearchParams(window.location.search).get("setup") === "1";
+    setPhase(isSetup ? "setup" : "input");
   }
 
   // ── SETUP PIN ──────────────────────────────────────────────────────────────
@@ -475,7 +471,7 @@ export default function MemberPortalPage() {
 
   // ── DASHBOARD ──────────────────────────────────────────────────────────────
   const isActive  = member?.status === "ACTIVE";
-  const isExpired = member?.status === "EXPIRED";
+  const isExpired = member?.status !== "ACTIVE";
 
   return (
     <div className="min-h-screen flex flex-col overflow-y-auto" style={{ background: "#0a0a0a" }}>
