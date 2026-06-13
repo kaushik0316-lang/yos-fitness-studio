@@ -60,7 +60,9 @@ export default function MemberPortalPage() {
   const [pin, setPin]             = useState("");
   const [errorMsg, setErrorMsg]   = useState("");
   const [member, setMember]       = useState<MemberData | null>(null);
-  const [todayCheckIn, setToday]  = useState<string | null>(null);
+  const [todayCheckIn, setToday]      = useState<string | null>(null);
+  const [todayCheckOut, setCheckOut]  = useState<string | null>(null);
+  const [autoCheckedOut, setAutoOut]  = useState(false);
   const [shaking, setShaking]     = useState(false);
   const submittingRef             = useRef(false);
 
@@ -91,6 +93,8 @@ export default function MemberPortalPage() {
           if (data.member) {
             setMember(data.member);
             setToday(data.todayCheckIn);
+            setCheckOut(data.todayCheckOut ?? null);
+            setAutoOut(data.autoCheckedOut ?? false);
             setPin(stored);
             setPhase("dashboard");
           } else {
@@ -123,6 +127,8 @@ export default function MemberPortalPage() {
       }
       setMember(data.member);
       setToday(data.todayCheckIn);
+      setCheckOut(data.todayCheckOut ?? null);
+      setAutoOut(data.autoCheckedOut ?? false);
       setPin(enteredPin);
       sessionStorage.setItem("member_pin", enteredPin);
       setPhase("dashboard");
@@ -164,7 +170,7 @@ export default function MemberPortalPage() {
 
   function signOut() {
     sessionStorage.removeItem("member_pin");
-    setPin(""); setMember(null); setToday(null);
+    setPin(""); setMember(null); setToday(null); setCheckOut(null); setAutoOut(false);
     setErrorMsg(""); submittingRef.current = false;
     const isSetup = new URLSearchParams(window.location.search).get("setup") === "1";
     setPhase(isSetup ? "setup" : "input");
@@ -536,11 +542,27 @@ export default function MemberPortalPage() {
             Today&apos;s Attendance
           </p>
           {todayCheckIn ? (
-            <div className="flex items-center gap-3 rounded-2xl px-4 py-3" style={{ background: "#111" }}>
-              <div className="w-2 h-2 rounded-full bg-green-400" />
-              <span className="text-sm font-semibold text-green-400">
-                ✓ Checked in at {fmtTime(todayCheckIn)}
-              </span>
+            <div className="flex flex-col gap-2 rounded-2xl px-4 py-3" style={{ background: "#111" }}>
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
+                <span className="text-sm font-semibold text-green-400">
+                  ✓ Checked in at {fmtTime(todayCheckIn)}
+                </span>
+              </div>
+              {todayCheckOut ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#3b82f6" }} />
+                  <span className="text-sm font-semibold" style={{ color: "#93c5fd" }}>
+                    ✓ Checked out at {fmtTime(todayCheckOut)}
+                    {autoCheckedOut && <span className="ml-1 text-xs text-gray-500">(auto)</span>}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-gray-600 flex-shrink-0" />
+                  <span className="text-xs text-gray-500">Not checked out yet</span>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-3 py-1">
