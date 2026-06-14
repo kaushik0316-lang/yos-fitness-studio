@@ -31,11 +31,8 @@ export async function POST(req: NextRequest) {
     const member = await prisma.member.findUnique({
       where: { pin: String(pin) },
       select: {
-        id: true,
-        memberId: true,
-        fullName: true,
-        status: true,
-        expiryDate: true,
+        id: true, memberId: true, fullName: true,
+        status: true, expiryDate: true, lastAttendanceDate: true,
         currentPackage: { select: { name: true } },
       },
     });
@@ -44,22 +41,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid PIN. Please try again." }, { status: 401 });
     }
 
-    // Check today's attendance
+    // Check today's attendance + lifetime visit count
     const todayIST = getISTDate();
-    const todayAttendance = await prisma.memberAttendance.findUnique({
-      where: { memberId_date: { memberId: member.id, date: todayIST } },
-      select: { id: true, checkInTime: true, checkOutTime: true, autoCheckedOut: true },
-    });
+    const [todayAttendance, totalVisits] = await Promise.all([
+      prisma.memberAttendance.findUnique({
+        where: { memberId_date: { memberId: member.id, date: todayIST } },
+        select: { id: true, checkInTime: true, checkOutTime: true, autoCheckedOut: true },
+      }),
+      prisma.memberAttendance.count({ where: { memberId: member.id } }),
+    ]);
 
     return NextResponse.json({
       member: {
-        id:           member.id,
-        memberId:     member.memberId,
-        fullName:     member.fullName,
-        status:       member.status,
-        expiryDate:   member.expiryDate?.toISOString() ?? null,
-        packageName:  member.currentPackage?.name ?? null,
+        id:               member.id,
+        memberId:         member.memberId,
+        fullName:         member.fullName,
+        status:           member.status,
+        expiryDate:       member.expiryDate?.toISOString() ?? null,
+        packageName:      member.currentPackage?.name ?? null,
+        lastAttendanceDate: member.lastAttendanceDate?.toISOString() ?? null,
       },
+      totalVisits,
       todayAttendanceId: todayAttendance?.id ?? null,
       todayCheckIn:      todayAttendance ? todayAttendance.checkInTime.toISOString() : null,
       todayCheckOut:     todayAttendance?.checkOutTime?.toISOString() ?? null,
