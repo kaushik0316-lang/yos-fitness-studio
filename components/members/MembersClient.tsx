@@ -5,7 +5,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Plus, Search, Eye, CheckCircle, Clock, Snowflake,
-  UserMinus, UserPlus, Users, ArrowUpDown, RefreshCw, MessageCircle,
+  UserMinus, UserPlus, Users, ArrowUpDown, RefreshCw, MessageCircle, MessageSquare, X,
 } from "lucide-react";
 import { AddMemberDialog } from "@/components/members/AddMemberDialog";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
@@ -100,10 +100,11 @@ export function MembersClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [showAdd, setShowAdd]   = useState(false);
-  const [markFor, setMarkFor]   = useState<Member | null>(null);
-  const [search, setSearch]     = useState(searchParams.get("search") ?? "");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [showAdd, setShowAdd]         = useState(false);
+  const [markFor, setMarkFor]         = useState<Member | null>(null);
+  const [search, setSearch]           = useState(searchParams.get("search") ?? "");
+  const [selected, setSelected]       = useState<Set<string>>(new Set());
+  const [showWelcome, setShowWelcome] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Instant search — debounced 400 ms
@@ -260,9 +261,19 @@ export function MembersClient({
 
       {/* ── Bulk action bar ── */}
       {selected.size > 0 && (
-        <div className="rounded-2xl px-5 py-3 flex items-center gap-4"
+        <div className="rounded-2xl px-5 py-3 flex items-center gap-3 flex-wrap"
           style={{ background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.3)" }}>
           <span className="text-sm font-bold text-orange-400">{selected.size} selected</span>
+          {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
+            <button
+              onClick={() => setShowWelcome(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all"
+              style={{ background: "#25d366" }}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              Send Welcome ({selected.size})
+            </button>
+          )}
           <button
             onClick={exportSelected}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all"
@@ -273,6 +284,56 @@ export function MembersClient({
           <button onClick={() => setSelected(new Set())} className="text-xs text-gray-500 hover:text-gray-300 ml-auto">
             Clear selection
           </button>
+        </div>
+      )}
+
+      {/* ── Welcome message modal ── */}
+      {showWelcome && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.7)" }}
+          onClick={() => setShowWelcome(false)}>
+          <div className="w-full max-w-md rounded-2xl overflow-hidden"
+            style={{ background: "#1c1c1c", border: "1px solid rgba(255,255,255,0.1)" }}
+            onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              <div>
+                <h3 className="text-white font-bold">Send Welcome Messages</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Click each member to open WhatsApp</p>
+              </div>
+              <button onClick={() => setShowWelcome(false)} className="text-gray-500 hover:text-white transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto">
+              {members.filter((m) => selected.has(m.id)).map((m) => {
+                const waMsg = encodeURIComponent(
+                  `Hi ${m.fullName.split(" ")[0]}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${m.memberId}*.\n\nSet up your member portal to view attendance and membership details:\n👉 https://yosfitnessstudio.in/member-portal?setup=1\n\nSee you at the gym! 💪`
+                );
+                const digits = m.phone.replace(/\D/g, "").slice(-10);
+                return (
+                  <a key={m.id}
+                    href={`https://wa.me/91${digits}?text=${waMsg}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-white/[0.03]"
+                    style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                    <div>
+                      <p className="text-white font-semibold text-sm">{toTitleCase(m.fullName)}</p>
+                      <p className="text-xs text-gray-600 mt-0.5">{m.memberId} · {m.phone}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
+                      style={{ background: "rgba(37,211,102,0.15)", color: "#25d366" }}>
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      Open
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+            <div className="px-5 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              <p className="text-xs text-gray-600">Each link opens WhatsApp with a pre-filled welcome message including the member portal setup link.</p>
+            </div>
+          </div>
         </div>
       )}
 
