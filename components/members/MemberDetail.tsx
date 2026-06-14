@@ -93,7 +93,21 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
             />
           )}
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+          {(userRole === "ADMIN" || userRole === "FRONT_DESK") && member.phone && (
+            <a
+              href={`https://wa.me/91${member.phone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(
+                `Hi ${member.fullName.split(" ")[0]}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${member.memberId}*.\n\nSet up your member portal to view attendance and membership details:\n👉 https://yosfitnessstudio.in/member-portal?setup=1\n\nSee you at the gym! 💪`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
+              style={{ background: "#25d366", color: "#fff" }}
+            >
+              <MessageSquare className="h-4 w-4" />
+              Send Welcome
+            </a>
+          )}
           {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "TRAINER") && (
             <button
               onClick={() => setShowAttendance(true)}
