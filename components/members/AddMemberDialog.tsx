@@ -4,11 +4,13 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Check, X } from "lucide-react";
+import { Loader2, Check, X, MessageSquare } from "lucide-react";
 import { createMember } from "@/lib/actions/members";
 import { toast } from "@/hooks/use-toast";
 import type { Company } from "@prisma/client";
 import { toTitleCase } from "@/lib/utils/titleCase";
+
+const GYM_WHATSAPP = "919840690418";
 
 const schema = z.object({
   fullName: z.string().min(2, "Name is required"),
@@ -52,13 +54,14 @@ const sec = "bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4
 
 export function AddMemberDialog({ open, onClose, packages, trainers, userId }: Props) {
   const [loading, setLoading] = useState(false);
+  const [newMember, setNewMember] = useState<{ memberId: string; fullName: string; phone: string } | null>(null);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { status: "ACTIVE" },
   });
 
-  function handleClose() { reset(); onClose(); }
+  function handleClose() { reset(); setNewMember(null); onClose(); }
 
   async function onSubmit(data: FormData) {
     setLoading(true);
@@ -70,8 +73,7 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
         weight: data.weight ? Number(data.weight) : undefined,
         height: data.height ? Number(data.height) : undefined,
       });
-      toast({ title: "Member added!", description: `Registered as ${result.memberId}` });
-      handleClose();
+      setNewMember({ memberId: result.memberId, fullName: data.fullName, phone: data.phone });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
@@ -80,6 +82,57 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
   }
 
   if (!open) return null;
+
+  // ── Success screen ──
+  if (newMember) {
+    const termsLink = `https://yosfitnessstudio.in/terms-accept?id=${newMember.memberId}`;
+    const digits = newMember.phone.replace(/\D/g, "").slice(-10);
+    const waMsg = encodeURIComponent(
+      `Hi ${newMember.fullName.split(" ")[0]}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${newMember.memberId}*.\n\nPlease accept your membership terms (takes 1 minute):\n👉 ${termsLink}\n\nSee you at the gym! 💪`
+    );
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ background: "rgba(0,0,0,0.5)" }}
+        onClick={handleClose}>
+        <div className="w-full max-w-sm rounded-2xl overflow-hidden text-center"
+          style={{ background: "#f9fafb" }}
+          onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gray-950 px-6 pt-6 pb-5 flex items-center justify-between">
+            <h2 className="text-white text-lg font-extrabold">Member Added!</h2>
+            <button onClick={handleClose} className="text-gray-500 hover:text-gray-300 transition-colors">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="px-6 py-8 space-y-4">
+            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+              <Check className="h-8 w-8 text-green-500" />
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Registered as</p>
+              <p className="text-3xl font-extrabold text-orange-500 tracking-wider mt-1">{newMember.memberId}</p>
+              <p className="text-gray-700 font-semibold mt-1">{toTitleCase(newMember.fullName)}</p>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 text-left space-y-2">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Next Step</p>
+              <p className="text-sm text-gray-600">Send the member their terms & conditions to accept on their phone.</p>
+              <p className="text-xs text-gray-400 break-all">{termsLink}</p>
+            </div>
+            <a href={`https://wa.me/91${digits}?text=${waMsg}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-bold text-white text-sm"
+              style={{ background: "#25d366" }}>
+              <MessageSquare className="h-4 w-4" />
+              Send T&amp;C via WhatsApp
+            </a>
+            <button onClick={handleClose}
+              className="w-full py-3 rounded-2xl text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"

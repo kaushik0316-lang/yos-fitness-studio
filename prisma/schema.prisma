@@ -178,6 +178,7 @@ model Member {
   lastAttendanceDate DateTime?
   pin                String?      @unique // 4-digit self-set PIN for member portal
   allowKioskCheckin  Boolean      @default(false) // admin override: allow kiosk check-in even if EXPIRED/INACTIVE
+  termsAcceptedAt    DateTime?    // timestamp when member accepted T&C via WhatsApp link
 
   // Assigned trainer
   trainerId String?

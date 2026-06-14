@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ArrowLeft, Phone, User, Calendar, Package, CreditCard,
   Clock, RotateCcw, CheckCircle, MessageSquare, AlertTriangle, MapPin, Link2Off, BellOff,
-  Mail, ShieldAlert, ChevronDown, ChevronUp,
+  Mail, ShieldAlert, ChevronDown, ChevronUp, Shield,
 } from "lucide-react";
 import { EditMemberButton } from "@/components/members/EditMemberButton";
 import { DeleteMemberButton } from "@/components/members/DeleteMemberButton";
@@ -357,6 +357,35 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                   }`} />
                 </button>
               </div>
+
+              {/* T&C acceptance status */}
+              {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
+                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <ShieldAlert className={`h-4 w-4 flex-shrink-0 ${member.termsAcceptedAt ? "text-green-500" : "text-orange-400"}`} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-700">Terms &amp; Conditions</p>
+                      <p className="text-xs text-gray-400">
+                        {member.termsAcceptedAt
+                          ? `Accepted on ${new Date(member.termsAcceptedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`
+                          : "Not yet accepted"}
+                      </p>
+                    </div>
+                  </div>
+                  {!member.termsAcceptedAt && member.phone && (
+                    <a
+                      href={`https://wa.me/91${member.phone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(
+                        `Hi ${member.fullName.split(" ")[0]}! Please accept your Yos Fitness membership terms (takes 1 minute):\n👉 https://yosfitnessstudio.in/terms-accept?id=${member.memberId}`
+                      )}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0 transition-colors"
+                      style={{ background: "rgba(37,211,102,0.1)", color: "#16a34a", border: "1px solid rgba(37,211,102,0.25)" }}>
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      Send
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
