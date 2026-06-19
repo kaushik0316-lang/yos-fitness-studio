@@ -31,7 +31,7 @@ export default async function RenewalsPage() {
       where: { isVoided: false },
       orderBy: { date: "desc" as const },
       take: 1,
-      select: { amount: true, discount: true },
+      select: { amount: true, discount: true, categoryLabel: true },
     },
   };
 

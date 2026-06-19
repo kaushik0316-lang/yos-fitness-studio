@@ -14,7 +14,7 @@ type RenewalMember = {
   currentPackage: { name: string } | null; trainer?: { fullName: string } | null;
   memberships?: { package: { name: string } | null; expiryDate: Date | string | null }[];
   renewalFollowUps?: any[];
-  payments?: { amount: number | string; discount: number | string }[];
+  payments?: { amount: number | string; discount: number | string; categoryLabel?: string | null }[];
 };
 
 function expiringPackageName(m: RenewalMember): string | null {
@@ -26,7 +26,7 @@ function expiringPackageName(m: RenewalMember): string | null {
     );
     if (match?.package?.name) return match.package.name;
   }
-  return m.memberships?.[0]?.package?.name ?? m.currentPackage?.name ?? null;
+  return m.memberships?.[0]?.package?.name ?? m.currentPackage?.name ?? m.payments?.[0]?.categoryLabel ?? null;
 }
 
 type Props = {
