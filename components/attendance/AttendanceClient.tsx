@@ -10,20 +10,29 @@ import type { UserRole } from "@prisma/client";
 
 type AttendanceRecord = {
   id: string; checkInTime: Date; checkOutTime: Date | null; autoCheckedOut: boolean; remarks: string | null;
-  member: { id: string; memberId: string; fullName: string; phone: string; currentPackage: { name: string } | null; memberships?: { package: { name: string } | null }[] };
+  member: { id: string; memberId: string; fullName: string; phone: string; currentPackage: { name: string } | null; memberships?: { package: { name: string } | null; expiryDate?: Date | string | null }[] };
   markedBy: { name: string };
 };
 
 type Member = {
   id: string; memberId: string; fullName: string; phone: string;
-  lastAttendanceDate: Date | null; expiryDate: Date | null;
-  currentPackage: { name: string } | null; memberships?: { package: { name: string } | null }[]; trainer: { fullName: string } | null;
+  lastAttendanceDate: Date | null; expiryDate: Date | string | null;
+  currentPackage: { name: string } | null; memberships?: { package: { name: string } | null; expiryDate?: Date | string | null }[]; trainer: { fullName: string } | null;
 };
 
 type Props = {
   todayAttendance: AttendanceRecord[]; notCheckedIn: Member[];
   totalActive: number; userId: string; userRole: UserRole;
 };
+
+function activePackageName(expiryDate: Date | string | null | undefined, memberships: { package: { name: string } | null; expiryDate?: Date | string | null }[] | undefined, fallback: { name: string } | null): string | null {
+  if (expiryDate && memberships?.length) {
+    const exp = new Date(expiryDate).toDateString();
+    const match = memberships.find((ms) => ms.expiryDate && new Date(ms.expiryDate).toDateString() === exp);
+    if (match?.package?.name) return match.package.name;
+  }
+  return memberships?.[0]?.package?.name ?? fallback?.name ?? null;
+}
 
 export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, userId, userRole }: Props) {
   const [activeTab, setActiveTab] = useState<"inGym" | "visited" | "pending">("inGym");
@@ -153,7 +162,7 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                       <Link href={`/members/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
                         {toTitleCase(a.member.fullName)}
                       </Link>
-                      <p className="text-xs text-gray-600 mt-0.5">{a.member.memberId} · {a.member.memberships?.[0]?.package?.name ?? a.member.currentPackage?.name ?? "—"}</p>
+                      <p className="text-xs text-gray-600 mt-0.5">{a.member.memberId} · {activePackageName(null, a.member.memberships, a.member.currentPackage) ?? "—"}</p>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0 ml-4">
@@ -194,7 +203,7 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                         <Link href={`/members/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
                           {toTitleCase(a.member.fullName)}
                         </Link>
-                        <p className="text-xs text-gray-600 mt-0.5">{a.member.memberId} · {a.member.memberships?.[0]?.package?.name ?? a.member.currentPackage?.name ?? "—"}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{a.member.memberId} · {activePackageName(null, a.member.memberships, a.member.currentPackage) ?? "—"}</p>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0 ml-4">
@@ -250,7 +259,7 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-600 mt-0.5">{m.memberId} · {m.memberships?.[0]?.package?.name ?? m.currentPackage?.name ?? "No package"}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{m.memberId} · {activePackageName(m.expiryDate, m.memberships, m.currentPackage) ?? "No package"}</p>
                       </div>
                     </div>
                     {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "TRAINER") && (

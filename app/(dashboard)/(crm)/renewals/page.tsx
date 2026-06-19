@@ -23,8 +23,8 @@ export default async function RenewalsPage() {
     currentPackage: { select: { name: true } },
     // Fetch the membership whose expiryDate matches the member's expiryDate
     memberships: {
-      orderBy: { expiryDate: "desc" as const },
-      take: 1,
+      orderBy: { expiryDate: "asc" as const },
+      take: 5,
       select: { package: { select: { name: true } }, expiryDate: true },
     },
     payments: {

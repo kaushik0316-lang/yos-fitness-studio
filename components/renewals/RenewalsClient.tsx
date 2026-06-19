@@ -12,12 +12,20 @@ type RenewalMember = {
   id: string; memberId: string; fullName: string; phone: string; whatsapp: string | null;
   expiryDate: Date | null; lastAttendanceDate?: Date | null;
   currentPackage: { name: string } | null; trainer?: { fullName: string } | null;
-  memberships?: { package: { name: string } | null; expiryDate: Date | null }[];
+  memberships?: { package: { name: string } | null; expiryDate: Date | string | null }[];
   renewalFollowUps?: any[];
   payments?: { amount: number | string; discount: number | string }[];
 };
 
 function expiringPackageName(m: RenewalMember): string | null {
+  // Match the membership whose expiryDate equals the member's expiryDate (the one actually expiring)
+  if (m.expiryDate && m.memberships?.length) {
+    const memberExpiry = new Date(m.expiryDate).toDateString();
+    const match = m.memberships.find(
+      (ms) => ms.expiryDate && new Date(ms.expiryDate).toDateString() === memberExpiry
+    );
+    if (match?.package?.name) return match.package.name;
+  }
   return m.memberships?.[0]?.package?.name ?? m.currentPackage?.name ?? null;
 }
 

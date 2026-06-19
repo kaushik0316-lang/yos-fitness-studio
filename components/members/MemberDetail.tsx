@@ -400,7 +400,14 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
               /* ── Normal: package linked ── */
               <div className="space-y-3">
                 <div className="bg-orange-50 border border-orange-100 rounded-xl p-3">
-                  <p className="font-bold text-gray-900 text-sm">{member.memberships?.[0]?.package?.name ?? member.currentPackage.name}</p>
+                  <p className="font-bold text-gray-900 text-sm">{(() => {
+                    if (member.expiryDate && member.memberships?.length) {
+                      const exp = new Date(member.expiryDate).toDateString();
+                      const match = member.memberships.find((ms: any) => ms.expiryDate && new Date(ms.expiryDate).toDateString() === exp);
+                      if (match?.package?.name) return match.package.name;
+                    }
+                    return member.memberships?.[0]?.package?.name ?? member.currentPackage.name;
+                  })()}</p>
                   {member.startDate && <p className="text-xs text-gray-500 mt-0.5">Started {formatDate(member.startDate)}</p>}
                 </div>
                 {member.expiryDate && (
