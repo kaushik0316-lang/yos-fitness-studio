@@ -21,6 +21,12 @@ export default async function RenewalsPage() {
     id: true, memberId: true, fullName: true, phone: true, whatsapp: true,
     expiryDate: true, lastAttendanceDate: true,
     currentPackage: { select: { name: true } },
+    // Fetch the membership whose expiryDate matches the member's expiryDate
+    memberships: {
+      orderBy: { expiryDate: "desc" as const },
+      take: 1,
+      select: { package: { select: { name: true } }, expiryDate: true },
+    },
     payments: {
       where: { isVoided: false },
       orderBy: { date: "desc" as const },

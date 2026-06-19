@@ -12,9 +12,14 @@ type RenewalMember = {
   id: string; memberId: string; fullName: string; phone: string; whatsapp: string | null;
   expiryDate: Date | null; lastAttendanceDate?: Date | null;
   currentPackage: { name: string } | null; trainer?: { fullName: string } | null;
+  memberships?: { package: { name: string } | null; expiryDate: Date | null }[];
   renewalFollowUps?: any[];
   payments?: { amount: number | string; discount: number | string }[];
 };
+
+function expiringPackageName(m: RenewalMember): string | null {
+  return m.memberships?.[0]?.package?.name ?? m.currentPackage?.name ?? null;
+}
 
 type Props = {
   expiredMembers: RenewalMember[]; expiring1: RenewalMember[]; expiring3: RenewalMember[];
@@ -58,7 +63,7 @@ function buildWhatsAppMessage(members: RenewalMember[], tabLabel: string): strin
     const net = getNetAmount(m);
     msg += `*${i + 1}. ${toTitleCase(m.fullName)}*\n`;
     msg += `📞 ${m.phone}\n`;
-    msg += `📦 ${m.currentPackage?.name ?? "—"}\n`;
+    msg += `📦 ${expiringPackageName(m) ?? "—"}\n`;
     msg += `🗓️ Renewal: ${m.expiryDate ? formatDate(m.expiryDate) : "—"}\n`;
     msg += `💰 Amount: ${net != null ? `₹${net.toLocaleString("en-IN")}` : "—"}\n\n`;
   });
@@ -257,8 +262,8 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
 
                         {/* Row 2: package + expiry + amount */}
                         <div className="flex items-center gap-3 mt-1 flex-wrap">
-                          {m.currentPackage && (
-                            <span className="text-xs text-gray-500">{m.currentPackage.name}</span>
+                          {expiringPackageName(m) && (
+                            <span className="text-xs text-gray-500">{expiringPackageName(m)}</span>
                           )}
                           {net != null && (
                             <span className="text-xs font-semibold text-gray-500">₹{net.toLocaleString("en-IN")}</span>
