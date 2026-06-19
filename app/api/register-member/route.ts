@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { normalizeName } from "@/lib/utils/titleCase";
 
 export async function POST(req: NextRequest) {
   // Rate limit: 5 registrations per hour per IP
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
     return tx.member.create({
       data: {
         memberId: nextId,
-        fullName: fullName.trim().replace(/\w+/g, (w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()),
+        fullName: normalizeName(fullName).trim().toUpperCase(),
         phone: phone.trim(),
         whatsapp: whatsapp?.trim() || phone.trim(),
         gender: gender || null,

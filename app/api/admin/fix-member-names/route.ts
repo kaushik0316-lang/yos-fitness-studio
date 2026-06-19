@@ -1,27 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-function toTitleCase(str: string): string {
-  const LOWER_WORDS = new Set(["and", "or", "of", "the", "in", "on", "at", "to", "for", "a", "an"]);
-  return str
-    .toLowerCase()
-    .split(" ")
-    .map((word, i) => {
-      if (!word) return word;
-      if (i > 0 && LOWER_WORDS.has(word)) return word;
-      return word.charAt(0).toUpperCase() + word.slice(1);
-    })
-    .join(" ");
-}
+import { normalizeName } from "@/lib/utils/titleCase";
 
 function cleanName(name: string): string {
-  return toTitleCase(
-    name
-      .replace(/\./g, " ")       // dots → spaces
-      .replace(/ {2,}/g, " ")    // collapse multiple spaces
-      .trim()
-  );
+  return normalizeName(name).toUpperCase();
 }
 
 export async function POST(req: Request) {
