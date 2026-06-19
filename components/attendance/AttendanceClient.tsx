@@ -10,14 +10,14 @@ import type { UserRole } from "@prisma/client";
 
 type AttendanceRecord = {
   id: string; checkInTime: Date; checkOutTime: Date | null; autoCheckedOut: boolean; remarks: string | null;
-  member: { id: string; memberId: string; fullName: string; phone: string; currentPackage: { name: string } | null };
+  member: { id: string; memberId: string; fullName: string; phone: string; currentPackage: { name: string } | null; memberships?: { package: { name: string } | null }[] };
   markedBy: { name: string };
 };
 
 type Member = {
   id: string; memberId: string; fullName: string; phone: string;
   lastAttendanceDate: Date | null; expiryDate: Date | null;
-  currentPackage: { name: string } | null; trainer: { fullName: string } | null;
+  currentPackage: { name: string } | null; memberships?: { package: { name: string } | null }[]; trainer: { fullName: string } | null;
 };
 
 type Props = {
@@ -153,7 +153,7 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                       <Link href={`/members/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
                         {toTitleCase(a.member.fullName)}
                       </Link>
-                      <p className="text-xs text-gray-600 mt-0.5">{a.member.memberId} · {a.member.currentPackage?.name ?? "—"}</p>
+                      <p className="text-xs text-gray-600 mt-0.5">{a.member.memberId} · {a.member.memberships?.[0]?.package?.name ?? a.member.currentPackage?.name ?? "—"}</p>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0 ml-4">
@@ -194,7 +194,7 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                         <Link href={`/members/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
                           {toTitleCase(a.member.fullName)}
                         </Link>
-                        <p className="text-xs text-gray-600 mt-0.5">{a.member.memberId} · {a.member.currentPackage?.name ?? "—"}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{a.member.memberId} · {a.member.memberships?.[0]?.package?.name ?? a.member.currentPackage?.name ?? "—"}</p>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0 ml-4">
@@ -250,7 +250,7 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-600 mt-0.5">{m.memberId} · {m.currentPackage?.name ?? "No package"}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{m.memberId} · {m.memberships?.[0]?.package?.name ?? m.currentPackage?.name ?? "No package"}</p>
                       </div>
                     </div>
                     {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "TRAINER") && (

@@ -19,7 +19,7 @@ export default async function AttendancePage() {
       where: { date: { gte: todayStart, lte: todayEnd } },
       select: {
         id: true, checkInTime: true, checkOutTime: true, autoCheckedOut: true, remarks: true,
-        member: { select: { id: true, memberId: true, fullName: true, phone: true, currentPackage: { select: { name: true } } } },
+        member: { select: { id: true, memberId: true, fullName: true, phone: true, currentPackage: { select: { name: true } }, memberships: { orderBy: { expiryDate: "desc" as const }, take: 1, select: { package: { select: { name: true } } } } } },
         markedBy: { select: { name: true } },
       },
       orderBy: { checkInTime: "desc" },
@@ -30,6 +30,11 @@ export default async function AttendancePage() {
         id: true, memberId: true, fullName: true, phone: true,
         lastAttendanceDate: true, expiryDate: true,
         currentPackage: { select: { name: true } },
+        memberships: {
+          orderBy: { expiryDate: "desc" as const },
+          take: 1,
+          select: { package: { select: { name: true } } },
+        },
         trainer: { select: { fullName: true } },
       },
       orderBy: { fullName: "asc" },

@@ -14,6 +14,11 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
     include: {
       _count: { select: { attendances: true } },
       currentPackage: true,
+      memberships: {
+        orderBy: { expiryDate: "desc" as const },
+        take: 1,
+        select: { package: { select: { name: true } }, expiryDate: true },
+      },
       trainer: { select: { id: true, fullName: true, role: true, phone: true } },
       payments: {
         include: {

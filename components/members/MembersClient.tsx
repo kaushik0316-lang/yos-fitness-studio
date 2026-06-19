@@ -19,6 +19,7 @@ type Member = {
   id: string; memberId: string; fullName: string; phone: string;
   whatsapp: string | null; gender: string | null; status: MemberStatus;
   currentPackage: { name: string } | null;
+  memberships?: { package: { name: string } | null }[];
   expiryDate: Date | null; lastAttendanceDate: Date | null;
   joinDate: Date; trainer: { id: string; fullName: string } | null;
   _count: { attendances: number };
@@ -444,7 +445,7 @@ export function MembersClient({
                       <td className="px-4 py-4">
                         <p className="text-sm text-gray-400">
                           {(() => {
-                            const label = cleanPackageLabel(m.payments?.[0]?.categoryLabel) ?? cleanPackageLabel(m.currentPackage?.name);
+                            const label = cleanPackageLabel(m.payments?.[0]?.categoryLabel) ?? cleanPackageLabel(m.memberships?.[0]?.package?.name) ?? cleanPackageLabel(m.currentPackage?.name);
                             return label ?? <span className="text-gray-700">—</span>;
                           })()}
                         </p>
