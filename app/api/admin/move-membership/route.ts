@@ -38,6 +38,9 @@ export async function POST(req: NextRequest) {
     // Move memberships
     await tx.membership.updateMany({ where: { memberId: fromMemberId }, data: { memberId: toMemberId } });
 
+    // Move all payments
+    await tx.payment.updateMany({ where: { memberId: fromMemberId }, data: { memberId: toMemberId } });
+
     // Activate target member with source's membership data
     await tx.member.update({
       where: { id: toMemberId },

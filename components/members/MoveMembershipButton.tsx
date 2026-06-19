@@ -54,29 +54,14 @@ export function MoveMembershipButton({ member }: Props) {
     setSaving(true);
     setError("");
     try {
-      // Try to find latest payment — if found, use reassign-payment (moves receipt too)
-      const payRes = await fetch(`/api/members/${member.id}/latest-payment`);
-      const payData = await payRes.json();
-
-      if (payRes.ok && payData.paymentId) {
-        // Has a payment — move both payment and membership
-        const res = await fetch("/api/admin/reassign-payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentId: payData.paymentId, newMemberId: selected.id }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Failed");
-      } else {
-        // No payment (imported member) — move membership only
-        const res = await fetch("/api/admin/move-membership", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fromMemberId: member.id, toMemberId: selected.id }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Failed");
-      }
+      // move-membership moves ALL memberships + ALL payments in one transaction
+      const res = await fetch("/api/admin/move-membership", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromMemberId: member.id, toMemberId: selected.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
 
       setDone(true);
       setTimeout(() => { setOpen(false); router.refresh(); }, 1500);
