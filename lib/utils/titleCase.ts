@@ -2,9 +2,8 @@ const LOWER_WORDS = new Set(["and", "or", "of", "the", "in", "on", "at", "to", "
 
 export function toTitleCase(str: string | null | undefined): string {
   if (!str) return "";
-  // Ensure space after periods used as initial separators (e.g. "S.shifaya" → "S. shifaya")
-  const normalized = str.replace(/\.([^\s])/g, ". $1");
-  return normalized
+  return str
+    .replace(/\./g, " ")        // dots → spaces
     .toLowerCase()
     .split(" ")
     .map((word, i) => {
@@ -13,13 +12,14 @@ export function toTitleCase(str: string | null | undefined): string {
       return word.charAt(0).toUpperCase() + word.slice(1);
     })
     .join(" ")
+    .replace(/\s{2,}/g, " ")
     .trim();
 }
 
 /** Normalise a person's name before saving to DB. */
 export function normalizeName(name: string): string {
   return name
-    .replace(/\.([^\s])/g, ". $1")   // space after period: "S.Shifaya" → "S. Shifaya"
-    .replace(/\s{2,}/g, " ")          // collapse multiple spaces
+    .replace(/\./g, " ")         // dots → spaces
+    .replace(/\s{2,}/g, " ")     // collapse multiple spaces
     .trim();
 }
