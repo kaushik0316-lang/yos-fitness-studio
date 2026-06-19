@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
+import { normalizeName } from "@/lib/utils/titleCase";
 
 function excelDate(serial: unknown): Date | null {
   // Numeric Excel serial (most cells)
@@ -111,7 +112,7 @@ function findByName(
 
 /** Replace dots, slashes, commas etc. with a space and collapse whitespace */
 function cleanName(raw: string): string {
-  return raw.replace(/[.\-\/,;()_\\]/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
+  return normalizeName(raw.replace(/[-\/,;()_\\]/g, " ")).toUpperCase();
 }
 
 // ── Ghost member creation ─────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
+import { normalizeName } from "@/lib/utils/titleCase";
 
 // Excel serial date → JS Date (UTC)
 function excelDate(serial: unknown): Date | null {
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
     const row = rows[i] as any[];
 
     const appNo = row[0];
-    const name  = String(row[1] ?? "").trim().toUpperCase();
+    const name  = normalizeName(String(row[1] ?? "")).toUpperCase();
     const genderRaw = String(row[2] ?? "").trim().toUpperCase();
 
     if (!name || !appNo || name === "" || appNo === "") continue;
