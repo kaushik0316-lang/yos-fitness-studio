@@ -7,6 +7,14 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icons/icon-180.png",
+    shortcut: "/icons/icon-192.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -78,6 +86,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <head>
+        <link rel="icon" href="/icons/icon-192.png" type="image/png" />
         {/* Apple touch icons — required for iPhone "Add to Home Screen" */}
         <link rel="apple-touch-icon" href="/icons/icon-180.png" />
         <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
