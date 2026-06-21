@@ -26,7 +26,6 @@ export default async function StaffToolsPage() {
     expiringThisWeek,
     expiringToday,
     activeMembers,
-    expiredMembers,
     recentAttendance,
     inactiveMembersList,
     staffCheckedIn,
@@ -63,14 +62,6 @@ export default async function StaffToolsPage() {
     }),
     // Total active members
     prisma.member.count({ where: { status: "ACTIVE" } }),
-    // Lapsed in the last 90 days
-    prisma.member.count({
-      where: {
-        status: "EXPIRED",
-        memberId: { not: { startsWith: "IMP-" } },
-        expiryDate: { gte: subDays(today, 90) },
-      },
-    }),
     // 7-day attendance trend
     prisma.$queryRaw<{ date: Date; count: bigint }[]>`
       SELECT date, COUNT(*) as count
@@ -141,7 +132,6 @@ export default async function StaffToolsPage() {
           expiringThisWeek={expiringThisWeek}
           expiringToday={expiringToday}
           activeMembers={activeMembers}
-          expiredMembers={expiredMembers}
           expiringSoonList={expiringSoonList.map((m) => ({
             ...m,
             expiryDate: m.expiryDate ? m.expiryDate.toISOString() : null,

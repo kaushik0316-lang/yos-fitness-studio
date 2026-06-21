@@ -6,7 +6,7 @@ import QRCode from "react-qr-code";
 import {
   Receipt, Copy, Check, Printer, ExternalLink, QrCode,
   MessageCircle, Users, RotateCcw, CreditCard, AlertTriangle,
-  IndianRupee, CalendarX, UserX, ClipboardList, FileUp, ArrowRight,
+  IndianRupee, CalendarX, ClipboardList, FileUp, ArrowRight,
   LogOut, Clock,
 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -44,7 +44,6 @@ type Props = {
   expiringThisWeek: number;
   expiringToday: number;
   activeMembers: number;
-  expiredMembers: number;
   expiringSoonList: ExpiringSoon[];
   attendanceTrend: { date: string; count: number }[];
   inactiveMembers: InactiveMember[];
@@ -65,7 +64,7 @@ export function StaffToolsClient({
   monthPaymentTotal, monthPaymentCount,
   yosFitnessMonthly, yosStudioMonthly,
   expiringThisWeek, expiringToday,
-  activeMembers, expiredMembers, expiringSoonList,
+  activeMembers, expiringSoonList,
   attendanceTrend, inactiveMembers, staffCheckedIn,
 }: Props) {
   const [copied, setCopied] = useState(false);
@@ -123,15 +122,6 @@ export function StaffToolsClient({
       strip: expiringToday > 0 ? "#ef4444" : "#f59e0b",
       iconBg: expiringToday > 0 ? "rgba(239,68,68,0.12)" : "rgba(245,158,11,0.12)",
       iconColor: expiringToday > 0 ? "#f87171" : "#fbbf24",
-    },
-    {
-      label: "Lapsed Members",
-      value: expiredMembers.toString(),
-      sub: expiredMembers > 0 ? "expired in last 90 days" : "all up to date",
-      icon: UserX, href: "/members?status=EXPIRED",
-      strip: expiredMembers > 0 ? "#ef4444" : "#374151",
-      iconBg: expiredMembers > 0 ? "rgba(239,68,68,0.12)" : "rgba(255,255,255,0.06)",
-      iconColor: expiredMembers > 0 ? "#f87171" : "#6b7280",
     },
   ];
 
