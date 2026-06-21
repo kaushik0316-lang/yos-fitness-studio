@@ -78,7 +78,9 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
           case "expiry_desc":return [{ expiryDate: "desc" as const }];
           case "visit_asc":  return [{ lastAttendanceDate: "asc" as const }];
           case "visit_desc": return [{ lastAttendanceDate: "desc" as const }];
-          default:           return [{ createdAt: "desc" as const }];
+          default:           return statusParam === "EXPIRED"
+                               ? [{ expiryDate: "desc" as const }]
+                               : [{ createdAt: "desc" as const }];
         }
       })(),
       skip,
