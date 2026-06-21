@@ -40,7 +40,7 @@ export default async function RenewalsPage() {
     prisma.member.findMany({
       where: {
         status: MemberStatus.EXPIRED,
-        expiryDate: { gte: past30Days, lte: today },
+        expiryDate: { gte: past30Days, lte: endOfDay(today) },
       },
       select: {
         ...memberSelect,

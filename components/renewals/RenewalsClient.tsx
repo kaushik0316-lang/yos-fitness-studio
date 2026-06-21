@@ -37,7 +37,7 @@ type Props = {
 
 const TABS = [
   { key: "expired", label: "Expired",       shortLabel: "Expired",   accent: "#ef4444", badgeBg: "rgba(239,68,68,0.12)",   badgeColor: "#f87171" },
-  { key: "1day",    label: "Due Tomorrow",  shortLabel: "Tomorrow",  accent: "#f97316", badgeBg: "rgba(249,115,22,0.12)",  badgeColor: "#fb923c" },
+  { key: "1day",    label: "Due Today / Tomorrow",  shortLabel: "Tomorrow",  accent: "#f97316", badgeBg: "rgba(249,115,22,0.12)",  badgeColor: "#fb923c" },
   { key: "3days",   label: "In 3 Days",     shortLabel: "3 Days",    accent: "#f59e0b", badgeBg: "rgba(245,158,11,0.12)",  badgeColor: "#fbbf24" },
   { key: "7days",   label: "In 7 Days",     shortLabel: "7 Days",    accent: "#eab308", badgeBg: "rgba(234,179,8,0.12)",   badgeColor: "#facc15" },
   { key: "30days",  label: "This Month",    shortLabel: "Month",     accent: "#3b82f6", badgeBg: "rgba(59,130,246,0.12)",  badgeColor: "#60a5fa" },

@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { runInactiveMembersCheck } from "@/lib/automation/inactiveMembers";
 import { runRenewalReminders } from "@/lib/automation/renewalReminders";
+import { MemberStatus } from "@prisma/client";
+
+async function expireOverdueMembers() {
+  const now = new Date();
+  const result = await prisma.member.updateMany({
+    where: {
+      status: MemberStatus.ACTIVE,
+      expiryDate: { lt: now },
+    },
+    data: { status: MemberStatus.EXPIRED },
+  });
+  return { expired: result.count };
+}
 
 // Call this endpoint daily via a cron job (Vercel Cron, GitHub Actions, etc.)
 // Header: x-cron-secret: <your CRON_SECRET>
@@ -13,6 +26,13 @@ export async function POST(req: NextRequest) {
   }
 
   const results: Record<string, any> = {};
+
+  // 0. Expire overdue members first — must run before inactive check & reminders
+  try {
+    results.expireOverdue = await expireOverdueMembers();
+  } catch (e: any) {
+    results.expireOverdue = { error: e.message };
+  }
 
   // 1. Inactive member check
   try {
@@ -57,7 +77,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ success: true, results, timestamp: new Date().toISOString() });
 }
 
-// GET — called by Vercel cron scheduler daily
+// GET — called by Vercel cron scheduler daily at 03:30 UTC (09:00 IST)
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   const secret = req.headers.get("x-cron-secret");
@@ -65,8 +85,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Run full automation (same as POST)
   const results: Record<string, any> = {};
+
+  // 0. Expire overdue members first
+  try {
+    results.expireOverdue = await expireOverdueMembers();
+  } catch (e: any) {
+    results.expireOverdue = { error: e.message };
+  }
 
   try {
     const r = await runInactiveMembersCheck();
