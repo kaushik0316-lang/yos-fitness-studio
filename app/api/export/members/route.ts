@@ -18,62 +18,54 @@ function calcAge(dob: Date | null | undefined): number | string {
   return age;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user || !["ADMIN", "ACCOUNTANT"].includes(session.user.role)) {
     return new Response("Forbidden", { status: 403 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const statusFilter = searchParams.get("status");
+
+  const where: any = statusFilter ? { status: statusFilter } : {};
+
   const members = await prisma.member.findMany({
+    where,
     orderBy: { memberId: "asc" },
   });
 
-  const headers = [
-    "APPLICATION NUMBER",
-    "NAME",
-    "GENDER",
-    "DATE OF BIRTH",
-    "AGE",
-    "MARITAL STATUS",
-    "ADDRESS",
-    "PINCODE",
-    "EMAIL",
-    "MOBILE",
-    "PROFESSION",
-    "WEIGHT",
-    "HEIGHT",
-    "PURPOSE",
-    "DATE",
-    "STATUS",
-  ];
+  const today = new Date();
+  const dateStr = fmtDate(today).replace(/\//g, "-");
 
-  const rows = members.map((m) => [
-    m.memberId,
-    m.fullName,
-    m.gender ?? "",
-    fmtDate(m.dateOfBirth),
-    calcAge(m.dateOfBirth),
-    "", // marital status not stored
-    m.address ?? "",
-    "", // pincode not stored
-    m.email ?? "",
-    m.phone,
-    "", // profession not stored
-    m.weight != null ? Number(m.weight) : "",
-    m.height != null ? Number(m.height) : "",
-    m.intentionOfJoining ?? "",
-    fmtDate(m.joinDate),
-    m.status,
-  ]);
+  let headers: string[];
+  let rows: any[][];
+  let filename: string;
+
+  if (statusFilter === "ACTIVE") {
+    headers = ["MEMBER ID", "NAME", "PHONE"];
+    rows = members.map((m) => [m.memberId, m.fullName, m.phone]);
+    filename = `Active Members - ${dateStr}.xlsx`;
+  } else {
+    headers = [
+      "APPLICATION NUMBER", "NAME", "GENDER", "DATE OF BIRTH", "AGE",
+      "MARITAL STATUS", "ADDRESS", "PINCODE", "EMAIL", "MOBILE",
+      "PROFESSION", "WEIGHT", "HEIGHT", "PURPOSE", "DATE", "STATUS",
+    ];
+    rows = members.map((m) => [
+      m.memberId, m.fullName, m.gender ?? "",
+      fmtDate(m.dateOfBirth), calcAge(m.dateOfBirth),
+      "", m.address ?? "", "", m.email ?? "", m.phone, "",
+      m.weight != null ? Number(m.weight) : "",
+      m.height != null ? Number(m.height) : "",
+      m.intentionOfJoining ?? "", fmtDate(m.joinDate), m.status,
+    ]);
+    filename = `Member Master - ${dateStr}.xlsx`;
+  }
 
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
   XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-
-  const today = new Date();
-  const dateStr = fmtDate(today).replace(/\//g, "-");
-  const filename = `Member Master - ${dateStr}.xlsx`;
 
   return new Response(buf, {
     headers: {

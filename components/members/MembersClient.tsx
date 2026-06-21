@@ -238,7 +238,7 @@ export function MembersClient({
           <div className="flex items-center gap-2 ml-auto">
             {/* Full export */}
             <button
-              onClick={() => { window.location.href = "/api/export/members"; }}
+              onClick={() => { window.location.href = `/api/export/members${activeStatusFilter && activeStatusFilter !== "ALL" ? `?status=${activeStatusFilter}` : ""}`; }}
               className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 transition-colors hover:text-white"
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}
             >
