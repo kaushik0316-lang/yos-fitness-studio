@@ -8,40 +8,33 @@ import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import type { UserRole } from "@prisma/client";
 
-type RenewalMember = {
+type MemberInfo = {
   id: string; memberId: string; fullName: string; phone: string; whatsapp: string | null;
-  expiryDate: Date | null; lastAttendanceDate?: Date | null;
-  currentPackage: { name: string } | null; trainer?: { fullName: string } | null;
-  memberships?: { package: { name: string } | null; expiryDate: Date | string | null }[];
+  lastAttendanceDate?: Date | null; status: string;
   renewalFollowUps?: any[];
   payments?: { amount: number | string; discount: number | string; categoryLabel?: string | null }[];
 };
 
-function expiringPackageName(m: RenewalMember): string | null {
-  // Match the membership whose expiryDate equals the member's expiryDate (the one actually expiring)
-  if (m.expiryDate && m.memberships?.length) {
-    const memberExpiry = new Date(m.expiryDate).toDateString();
-    const match = m.memberships.find(
-      (ms) => ms.expiryDate && new Date(ms.expiryDate).toDateString() === memberExpiry
-    );
-    if (match?.package?.name) return match.package.name;
-  }
-  return m.memberships?.[0]?.package?.name ?? m.currentPackage?.name ?? m.payments?.[0]?.categoryLabel ?? null;
-}
+type RenewalMembership = {
+  id: string;
+  expiryDate: Date | null;
+  package: { name: string } | null;
+  member: MemberInfo;
+};
 
 type Props = {
-  expiredMembers: RenewalMember[]; expiring1: RenewalMember[]; expiring3: RenewalMember[];
-  expiring7: RenewalMember[]; expiring30: RenewalMember[]; renewedToday: any[]; packages: any[];
+  expiredMemberships: RenewalMembership[]; expiring1: RenewalMembership[]; expiring3: RenewalMembership[];
+  expiring7: RenewalMembership[]; expiring30: RenewalMembership[]; renewedToday: any[]; packages: any[];
   userRole: UserRole; userId: string;
 };
 
 const TABS = [
-  { key: "expired", label: "Expired",       shortLabel: "Expired",   accent: "#ef4444", badgeBg: "rgba(239,68,68,0.12)",   badgeColor: "#f87171" },
-  { key: "1day",    label: "Due Today / Tomorrow",  shortLabel: "Tomorrow",  accent: "#f97316", badgeBg: "rgba(249,115,22,0.12)",  badgeColor: "#fb923c" },
-  { key: "3days",   label: "In 3 Days",     shortLabel: "3 Days",    accent: "#f59e0b", badgeBg: "rgba(245,158,11,0.12)",  badgeColor: "#fbbf24" },
-  { key: "7days",   label: "In 7 Days",     shortLabel: "7 Days",    accent: "#eab308", badgeBg: "rgba(234,179,8,0.12)",   badgeColor: "#facc15" },
-  { key: "30days",  label: "This Month",    shortLabel: "Month",     accent: "#3b82f6", badgeBg: "rgba(59,130,246,0.12)",  badgeColor: "#60a5fa" },
-  { key: "renewed", label: "Renewed Today", shortLabel: "Renewed",   accent: "#10b981", badgeBg: "rgba(16,185,129,0.12)",  badgeColor: "#34d399" },
+  { key: "expired", label: "Expired",             shortLabel: "Expired",   accent: "#ef4444", badgeBg: "rgba(239,68,68,0.12)",   badgeColor: "#f87171" },
+  { key: "1day",    label: "Due Today / Tomorrow", shortLabel: "Tomorrow",  accent: "#f97316", badgeBg: "rgba(249,115,22,0.12)",  badgeColor: "#fb923c" },
+  { key: "3days",   label: "In 3 Days",            shortLabel: "3 Days",    accent: "#f59e0b", badgeBg: "rgba(245,158,11,0.12)",  badgeColor: "#fbbf24" },
+  { key: "7days",   label: "In 7 Days",            shortLabel: "7 Days",    accent: "#eab308", badgeBg: "rgba(234,179,8,0.12)",   badgeColor: "#facc15" },
+  { key: "30days",  label: "This Month",           shortLabel: "Month",     accent: "#3b82f6", badgeBg: "rgba(59,130,246,0.12)",  badgeColor: "#60a5fa" },
+  { key: "renewed", label: "Renewed Today",        shortLabel: "Renewed",   accent: "#10b981", badgeBg: "rgba(16,185,129,0.12)",  badgeColor: "#34d399" },
 ];
 
 const PAGE_SIZE = 50;
@@ -56,54 +49,56 @@ function getInitials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 }
 
-function getNetAmount(m: RenewalMember) {
-  if (!m.payments?.length) return null;
-  const p = m.payments[0];
-  const amt = Number(p.amount);
-  const disc = Number(p.discount);
-  return amt - disc;
+function getNetAmount(ms: RenewalMembership) {
+  const p = ms.member.payments?.[0];
+  if (!p) return null;
+  return Number(p.amount) - Number(p.discount);
 }
 
-function buildWhatsAppMessage(members: RenewalMember[], tabLabel: string): string {
+function packageName(ms: RenewalMembership): string | null {
+  return ms.package?.name ?? ms.member.payments?.[0]?.categoryLabel ?? null;
+}
+
+function buildWhatsAppMessage(memberships: RenewalMembership[], tabLabel: string): string {
   const date = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
   let msg = `📋 *Follow-up List — ${tabLabel}*\n🗓️ ${date}\n\n`;
-  members.forEach((m, i) => {
-    const net = getNetAmount(m);
-    msg += `*${i + 1}. ${toTitleCase(m.fullName)}*\n`;
-    msg += `📞 ${m.phone}\n`;
-    msg += `📦 ${expiringPackageName(m) ?? "—"}\n`;
-    msg += `🗓️ Renewal: ${m.expiryDate ? formatDate(m.expiryDate) : "—"}\n`;
+  memberships.forEach((ms, i) => {
+    const net = getNetAmount(ms);
+    msg += `*${i + 1}. ${toTitleCase(ms.member.fullName)}*\n`;
+    msg += `📞 ${ms.member.phone}\n`;
+    msg += `📦 ${packageName(ms) ?? "—"}\n`;
+    msg += `🗓️ Renewal: ${ms.expiryDate ? formatDate(ms.expiryDate) : "—"}\n`;
     msg += `💰 Amount: ${net != null ? `₹${net.toLocaleString("en-IN")}` : "—"}\n\n`;
   });
   return msg.trim();
 }
 
-export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7, expiring30, renewedToday, packages, userRole, userId }: Props) {
+export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expiring7, expiring30, renewedToday, packages, userRole, userId }: Props) {
   const [activeTab, setActiveTab] = useState("expired");
-  const [renewFor, setRenewFor] = useState<RenewalMember | null>(null);
+  const [renewFor, setRenewFor] = useState<{ id: string; memberId: string; fullName: string } | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const counts: Record<string, number> = {
-    expired: expiredMembers.length, "1day": expiring1.length,
+    expired: expiredMemberships.length, "1day": expiring1.length,
     "3days": expiring3.length, "7days": expiring7.length,
     "30days": expiring30.length, renewed: renewedToday.length,
   };
 
-  const rawList: RenewalMember[] =
-    activeTab === "expired" ? expiredMembers :
-    activeTab === "1day" ? expiring1 :
-    activeTab === "3days" ? expiring3 :
-    activeTab === "7days" ? expiring7 :
-    activeTab === "30days" ? expiring30 : [];
+  const rawList: RenewalMembership[] =
+    activeTab === "expired" ? expiredMemberships :
+    activeTab === "1day"    ? expiring1 :
+    activeTab === "3days"   ? expiring3 :
+    activeTab === "7days"   ? expiring7 :
+    activeTab === "30days"  ? expiring30 : [];
 
   const q = search.trim().toLowerCase();
   const filteredList = q
-    ? rawList.filter((m) =>
-        m.fullName.toLowerCase().includes(q) ||
-        m.memberId.toLowerCase().includes(q) ||
-        m.phone.includes(q)
+    ? rawList.filter((ms) =>
+        ms.member.fullName.toLowerCase().includes(q) ||
+        ms.member.memberId.toLowerCase().includes(q) ||
+        ms.member.phone.includes(q)
       )
     : rawList;
 
@@ -121,7 +116,7 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
   }
 
   function selectAll() {
-    setSelected(new Set(filteredList.map((m) => m.id)));
+    setSelected(new Set(filteredList.map((ms) => ms.id)));
   }
 
   function clearSelection() {
@@ -129,8 +124,8 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
   }
 
   function shareOnWhatsApp() {
-    const selectedMembers = filteredList.filter((m) => selected.has(m.id));
-    const msg = buildWhatsAppMessage(selectedMembers, activeTabConfig.label);
+    const selectedMemberships = filteredList.filter((ms) => selected.has(ms.id));
+    const msg = buildWhatsAppMessage(selectedMemberships, activeTabConfig.label);
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   }
 
@@ -218,23 +213,24 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
             {currentList.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
                 <RotateCcw className="h-10 w-10 text-gray-700" />
-                <p className="text-sm text-gray-500 font-medium">No members in this category</p>
+                <p className="text-sm text-gray-500 font-medium">No memberships in this category</p>
               </div>
             ) : (
-              currentList.map((m, idx) => {
-                const daysLeft    = m.expiryDate ? daysUntil(m.expiryDate) : null;
+              currentList.map((ms, idx) => {
+                const daysLeft    = ms.expiryDate ? daysUntil(ms.expiryDate) : null;
                 const daysExpired = daysLeft !== null && daysLeft < 0 ? Math.abs(daysLeft) : null;
-                const lastVisit   = m.lastAttendanceDate ? daysAgo(m.lastAttendanceDate) : null;
-                const waNumber    = m.whatsapp || m.phone;
+                const lastVisit   = ms.member.lastAttendanceDate ? daysAgo(ms.member.lastAttendanceDate) : null;
+                const waNumber    = ms.member.whatsapp || ms.member.phone;
                 const isExpired   = activeTab === "expired";
-                const isSelected  = selected.has(m.id);
-                const net         = getNetAmount(m);
+                const isSelected  = selected.has(ms.id);
+                const net         = getNetAmount(ms);
+                const pkgName     = packageName(ms);
 
                 return (
-                  <div key={m.id}
+                  <div key={ms.id}
                     className="px-5 py-4 hover:bg-white/[0.02] transition-colors cursor-pointer"
                     style={{ background: isSelected ? "rgba(59,130,246,0.06)" : idx % 2 === 0 ? "#161616" : "#181818" }}
-                    onClick={() => toggleSelect(m.id)}>
+                    onClick={() => toggleSelect(ms.id)}>
 
                     <div className="flex items-start gap-3">
                       {/* Checkbox */}
@@ -247,19 +243,19 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
                       {/* Avatar */}
                       <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-extrabold flex-shrink-0 mt-0.5"
                         style={{ background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
-                        {getInitials(m.fullName)}
+                        {getInitials(ms.member.fullName)}
                       </div>
 
                       {/* Main content */}
                       <div className="flex-1 min-w-0">
                         {/* Row 1: name + badges */}
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Link href={`/members/${m.id}`}
+                          <Link href={`/members/${ms.member.id}`}
                             onClick={(e) => e.stopPropagation()}
                             className="font-bold text-white hover:text-orange-400 transition-colors text-sm">
-                            {toTitleCase(m.fullName)}
+                            {toTitleCase(ms.member.fullName)}
                           </Link>
-                          <span className="text-[10px] font-bold text-gray-600 font-mono">{m.memberId}</span>
+                          <span className="text-[10px] font-bold text-gray-600 font-mono">{ms.member.memberId}</span>
                           {lastVisit !== null && lastVisit >= 4 && (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5"
                               style={{ background: "rgba(249,115,22,0.12)", color: "#fb923c" }}>
@@ -270,8 +266,8 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
 
                         {/* Row 2: package + expiry + amount */}
                         <div className="flex items-center gap-3 mt-1 flex-wrap">
-                          {expiringPackageName(m) && (
-                            <span className="text-xs text-gray-500">{expiringPackageName(m)}</span>
+                          {pkgName && (
+                            <span className="text-xs text-gray-500">{pkgName}</span>
                           )}
                           {net != null && (
                             <span className="text-xs font-semibold text-gray-500">₹{net.toLocaleString("en-IN")}</span>
@@ -280,7 +276,7 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
                           <span className="flex items-center gap-1 text-xs font-semibold"
                             style={{ color: isExpired ? "#f87171" : "#fb923c" }}>
                             <Clock className="h-3 w-3" />
-                            {m.expiryDate ? formatDate(m.expiryDate) : "—"}
+                            {ms.expiryDate ? formatDate(ms.expiryDate) : "—"}
                             {isExpired && daysExpired !== null && (
                               <span className="text-red-500/60 font-normal ml-0.5">({daysExpired}d ago)</span>
                             )}
@@ -289,12 +285,12 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
 
                         {/* Row 3: phone + action buttons */}
                         <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                          <a href={`tel:${m.phone}`}
+                          <a href={`tel:${ms.member.phone}`}
                             onClick={(e) => e.stopPropagation()}
                             className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white transition-colors px-2.5 py-1.5 rounded-lg"
                             style={{ background: "rgba(255,255,255,0.06)" }}>
                             <Phone className="h-3 w-3" />
-                            {m.phone}
+                            {ms.member.phone}
                           </a>
                           <a href={waLink(waNumber)} target="_blank" rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
@@ -304,7 +300,7 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
                             WhatsApp
                           </a>
                           {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
-                            <button onClick={(e) => { e.stopPropagation(); setRenewFor(m); }}
+                            <button onClick={(e) => { e.stopPropagation(); setRenewFor({ id: ms.member.id, memberId: ms.member.memberId, fullName: ms.member.fullName }); }}
                               className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-xs font-bold transition-all ml-auto"
                               style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}>
                               <RotateCcw className="h-3 w-3" /> Renew
@@ -360,7 +356,7 @@ export function RenewalsClient({ expiredMembers, expiring1, expiring3, expiring7
       {renewFor && (
         <RenewMembershipDialog
           open={!!renewFor} onClose={() => setRenewFor(null)}
-          member={{ id: renewFor.id, memberId: renewFor.memberId, fullName: renewFor.fullName }}
+          member={renewFor}
           packages={packages} userId={userId}
         />
       )}

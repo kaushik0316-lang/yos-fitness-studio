@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { RenewalsClient } from "@/components/renewals/RenewalsClient";
-import { MemberStatus } from "@prisma/client";
 import { addDays, startOfDay, endOfDay } from "date-fns";
 
 export const dynamic = "force-dynamic";
@@ -19,14 +18,8 @@ export default async function RenewalsPage() {
 
   const memberSelect = {
     id: true, memberId: true, fullName: true, phone: true, whatsapp: true,
-    expiryDate: true, lastAttendanceDate: true,
-    currentPackage: { select: { name: true } },
-    // Fetch the membership whose expiryDate matches the member's expiryDate
-    memberships: {
-      orderBy: { expiryDate: "asc" as const },
-      take: 5,
-      select: { package: { select: { name: true } }, expiryDate: true },
-    },
+    lastAttendanceDate: true, status: true,
+    renewalFollowUps: { where: { isCompleted: false }, take: 1 },
     payments: {
       where: { isVoided: false },
       orderBy: { date: "desc" as const },
@@ -35,40 +28,42 @@ export default async function RenewalsPage() {
     },
   };
 
-  const [expiredMembers, expiring1, expiring3, expiring7, expiring30, renewedToday, packages] = await Promise.all([
-    // Expired in the last 30 days — include ACTIVE members whose date has passed
-    // (catches the window between midnight and the 9AM cron that flips status)
-    prisma.member.findMany({
-      where: {
-        status: { in: [MemberStatus.EXPIRED, MemberStatus.ACTIVE] },
-        expiryDate: { gte: past30Days, lte: endOfDay(today) },
-      },
-      select: {
-        ...memberSelect,
-        trainer: { select: { fullName: true } },
-        renewalFollowUps: { where: { isCompleted: false }, take: 1 },
-      },
+  const membershipSelect = {
+    id: true, expiryDate: true, startDate: true,
+    package: { select: { name: true } },
+    member: { select: memberSelect },
+  };
+
+  const [expiredMemberships, expiring1, expiring3, expiring7, expiring30, renewedToday, packages] = await Promise.all([
+    // Expired in the last 30 days — one row per membership
+    prisma.membership.findMany({
+      where: { expiryDate: { gte: past30Days, lte: endOfDay(today) } },
+      select: membershipSelect,
       orderBy: { expiryDate: "desc" },
     }),
-    // Expiring tomorrow
-    prisma.member.findMany({
-      where: { status: MemberStatus.ACTIVE, expiryDate: { gte: today, lte: in1Day } },
-      select: memberSelect, orderBy: { expiryDate: "desc" },
+    // Due today / tomorrow
+    prisma.membership.findMany({
+      where: { expiryDate: { gte: today, lte: in1Day } },
+      select: membershipSelect,
+      orderBy: { expiryDate: "desc" },
     }),
     // Expiring in 3 days
-    prisma.member.findMany({
-      where: { status: MemberStatus.ACTIVE, expiryDate: { gt: in1Day, lte: in3Days } },
-      select: memberSelect, orderBy: { expiryDate: "desc" },
+    prisma.membership.findMany({
+      where: { expiryDate: { gt: in1Day, lte: in3Days } },
+      select: membershipSelect,
+      orderBy: { expiryDate: "desc" },
     }),
     // Expiring in 7 days
-    prisma.member.findMany({
-      where: { status: MemberStatus.ACTIVE, expiryDate: { gt: in3Days, lte: in7Days } },
-      select: memberSelect, orderBy: { expiryDate: "desc" },
+    prisma.membership.findMany({
+      where: { expiryDate: { gt: in3Days, lte: in7Days } },
+      select: membershipSelect,
+      orderBy: { expiryDate: "desc" },
     }),
-    // Expiring in next 30 days (full range — includes 1/3/7 day groups)
-    prisma.member.findMany({
-      where: { status: MemberStatus.ACTIVE, expiryDate: { gte: today, lte: in30Days } },
-      select: memberSelect, orderBy: { expiryDate: "asc" }, // asc = soonest first
+    // Expiring this month
+    prisma.membership.findMany({
+      where: { expiryDate: { gte: today, lte: in30Days } },
+      select: membershipSelect,
+      orderBy: { expiryDate: "asc" },
     }),
     prisma.membership.findMany({
       where: { createdAt: { gte: startOfDay(today), lte: endOfDay(today) } },
@@ -86,7 +81,7 @@ export default async function RenewalsPage() {
       <Header title="Renewals" subtitle="Memberships expiring soon" />
       <div className="flex-1 overflow-y-auto p-6">
         <RenewalsClient
-          expiredMembers={expiredMembers as any}
+          expiredMemberships={expiredMemberships as any}
           expiring1={expiring1 as any}
           expiring3={expiring3 as any}
           expiring7={expiring7 as any}
