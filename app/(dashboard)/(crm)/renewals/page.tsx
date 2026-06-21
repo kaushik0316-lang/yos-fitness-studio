@@ -70,7 +70,7 @@ export default async function RenewalsPage() {
     };
   };
 
-  const rows: MRow[] = allMembers.flatMap((m) => {
+  const rows: MRow[] = (allMembers as any[]).flatMap((m) => {
     const memberInfo = {
       id: m.id, memberId: m.memberId, fullName: m.fullName,
       phone: m.phone, whatsapp: m.whatsapp,
@@ -78,18 +78,19 @@ export default async function RenewalsPage() {
       renewalFollowUps: m.renewalFollowUps, payments: m.payments,
     };
     if (m.memberships.length > 0) {
-      return m.memberships.map((ms) => ({
+      return m.memberships.map((ms: any) => ({
         id: ms.id,
         expiryDate: ms.expiryDate,
         package: ms.package,
         member: memberInfo,
       }));
     }
-    // No membership records — treat member.expiryDate as the single row
+    // No membership records — use null so client falls through to payments[0].categoryLabel
+    // (currentPackage is stale and often wrong for members who switched packages)
     return [{
       id: m.id,
       expiryDate: m.expiryDate,
-      package: m.currentPackage,
+      package: null,
       member: memberInfo,
     }];
   });
