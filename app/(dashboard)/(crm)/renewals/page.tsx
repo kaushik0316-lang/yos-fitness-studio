@@ -36,10 +36,11 @@ export default async function RenewalsPage() {
   };
 
   const [expiredMembers, expiring1, expiring3, expiring7, expiring30, renewedToday, packages] = await Promise.all([
-    // Expired in the last 30 days only
+    // Expired in the last 30 days — include ACTIVE members whose date has passed
+    // (catches the window between midnight and the 9AM cron that flips status)
     prisma.member.findMany({
       where: {
-        status: MemberStatus.EXPIRED,
+        status: { in: [MemberStatus.EXPIRED, MemberStatus.ACTIVE] },
         expiryDate: { gte: past30Days, lte: endOfDay(today) },
       },
       select: {
