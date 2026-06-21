@@ -12,7 +12,7 @@ type MemberInfo = {
   id: string; memberId: string; fullName: string; phone: string; whatsapp: string | null;
   lastAttendanceDate?: Date | null; status: string;
   renewalFollowUps?: any[];
-  payments?: { amount: number | string; discount: number | string; categoryLabel?: string | null }[];
+  lastPayment?: { amount: number | string; discount: number | string; categoryLabel?: string | null } | null;
 };
 
 type RenewalMembership = {
@@ -50,13 +50,13 @@ function getInitials(name: string) {
 }
 
 function getNetAmount(ms: RenewalMembership) {
-  const p = ms.member.payments?.[0];
+  const p = ms.member.lastPayment;
   if (!p) return null;
   return Number(p.amount) - Number(p.discount);
 }
 
 function packageName(ms: RenewalMembership): string | null {
-  return ms.package?.name ?? ms.member.payments?.[0]?.categoryLabel ?? null;
+  return ms.package?.name ?? ms.member.lastPayment?.categoryLabel ?? null;
 }
 
 function buildWhatsAppMessage(memberships: RenewalMembership[], tabLabel: string): string {

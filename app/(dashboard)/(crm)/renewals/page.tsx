@@ -18,8 +18,6 @@ export default async function RenewalsPage() {
   const past30Days = startOfDay(addDays(today, -30));
   const endOfToday = endOfDay(today);
 
-  // Fetch all members whose expiryDate is within the window we care about.
-  // Include their memberships so we can expand into per-membership rows.
   const [allMembers, renewedToday, packages] = await Promise.all([
     prisma.member.findMany({
       where: {
@@ -29,20 +27,24 @@ export default async function RenewalsPage() {
       select: {
         id: true, memberId: true, fullName: true, phone: true, whatsapp: true,
         expiryDate: true, lastAttendanceDate: true, status: true,
-        currentPackage: { select: { name: true } },
-        // Fetch memberships in the same window so we can expand multi-package members
+        // Membership records in the window (most accurate — explicitly recorded expiry)
         memberships: {
           where: { expiryDate: { gte: past30Days, lte: in30Days } },
           select: { id: true, expiryDate: true, package: { select: { name: true } } },
           orderBy: { expiryDate: "asc" as const },
         },
-        renewalFollowUps: { where: { isCompleted: false }, take: 1 },
+        // Payments with expiryDate — used as fallback for per-package rows
         payments: {
-          where: { isVoided: false },
+          where: { isVoided: false, expiryDate: { not: null } },
           orderBy: { date: "desc" as const },
-          take: 1,
-          select: { amount: true, discount: true, categoryLabel: true },
+          take: 20,
+          select: {
+            amount: true, discount: true, categoryLabel: true,
+            packageId: true, date: true, expiryDate: true,
+            package: { select: { name: true } },
+          },
         },
+        renewalFollowUps: { where: { isCompleted: false }, take: 1 },
       },
       orderBy: { expiryDate: "asc" },
     }),
@@ -57,8 +59,6 @@ export default async function RenewalsPage() {
     prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
   ]);
 
-  // Expand each member into one row per membership.
-  // If the member has no membership records in the window, fall back to member.expiryDate.
   type MRow = {
     id: string;
     expiryDate: Date | null;
@@ -66,32 +66,65 @@ export default async function RenewalsPage() {
     member: {
       id: string; memberId: string; fullName: string; phone: string; whatsapp: string | null;
       lastAttendanceDate: Date | null; status: string;
-      renewalFollowUps: any[]; payments: any[];
+      renewalFollowUps: any[];
+      // last payment for the amount display
+      lastPayment: { amount: any; discount: any; categoryLabel?: string | null } | null;
     };
   };
 
   const rows: MRow[] = (allMembers as any[]).flatMap((m) => {
-    const memberInfo = {
+    const memberBase = {
       id: m.id, memberId: m.memberId, fullName: m.fullName,
       phone: m.phone, whatsapp: m.whatsapp,
       lastAttendanceDate: m.lastAttendanceDate, status: m.status,
-      renewalFollowUps: m.renewalFollowUps, payments: m.payments,
+      renewalFollowUps: m.renewalFollowUps,
     };
+
+    // 1. Use Membership records if they exist in the window (most accurate)
     if (m.memberships.length > 0) {
-      return m.memberships.map((ms: any) => ({
+      // Still provide amount from last payment
+      const lastPayment = m.payments[0] ?? null;
+      return (m.memberships as any[]).map((ms: any) => ({
         id: ms.id,
         expiryDate: ms.expiryDate,
         package: ms.package,
-        member: memberInfo,
+        member: { ...memberBase, lastPayment },
       }));
     }
-    // No membership records — use null so client falls through to payments[0].categoryLabel
-    // (currentPackage is stale and often wrong for members who switched packages)
+
+    // 2. Derive per-package rows from payments (each payment has its own expiryDate)
+    // Group by packageId (fall back to categoryLabel) — take latest payment per package
+    const byPackage = new Map<string, any>();
+    for (const pmt of m.payments as any[]) {
+      if (!pmt.expiryDate) continue;
+      const key = pmt.packageId ?? pmt.categoryLabel ?? "unknown";
+      const existing = byPackage.get(key);
+      if (!existing || new Date(pmt.date) > new Date(existing.date)) {
+        byPackage.set(key, pmt);
+      }
+    }
+
+    const paymentRows: MRow[] = Array.from(byPackage.values())
+      .filter((pmt) => {
+        const exp = new Date(pmt.expiryDate);
+        return exp >= past30Days && exp <= in30Days;
+      })
+      .map((pmt) => ({
+        id: `${m.id}-${pmt.packageId ?? pmt.categoryLabel ?? "pay"}`,
+        expiryDate: new Date(pmt.expiryDate),
+        package: pmt.package ?? (pmt.categoryLabel ? { name: pmt.categoryLabel } : null),
+        member: { ...memberBase, lastPayment: pmt },
+      }));
+
+    if (paymentRows.length > 0) return paymentRows;
+
+    // 3. Final fallback — member has expiryDate but no usable payment expiry data
+    const lastPayment = m.payments[0] ?? null;
     return [{
       id: m.id,
       expiryDate: m.expiryDate,
       package: null,
-      member: memberInfo,
+      member: { ...memberBase, lastPayment },
     }];
   });
 
