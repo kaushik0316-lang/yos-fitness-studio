@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { RenewalsClient } from "@/components/renewals/RenewalsClient";
+import { MemberStatus } from "@prisma/client";
 import { addDays, startOfDay, endOfDay } from "date-fns";
 
 export const dynamic = "force-dynamic";
@@ -15,54 +16,34 @@ export default async function RenewalsPage() {
   const in7Days    = endOfDay(addDays(today, 7));
   const in30Days   = endOfDay(addDays(today, 30));
   const past30Days = startOfDay(addDays(today, -30));
+  const endOfToday = endOfDay(today);
 
-  const memberSelect = {
-    id: true, memberId: true, fullName: true, phone: true, whatsapp: true,
-    lastAttendanceDate: true, status: true,
-    renewalFollowUps: { where: { isCompleted: false }, take: 1 },
-    payments: {
-      where: { isVoided: false },
-      orderBy: { date: "desc" as const },
-      take: 1,
-      select: { amount: true, discount: true, categoryLabel: true },
-    },
-  };
-
-  const membershipSelect = {
-    id: true, expiryDate: true, startDate: true,
-    package: { select: { name: true } },
-    member: { select: memberSelect },
-  };
-
-  const [expiredMemberships, expiring1, expiring3, expiring7, expiring30, renewedToday, packages] = await Promise.all([
-    // Expired in the last 30 days — one row per membership
-    prisma.membership.findMany({
-      where: { expiryDate: { gte: past30Days, lte: endOfDay(today) } },
-      select: membershipSelect,
-      orderBy: { expiryDate: "desc" },
-    }),
-    // Due today / tomorrow
-    prisma.membership.findMany({
-      where: { expiryDate: { gte: today, lte: in1Day } },
-      select: membershipSelect,
-      orderBy: { expiryDate: "desc" },
-    }),
-    // Expiring in 3 days
-    prisma.membership.findMany({
-      where: { expiryDate: { gt: in1Day, lte: in3Days } },
-      select: membershipSelect,
-      orderBy: { expiryDate: "desc" },
-    }),
-    // Expiring in 7 days
-    prisma.membership.findMany({
-      where: { expiryDate: { gt: in3Days, lte: in7Days } },
-      select: membershipSelect,
-      orderBy: { expiryDate: "desc" },
-    }),
-    // Expiring this month
-    prisma.membership.findMany({
-      where: { expiryDate: { gte: today, lte: in30Days } },
-      select: membershipSelect,
+  // Fetch all members whose expiryDate is within the window we care about.
+  // Include their memberships so we can expand into per-membership rows.
+  const [allMembers, renewedToday, packages] = await Promise.all([
+    prisma.member.findMany({
+      where: {
+        status: { in: [MemberStatus.EXPIRED, MemberStatus.ACTIVE] },
+        expiryDate: { gte: past30Days, lte: in30Days },
+      },
+      select: {
+        id: true, memberId: true, fullName: true, phone: true, whatsapp: true,
+        expiryDate: true, lastAttendanceDate: true, status: true,
+        currentPackage: { select: { name: true } },
+        // Fetch memberships in the same window so we can expand multi-package members
+        memberships: {
+          where: { expiryDate: { gte: past30Days, lte: in30Days } },
+          select: { id: true, expiryDate: true, package: { select: { name: true } } },
+          orderBy: { expiryDate: "asc" as const },
+        },
+        renewalFollowUps: { where: { isCompleted: false }, take: 1 },
+        payments: {
+          where: { isVoided: false },
+          orderBy: { date: "desc" as const },
+          take: 1,
+          select: { amount: true, discount: true, categoryLabel: true },
+        },
+      },
       orderBy: { expiryDate: "asc" },
     }),
     prisma.membership.findMany({
@@ -75,6 +56,67 @@ export default async function RenewalsPage() {
     }),
     prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
   ]);
+
+  // Expand each member into one row per membership.
+  // If the member has no membership records in the window, fall back to member.expiryDate.
+  type MRow = {
+    id: string;
+    expiryDate: Date | null;
+    package: { name: string } | null;
+    member: {
+      id: string; memberId: string; fullName: string; phone: string; whatsapp: string | null;
+      lastAttendanceDate: Date | null; status: string;
+      renewalFollowUps: any[]; payments: any[];
+    };
+  };
+
+  const rows: MRow[] = allMembers.flatMap((m) => {
+    const memberInfo = {
+      id: m.id, memberId: m.memberId, fullName: m.fullName,
+      phone: m.phone, whatsapp: m.whatsapp,
+      lastAttendanceDate: m.lastAttendanceDate, status: m.status,
+      renewalFollowUps: m.renewalFollowUps, payments: m.payments,
+    };
+    if (m.memberships.length > 0) {
+      return m.memberships.map((ms) => ({
+        id: ms.id,
+        expiryDate: ms.expiryDate,
+        package: ms.package,
+        member: memberInfo,
+      }));
+    }
+    // No membership records — treat member.expiryDate as the single row
+    return [{
+      id: m.id,
+      expiryDate: m.expiryDate,
+      package: m.currentPackage,
+      member: memberInfo,
+    }];
+  });
+
+  function inRange(r: MRow, from: Date, to: Date) {
+    return r.expiryDate != null && r.expiryDate >= from && r.expiryDate <= to;
+  }
+
+  const expiredMemberships = rows
+    .filter((r) => inRange(r, past30Days, endOfToday))
+    .sort((a, b) => new Date(b.expiryDate!).getTime() - new Date(a.expiryDate!).getTime());
+
+  const expiring1 = rows
+    .filter((r) => inRange(r, today, in1Day))
+    .sort((a, b) => new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime());
+
+  const expiring3 = rows
+    .filter((r) => r.expiryDate != null && r.expiryDate > in1Day && r.expiryDate <= in3Days)
+    .sort((a, b) => new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime());
+
+  const expiring7 = rows
+    .filter((r) => r.expiryDate != null && r.expiryDate > in3Days && r.expiryDate <= in7Days)
+    .sort((a, b) => new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime());
+
+  const expiring30 = rows
+    .filter((r) => inRange(r, today, in30Days))
+    .sort((a, b) => new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime());
 
   return (
     <>
