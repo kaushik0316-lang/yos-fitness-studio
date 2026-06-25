@@ -94,6 +94,23 @@ enum MessageChannel {
   MANUAL
 }
 
+enum EnquirySource {
+  WALK_IN
+  INSTAGRAM
+  REFERRAL
+  PHONE
+  WEBSITE
+  OTHER
+}
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  FOLLOW_UP
+  CONVERTED
+  LOST
+}
+
 enum MessageStatus {
   QUEUED
   SENT
@@ -134,6 +151,7 @@ model User {
   collectedPayments Payment[]
   voidedPayments    Payment[]  @relation("VoidedPayments")
   auditLogs         AuditLog[]
+  enquiriesCreated  Enquiry[]
 
   @@map("users")
 }
@@ -373,6 +391,7 @@ model Employee {
   attendances     EmployeeAttendance[]
   payrollRecords  PayrollRecord[]
   salesMade       Payment[]            @relation("SoldByEmployee")
+  enquiries       Enquiry[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -558,4 +577,33 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([userId])
   @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENQUIRIES
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Enquiry {
+  id           String        @id @default(cuid())
+  name         String
+  phone        String
+  interest     String?
+  source       EnquirySource @default(WALK_IN)
+  status       EnquiryStatus @default(NEW)
+
+  assignedToId String?
+  assignedTo   Employee?     @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  followUpDate DateTime?
+  notes        String?
+
+  createdById  String
+  createdBy    User          @relation(fields: [createdById], references: [id])
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([status])
+  @@index([assignedToId])
+  @@map("enquiries")
 }
