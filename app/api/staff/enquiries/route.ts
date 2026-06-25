@@ -31,14 +31,18 @@ export async function POST(req: NextRequest) {
   const employee = await verifyPin(body.pin ?? "");
   if (!employee) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Need createdBy userId from employee
+  // Prefer employee's linked CRM user; fall back to any admin
   const emp = await prisma.employee.findUnique({
     where: { id: employee.id },
     select: { userId: true },
   });
 
-  if (!emp?.userId) {
-    return NextResponse.json({ error: "No CRM user linked to this employee" }, { status: 400 });
+  const createdById = emp?.userId ?? (
+    await prisma.user.findFirst({ where: { role: "ADMIN", isActive: true }, select: { id: true } })
+  )?.id;
+
+  if (!createdById) {
+    return NextResponse.json({ error: "No CRM user available to create enquiry" }, { status: 500 });
   }
 
   const enquiry = await prisma.enquiry.create({
@@ -50,7 +54,7 @@ export async function POST(req: NextRequest) {
       assignedToId: employee.id,
       followUpDate: body.followUpDate ? new Date(body.followUpDate) : null,
       notes:        body.notes?.trim() || null,
-      createdById:  emp.userId,
+      createdById,
     },
     include: { assignedTo: { select: { id: true, fullName: true } } },
   });
