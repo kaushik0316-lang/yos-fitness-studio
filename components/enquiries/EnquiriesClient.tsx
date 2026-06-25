@@ -60,7 +60,7 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
   const [editing, setEditing]     = useState<Enquiry | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const isAdmin = userRole === "ADMIN" || userRole === "FRONT_DESK";
+  const isAdmin = userRole === "ADMIN";
 
   const filtered = enquiries.filter((e) => {
     if (statusFilter !== "ALL" && e.status !== statusFilter) return false;
