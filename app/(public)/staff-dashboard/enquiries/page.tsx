@@ -59,6 +59,7 @@ export default function StaffEnquiriesPage() {
   const [statusFilter, setFilter]   = useState("ALL");
   const [showAdd, setShowAdd]       = useState(false);
   const [editing, setEditing]       = useState<Enquiry | null>(null);
+  const [employees, setEmployees]   = useState<{ id: string; fullName: string }[]>([]);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("staff_pin");
@@ -74,6 +75,7 @@ export default function StaffEnquiriesPage() {
       if (!res.ok) { router.replace("/staff-dashboard"); return; }
       const data = await res.json();
       setEnquiries(data.enquiries);
+      setEmployees(data.employees ?? []);
     } catch {
       setError("Failed to load enquiries");
     } finally {
@@ -88,12 +90,13 @@ export default function StaffEnquiriesPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         pin,
-        name:         form.get("name"),
-        phone:        form.get("phone"),
-        interest:     form.get("interest"),
-        source:       form.get("source"),
-        followUpDate: form.get("followUpDate"),
-        notes:        form.get("notes"),
+        name:           form.get("name"),
+        phone:          form.get("phone"),
+        interest:       form.get("interest"),
+        source:         form.get("source"),
+        assignedToId:   form.get("assignedToId") || undefined,
+        followUpDate:   form.get("followUpDate"),
+        notes:          form.get("notes"),
       }),
     });
     if (res.ok) {
@@ -316,20 +319,21 @@ export default function StaffEnquiriesPage() {
 
       {/* Add modal */}
       {showAdd && (
-        <EnquiryModal title="New Enquiry" onClose={() => setShowAdd(false)} onSubmit={handleCreate} />
+        <EnquiryModal title="New Enquiry" employees={employees} onClose={() => setShowAdd(false)} onSubmit={handleCreate} />
       )}
 
       {/* Edit modal */}
       {editing && (
-        <EnquiryModal title="Edit Enquiry" initial={editing} onClose={() => setEditing(null)} onSubmit={handleUpdate} editOnly />
+        <EnquiryModal title="Edit Enquiry" initial={editing} employees={employees} onClose={() => setEditing(null)} onSubmit={handleUpdate} editOnly />
       )}
     </div>
   );
 }
 
-function EnquiryModal({ title, initial, onClose, onSubmit, editOnly }: {
+function EnquiryModal({ title, initial, employees, onClose, onSubmit, editOnly }: {
   title: string;
   initial?: Enquiry;
+  employees: { id: string; fullName: string }[];
   onClose: () => void;
   onSubmit: (form: FormData) => Promise<void>;
   editOnly?: boolean;
@@ -384,6 +388,15 @@ function EnquiryModal({ title, initial, onClose, onSubmit, editOnly }: {
                       {SOURCES.map((s) => <option key={s} value={s}>{SOURCE_LABELS[s]}</option>)}
                     </select>
                   </div>
+                </div>
+                <div>
+                  <label style={lbl}>Assign To</label>
+                  <select name="assignedToId" defaultValue="" style={inp}>
+                    <option value="">Unassigned</option>
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>{emp.fullName}</option>
+                    ))}
+                  </select>
                 </div>
               </>
             )}

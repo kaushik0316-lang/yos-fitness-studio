@@ -15,14 +15,19 @@ export async function GET(req: NextRequest) {
   const employee = await verifyPin(pin);
   if (!employee) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const enquiries = await prisma.enquiry.findMany({
-    include: {
-      assignedTo: { select: { id: true, fullName: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const [enquiries, employees] = await Promise.all([
+    prisma.enquiry.findMany({
+      include: { assignedTo: { select: { id: true, fullName: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.employee.findMany({
+      where: { isActive: true },
+      select: { id: true, fullName: true },
+      orderBy: { fullName: "asc" },
+    }),
+  ]);
 
-  return NextResponse.json({ enquiries, employee });
+  return NextResponse.json({ enquiries, employee, employees });
 }
 
 // POST /api/staff/enquiries — create
@@ -51,7 +56,7 @@ export async function POST(req: NextRequest) {
       phone:        (body.phone as string).trim(),
       interest:     body.interest?.trim() || null,
       source:       body.source || "WALK_IN",
-      assignedToId: employee.id,
+      assignedToId: body.assignedToId || employee.id,
       followUpDate: body.followUpDate ? new Date(body.followUpDate) : null,
       notes:        body.notes?.trim() || null,
       createdById,
