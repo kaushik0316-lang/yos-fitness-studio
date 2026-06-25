@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Plus, Phone, MessageCircle, ChevronDown,
-  Calendar, StickyNote, X, UserCircle, Dumbbell,
+  Calendar, StickyNote, X, UserCircle, Dumbbell, Search, User,
 } from "lucide-react";
+
+type Employee = { id: string; fullName: string };
 
 type Enquiry = {
   id: string; name: string; phone: string;
   interest: string | null; source: string; status: string;
-  assignedTo: { id: string; fullName: string } | null;
+  assignedTo: Employee | null;
   followUpDate: string | null; notes: string | null;
   createdAt: string;
 };
@@ -50,16 +52,63 @@ function toTitleCase(s: string) {
   return s.toLowerCase().split(" ").map((w) => w ? w[0].toUpperCase() + w.slice(1) : w).join(" ");
 }
 
+// Tap-to-open status picker (works on mobile)
+function StatusPicker({ enquiry, onSelect }: { enquiry: Enquiry; onSelect: (id: string, s: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const cfg = STATUS_CONFIG[enquiry.status] ?? STATUS_CONFIG.NEW;
+
+  useEffect(() => {
+    function close(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative flex-shrink-0">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-xl"
+        style={{ background: cfg.bg, color: cfg.color }}
+      >
+        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }} />
+        {cfg.label}
+        <ChevronDown className="h-3 w-3" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-30 rounded-xl overflow-hidden shadow-2xl"
+          style={{ background: "#2a2a2a", border: "1px solid rgba(255,255,255,0.12)", minWidth: "140px" }}>
+          {STATUSES.map((s) => (
+            <button key={s}
+              onClick={() => { onSelect(enquiry.id, s); setOpen(false); }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-left active:opacity-70"
+              style={{
+                color: STATUS_CONFIG[s].color,
+                background: enquiry.status === s ? "rgba(255,255,255,0.06)" : "transparent",
+              }}>
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: STATUS_CONFIG[s].dot }} />
+              {STATUS_CONFIG[s].label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function StaffEnquiriesPage() {
   const router = useRouter();
-  const [pin, setPin]               = useState<string | null>(null);
-  const [enquiries, setEnquiries]   = useState<Enquiry[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState("");
-  const [statusFilter, setFilter]   = useState("ALL");
-  const [showAdd, setShowAdd]       = useState(false);
-  const [editing, setEditing]       = useState<Enquiry | null>(null);
-  const [employees, setEmployees]   = useState<{ id: string; fullName: string }[]>([]);
+  const [pin, setPin]             = useState<string | null>(null);
+  const [currentEmpId, setEmpId] = useState<string | null>(null);
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [statusFilter, setFilter] = useState("ALL");
+  const [search, setSearch]       = useState("");
+  const [showAdd, setShowAdd]     = useState(false);
+  const [editing, setEditing]     = useState<Enquiry | null>(null);
+  const [employees, setEmployees] = useState<Employee[]>([]);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("staff_pin");
@@ -76,34 +125,36 @@ export default function StaffEnquiriesPage() {
       const data = await res.json();
       setEnquiries(data.enquiries);
       setEmployees(data.employees ?? []);
-    } catch {
-      setError("Failed to load enquiries");
+      setEmpId(data.employee?.id ?? null);
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleCreate(form: FormData) {
-    if (!pin) return;
+  async function handleCreate(form: FormData): Promise<string | null> {
+    if (!pin) return null;
     const res = await fetch("/api/staff/enquiries", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         pin,
-        name:           form.get("name"),
-        phone:          form.get("phone"),
-        interest:       form.get("interest"),
-        source:         form.get("source"),
-        assignedToId:   form.get("assignedToId") || undefined,
-        followUpDate:   form.get("followUpDate"),
-        notes:          form.get("notes"),
+        name:         form.get("name"),
+        phone:        form.get("phone"),
+        interest:     form.get("interest"),
+        source:       form.get("source"),
+        assignedToId: form.get("assignedToId") || undefined,
+        followUpDate: form.get("followUpDate"),
+        notes:        form.get("notes"),
       }),
     });
     if (res.ok) {
       const { enquiry } = await res.json();
       setEnquiries((prev) => [enquiry, ...prev]);
       setShowAdd(false);
+      return null;
     }
+    const err = await res.json().catch(() => ({}));
+    return err.error ?? "Failed to save. Please try again.";
   }
 
   async function handleStatusChange(id: string, status: string) {
@@ -118,8 +169,8 @@ export default function StaffEnquiriesPage() {
     }
   }
 
-  async function handleUpdate(form: FormData) {
-    if (!pin || !editing) return;
+  async function handleUpdate(form: FormData): Promise<string | null> {
+    if (!pin || !editing) return null;
     const res = await fetch("/api/staff/enquiries", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -129,18 +180,23 @@ export default function StaffEnquiriesPage() {
         status:       form.get("status"),
         notes:        form.get("notes"),
         followUpDate: form.get("followUpDate"),
+        assignedToId: form.get("assignedToId"),
       }),
     });
     if (res.ok) {
       const { enquiry } = await res.json();
       setEnquiries((prev) => prev.map((e) => e.id === enquiry.id ? enquiry : e));
       setEditing(null);
+      return null;
     }
+    const err = await res.json().catch(() => ({}));
+    return err.error ?? "Failed to save. Please try again.";
   }
 
-  const filtered = statusFilter === "ALL"
-    ? enquiries
-    : enquiries.filter((e) => e.status === statusFilter);
+  const q = search.toLowerCase();
+  const filtered = enquiries
+    .filter((e) => statusFilter === "ALL" || e.status === statusFilter)
+    .filter((e) => !q || e.name.toLowerCase().includes(q) || e.phone.includes(q) || (e.interest ?? "").toLowerCase().includes(q));
 
   const counts: Record<string, number> = { ALL: enquiries.length };
   for (const s of STATUSES) counts[s] = enquiries.filter((e) => e.status === s).length;
@@ -154,10 +210,11 @@ export default function StaffEnquiriesPage() {
     <div className="min-h-screen flex flex-col" style={{ background: "#0a0a0a" }}>
 
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-4 border-b sticky top-0 z-10" style={{ borderColor: "#1c1c1c", background: "#0a0a0a" }}>
+      <div className="flex items-center justify-between px-4 py-4 border-b sticky top-0 z-10"
+        style={{ borderColor: "#1c1c1c", background: "#0a0a0a" }}>
         <div className="flex items-center gap-3">
           <button onClick={() => router.push("/staff-dashboard")}
-            className="p-2 rounded-xl transition-colors" style={{ background: "#1c1c1c", color: "#9ca3af" }}>
+            className="p-2 rounded-xl" style={{ background: "#1c1c1c", color: "#9ca3af" }}>
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="flex items-center gap-2">
@@ -174,7 +231,7 @@ export default function StaffEnquiriesPage() {
         </button>
       </div>
 
-      <div className="flex-1 max-w-lg mx-auto w-full px-4 py-4 space-y-4">
+      <div className="flex-1 max-w-lg mx-auto w-full px-4 py-4 space-y-3">
 
         {/* Overdue alert */}
         {overdueCount > 0 && (
@@ -185,12 +242,24 @@ export default function StaffEnquiriesPage() {
               {overdueCount} follow-up{overdueCount > 1 ? "s" : ""} due or overdue
             </p>
             <button onClick={() => setFilter("FOLLOW_UP")}
-              className="ml-auto text-xs font-bold text-purple-400">View →</button>
+              className="ml-auto text-xs font-bold text-purple-400 flex-shrink-0">View →</button>
           </div>
         )}
 
-        {/* Status filter pills */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600 pointer-events-none" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, phone, interest…"
+            className="w-full pl-9 pr-4 py-2.5 rounded-2xl text-sm text-white placeholder:text-gray-600 outline-none"
+            style={{ background: "#1c1c1c", border: "1px solid rgba(255,255,255,0.06)" }}
+          />
+        </div>
+
+        {/* Status filter pills — wrapping grid, no horizontal scroll */}
+        <div className="flex flex-wrap gap-2">
           {[{ key: "ALL", label: `All (${counts.ALL})` }, ...STATUSES.map((s) => ({
             key: s, label: `${STATUS_CONFIG[s].label} (${counts[s] ?? 0})`
           }))].map(({ key, label }) => {
@@ -198,7 +267,7 @@ export default function StaffEnquiriesPage() {
             const isActive = statusFilter === key;
             return (
               <button key={key} onClick={() => setFilter(key)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-all"
+                className="px-3 py-1.5 rounded-full text-xs font-bold transition-all"
                 style={{
                   background: isActive ? (cfg?.bg ?? "rgba(249,115,22,0.15)") : "#1c1c1c",
                   color: isActive ? (cfg?.color ?? "#fb923c") : "#6b7280",
@@ -218,22 +287,22 @@ export default function StaffEnquiriesPage() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <UserCircle className="h-12 w-12 text-gray-700" />
-            <p className="text-sm text-gray-500">No enquiries here</p>
+            <p className="text-sm text-gray-500">{search ? "No results found" : "No enquiries here"}</p>
           </div>
         ) : (
           <div className="space-y-3">
             {filtered.map((e) => {
-              const cfg = STATUS_CONFIG[e.status] ?? STATUS_CONFIG.NEW;
-              const followUpDays = e.followUpDate ? daysUntil(e.followUpDate) : null;
+              const followUpDays    = e.followUpDate ? daysUntil(e.followUpDate) : null;
               const followUpOverdue = followUpDays !== null && followUpDays < 0;
               const followUpToday   = followUpDays === 0;
 
               return (
                 <div key={e.id} className="rounded-2xl p-4 space-y-3" style={{ background: "#1c1c1c" }}>
-                  {/* Header */}
+
+                  {/* Header row */}
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-bold text-white">{toTitleCase(e.name)}</p>
+                    <div className="min-w-0">
+                      <p className="font-bold text-white truncate">{toTitleCase(e.name)}</p>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
                           style={{ background: "rgba(255,255,255,0.06)", color: "#6b7280" }}>
@@ -248,29 +317,16 @@ export default function StaffEnquiriesPage() {
                         <span className="text-[10px] text-gray-700">{formatDate(e.createdAt)}</span>
                       </div>
                     </div>
-                    {/* Status dropdown */}
-                    <div className="relative group flex-shrink-0">
-                      <button className="flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-xl"
-                        style={{ background: cfg.bg, color: cfg.color }}>
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
-                        {cfg.label}
-                        <ChevronDown className="h-3 w-3" />
-                      </button>
-                      <div className="absolute right-0 top-full mt-1 z-20 rounded-xl overflow-hidden shadow-2xl hidden group-hover:block"
-                        style={{ background: "#2a2a2a", border: "1px solid rgba(255,255,255,0.1)", minWidth: "130px" }}>
-                        {STATUSES.map((s) => (
-                          <button key={s} onClick={() => handleStatusChange(e.id, s)}
-                            className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-left"
-                            style={{ color: STATUS_CONFIG[s].color }}
-                            onMouseEnter={(el) => { el.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-                            onMouseLeave={(el) => { el.currentTarget.style.background = ""; }}>
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: STATUS_CONFIG[s].dot }} />
-                            {STATUS_CONFIG[s].label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <StatusPicker enquiry={e} onSelect={handleStatusChange} />
                   </div>
+
+                  {/* Assigned to */}
+                  {e.assignedTo && (
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                      <User className="h-3 w-3 text-gray-700 flex-shrink-0" />
+                      {e.assignedTo.fullName}
+                    </div>
+                  )}
 
                   {/* Follow-up */}
                   {e.followUpDate && (
@@ -302,7 +358,7 @@ export default function StaffEnquiriesPage() {
                     <a href={waLink(e.phone)} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl"
                       style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}>
-                      <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                      <MessageCircle className="h-3.5 w-3.5" /> WA
                     </a>
                     <button onClick={() => setEditing(e)}
                       className="text-xs font-semibold px-3 py-2 rounded-xl"
@@ -319,54 +375,87 @@ export default function StaffEnquiriesPage() {
 
       {/* Add modal */}
       {showAdd && (
-        <EnquiryModal title="New Enquiry" employees={employees} onClose={() => setShowAdd(false)} onSubmit={handleCreate} />
+        <EnquiryModal
+          title="New Enquiry"
+          employees={employees}
+          defaultAssignedToId={currentEmpId ?? ""}
+          onClose={() => setShowAdd(false)}
+          onSubmit={handleCreate}
+        />
       )}
 
       {/* Edit modal */}
       {editing && (
-        <EnquiryModal title="Edit Enquiry" initial={editing} employees={employees} onClose={() => setEditing(null)} onSubmit={handleUpdate} editOnly />
+        <EnquiryModal
+          title="Edit Enquiry"
+          initial={editing}
+          employees={employees}
+          defaultAssignedToId={editing.assignedTo?.id ?? ""}
+          onClose={() => setEditing(null)}
+          onSubmit={handleUpdate}
+          editOnly
+        />
       )}
     </div>
   );
 }
 
-function EnquiryModal({ title, initial, employees, onClose, onSubmit, editOnly }: {
+function EnquiryModal({ title, initial, employees, defaultAssignedToId, onClose, onSubmit, editOnly }: {
   title: string;
   initial?: Enquiry;
-  employees: { id: string; fullName: string }[];
+  employees: Employee[];
+  defaultAssignedToId?: string;
   onClose: () => void;
-  onSubmit: (form: FormData) => Promise<void>;
+  onSubmit: (form: FormData) => Promise<string | null>;
   editOnly?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    await onSubmit(new FormData(e.currentTarget));
+    const err = await onSubmit(new FormData(e.currentTarget));
+    if (err) setError(err);
     setLoading(false);
   }
 
-  const inp = {
+  const inp: React.CSSProperties = {
     background: "#2a2a2a", border: "1px solid rgba(255,255,255,0.1)",
     borderRadius: "0.75rem", padding: "0.625rem 0.875rem",
     color: "#f9fafb", fontSize: "0.875rem", outline: "none", width: "100%",
   };
-  const lbl = { color: "#9ca3af", fontSize: "0.7rem", fontWeight: 600 as const, display: "block" as const, marginBottom: "0.3rem" };
+  const lbl: React.CSSProperties = {
+    color: "#9ca3af", fontSize: "0.7rem", fontWeight: 600,
+    display: "block", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.05em",
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ background: "rgba(0,0,0,0.7)" }}
+    <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ background: "rgba(0,0,0,0.75)" }}
       onClick={onClose}>
-      <div className="rounded-t-3xl overflow-hidden max-h-[90vh] flex flex-col"
+      <div className="rounded-t-3xl overflow-hidden max-h-[92vh] flex flex-col"
         style={{ background: "#1c1c1c", border: "1px solid rgba(255,255,255,0.08)" }}
-        onClick={(e) => e.stopPropagation()}>
+        onClick={(ev) => ev.stopPropagation()}>
+
+        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 flex-shrink-0"
           style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <h3 className="font-bold text-white">{title}</h3>
-          <button onClick={onClose} className="text-gray-600 hover:text-white"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} style={{ color: "#6b7280" }}><X className="h-5 w-5" /></button>
         </div>
+
         <form onSubmit={handleSubmit} className="overflow-y-auto">
           <div className="px-5 py-4 space-y-4">
+
+            {/* Error banner */}
+            {error && (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-red-400"
+                style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                <X className="h-3.5 w-3.5 flex-shrink-0" /> {error}
+              </div>
+            )}
+
             {!editOnly && (
               <>
                 <div>
@@ -375,7 +464,7 @@ function EnquiryModal({ title, initial, employees, onClose, onSubmit, editOnly }
                 </div>
                 <div>
                   <label style={lbl}>Phone *</label>
-                  <input name="phone" required placeholder="Mobile number" style={inp} />
+                  <input name="phone" required placeholder="10-digit mobile" inputMode="tel" style={inp} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -389,17 +478,20 @@ function EnquiryModal({ title, initial, employees, onClose, onSubmit, editOnly }
                     </select>
                   </div>
                 </div>
-                <div>
-                  <label style={lbl}>Assign To</label>
-                  <select name="assignedToId" defaultValue="" style={inp}>
-                    <option value="">Unassigned</option>
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>{emp.fullName}</option>
-                    ))}
-                  </select>
-                </div>
               </>
             )}
+
+            {/* Assign To — shown in both add and edit */}
+            <div>
+              <label style={lbl}>Assign To</label>
+              <select name="assignedToId" defaultValue={defaultAssignedToId ?? ""} style={inp}>
+                <option value="">Unassigned</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>{emp.fullName}</option>
+                ))}
+              </select>
+            </div>
+
             {editOnly && (
               <div>
                 <label style={lbl}>Status</label>
@@ -408,6 +500,7 @@ function EnquiryModal({ title, initial, employees, onClose, onSubmit, editOnly }
                 </select>
               </div>
             )}
+
             <div>
               <label style={lbl}>Follow-up Date</label>
               <input type="date" name="followUpDate"
@@ -418,17 +511,19 @@ function EnquiryModal({ title, initial, employees, onClose, onSubmit, editOnly }
               <label style={lbl}>Notes</label>
               <textarea name="notes" rows={3} defaultValue={initial?.notes ?? ""}
                 placeholder="Details about the enquiry…"
-                style={{ ...inp, resize: "none" as const }} />
+                style={{ ...inp, resize: "none" }} />
             </div>
           </div>
-          <div className="flex gap-3 px-5 py-4 flex-shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+
+          <div className="flex gap-3 px-5 py-4 flex-shrink-0"
+            style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
             <button type="button" onClick={onClose}
               className="flex-1 py-3 rounded-2xl text-sm font-semibold"
               style={{ background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
               Cancel
             </button>
             <button type="submit" disabled={loading}
-              className="flex-2 flex-1 py-3 rounded-2xl text-sm font-bold text-white"
+              className="flex-1 py-3 rounded-2xl text-sm font-bold text-white"
               style={{ background: "linear-gradient(135deg, #f97316, #ea580c)", opacity: loading ? 0.7 : 1 }}>
               {loading ? "Saving…" : "Save"}
             </button>

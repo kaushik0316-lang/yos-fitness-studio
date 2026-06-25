@@ -76,9 +76,10 @@ export async function PATCH(req: NextRequest) {
   const enquiry = await prisma.enquiry.update({
     where: { id: body.id },
     data: {
-      ...(body.status       !== undefined && { status: body.status }),
-      ...(body.notes        !== undefined && { notes: body.notes || null }),
-      ...(body.followUpDate !== undefined && { followUpDate: body.followUpDate ? new Date(body.followUpDate) : null }),
+      ...(body.status        !== undefined && { status: body.status }),
+      ...(body.notes         !== undefined && { notes: body.notes || null }),
+      ...(body.followUpDate  !== undefined && { followUpDate: body.followUpDate ? new Date(body.followUpDate) : null }),
+      ...(body.assignedToId  !== undefined && { assignedToId: body.assignedToId || null }),
     },
     include: { assignedTo: { select: { id: true, fullName: true } } },
   });
