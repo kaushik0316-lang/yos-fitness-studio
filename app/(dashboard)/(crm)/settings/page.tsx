@@ -11,16 +11,16 @@ export default async function SettingsPage() {
   const session = await auth();
   if (session?.user.role !== "ADMIN") redirect("/");
 
-  const [packages, users] = await Promise.all([
-    prisma.package.findMany({ orderBy: [{ company: "asc" }, { durationDays: "asc" }] }),
-    prisma.user.findMany({ select: { id: true, name: true, email: true, role: true, isActive: true }, orderBy: { name: "asc" } }),
-  ]);
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, email: true, role: true, isActive: true },
+    orderBy: { name: "asc" },
+  });
 
   return (
     <>
       <Header title="Settings" subtitle="System configuration" />
       <div className="flex-1 overflow-y-auto p-6">
-        <SettingsClient packages={packages} users={users as any} />
+        <SettingsClient users={users as any} />
       </div>
     </>
   );
