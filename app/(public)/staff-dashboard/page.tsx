@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Copy, Check, MessageCircle, Printer,
   Receipt, CalendarCheck, LogOut, ChevronRight,
-  Delete, Dumbbell,
+  Delete, Dumbbell, UserSearch,
 } from "lucide-react";
 import { REGISTRATION_FORM_URL } from "@/lib/site-config";
 
@@ -432,6 +432,20 @@ export default function StaffDashboardPage() {
               <p className="text-xs mt-0.5" style={{ color: "#6b7280" }}>View shift history</p>
             </div>
             <ChevronRight className="h-4 w-4 self-end" style={{ color: "#374151" }} />
+          </Link>
+
+          <Link href="/staff-dashboard/enquiries"
+            className="col-span-2 flex items-center gap-4 rounded-3xl p-5 transition-opacity active:opacity-70"
+            style={{ background: "#1c1c1c" }}>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+              style={{ background: "rgba(139,92,246,0.15)" }}>
+              <UserSearch className="h-6 w-6" style={{ color: "#a78bfa" }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-white font-bold text-sm">Enquiries</p>
+              <p className="text-xs mt-0.5" style={{ color: "#6b7280" }}>Track & follow up leads</p>
+            </div>
+            <ChevronRight className="h-4 w-4 flex-shrink-0" style={{ color: "#374151" }} />
           </Link>
         </div>
 

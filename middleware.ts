@@ -13,6 +13,7 @@ const PUBLIC_PAGES = new Set([
   "/checkin/poster",
   "/staff-dashboard",
   "/staff-dashboard/new-receipt",
+  "/staff-dashboard/enquiries",
   "/register",
   "/my-attendance",
   "/join",
