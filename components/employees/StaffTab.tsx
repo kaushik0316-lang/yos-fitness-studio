@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Pencil, Eye, EyeOff, UserCheck, UserX } from "lucide-react";
+import { Plus, Pencil, Eye, EyeOff, UserCheck, UserX, TrendingUp } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
@@ -9,6 +9,7 @@ import { setEmployeeActive } from "@/lib/actions/employees";
 import { toast } from "@/hooks/use-toast";
 import { AddEmployeeDialog } from "./AddEmployeeDialog";
 import { EditEmployeeDialog } from "./EditEmployeeDialog";
+import { SalesDialog } from "./SalesDialog";
 import { useRouter } from "next/navigation";
 
 type Shift = { start: string; end: string };
@@ -32,10 +33,20 @@ const ROLE_COLORS: Record<string, string> = {
   ADMIN:      "bg-red-500/15 text-red-400",
 };
 
-export function StaffTab({ employees, salesMap = {} }: { employees: Employee[]; salesMap?: Record<string, number> }) {
+export function StaffTab({ employees, salesMap = {}, month, year }: {
+  employees: Employee[];
+  salesMap?: Record<string, number>;
+  month?: number;
+  year?: number;
+}) {
   const router = useRouter();
+  const now = new Date();
+  const m = month ?? (now.getMonth() + 1);
+  const y = year  ?? now.getFullYear();
+
   const [addOpen, setAddOpen] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
+  const [salesEmployee, setSalesEmployee] = useState<Employee | null>(null);
   const [revealedPins, setRevealedPins] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
 
@@ -99,6 +110,7 @@ export function StaffTab({ employees, salesMap = {} }: { employees: Employee[]; 
                 pinRevealed={revealedPins.has(emp.id)}
                 onTogglePin={() => togglePin(emp.id)}
                 onEdit={() => setEditEmployee(emp)}
+                onEditSales={() => setSalesEmployee(emp)}
                 onToggleActive={() => handleToggleActive(emp)}
                 isPending={isPending}
               />
@@ -124,6 +136,7 @@ export function StaffTab({ employees, salesMap = {} }: { employees: Employee[]; 
                 pinRevealed={revealedPins.has(emp.id)}
                 onTogglePin={() => togglePin(emp.id)}
                 onEdit={() => setEditEmployee(emp)}
+                onEditSales={() => setSalesEmployee(emp)}
                 onToggleActive={() => handleToggleActive(emp)}
                 isPending={isPending}
               />
@@ -134,14 +147,24 @@ export function StaffTab({ employees, salesMap = {} }: { employees: Employee[]; 
 
       <AddEmployeeDialog open={addOpen} onClose={() => { setAddOpen(false); router.refresh(); }} />
       <EditEmployeeDialog employee={editEmployee} onClose={() => { setEditEmployee(null); router.refresh(); }} />
+      {salesEmployee && (
+        <SalesDialog
+          employeeId={salesEmployee.id}
+          employeeName={salesEmployee.fullName}
+          month={m}
+          year={y}
+          allEmployees={employees.map((e) => ({ id: e.id, fullName: e.fullName }))}
+          onClose={() => setSalesEmployee(null)}
+        />
+      )}
     </div>
   );
 }
 
-function StaffRow({ emp, idx, salesThisMonth, pinRevealed, onTogglePin, onEdit, onToggleActive, isPending }: {
+function StaffRow({ emp, idx, salesThisMonth, pinRevealed, onTogglePin, onEdit, onEditSales, onToggleActive, isPending }: {
   emp: Employee; idx: number; salesThisMonth: number;
   pinRevealed: boolean; onTogglePin: () => void;
-  onEdit: () => void; onToggleActive: () => void; isPending: boolean;
+  onEdit: () => void; onEditSales: () => void; onToggleActive: () => void; isPending: boolean;
 }) {
   const initials = emp.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
@@ -210,6 +233,11 @@ function StaffRow({ emp, idx, salesThisMonth, pinRevealed, onTogglePin, onEdit, 
 
       {/* Actions */}
       <div className="flex items-center gap-1 flex-shrink-0">
+        {salesThisMonth > 0 && (
+          <button onClick={onEditSales} className="p-1.5 rounded-lg text-gray-600 hover:text-orange-400 transition-colors" style={{ background: "rgba(255,255,255,0.04)" }} title="Edit sales">
+            <TrendingUp className="h-3.5 w-3.5" />
+          </button>
+        )}
         <button onClick={onEdit} className="p-1.5 rounded-lg text-gray-600 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.04)" }} title="Edit">
           <Pencil className="h-3.5 w-3.5" />
         </button>

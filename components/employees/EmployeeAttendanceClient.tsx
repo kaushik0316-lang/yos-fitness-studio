@@ -524,7 +524,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
         </>
       )}
 
-      {tab === "staff" && <StaffTab employees={allEmployees} salesMap={salesMap} />}
+      {tab === "staff" && <StaffTab employees={allEmployees} salesMap={salesMap} month={month} year={year} />}
     </div>
   );
 }
