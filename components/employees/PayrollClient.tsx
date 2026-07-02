@@ -94,7 +94,7 @@ export function PayrollClient({ records, month, year, userRole }: Props) {
     try {
       const bonus = parseFloat(bonuses[id] ?? "0") || 0;
       await updateBonus(id, bonus);
-      toast({ title: "Bonus saved" });
+      toast({ title: "Sales & PT saved" });
       router.refresh();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -103,7 +103,7 @@ export function PayrollClient({ records, month, year, userRole }: Props) {
 
   function exportCSV() {
     const rows = [
-      ["Employee", "ID", "Role", "Present", "Absent", "Half", "Working Days", "Required Hours", "Actual Hours", "Gross", "Deductions", "Bonus", "Net", "Paid", "Mode"],
+      ["Employee", "ID", "Role", "Present", "Absent", "Half", "Working Days", "Required Hours", "Actual Hours", "Gross", "Deductions", "Sales & PT", "Net", "Paid", "Mode"],
       ...records.map((r) => [
         r.employee.fullName, r.employee.employeeId, r.employee.role,
         r.presentDays, r.absentDays, r.halfDays, r.workingDays,
@@ -183,7 +183,7 @@ export function PayrollClient({ records, month, year, userRole }: Props) {
         {[
           { label: "Total Payable", value: formatCurrency(totalNet), color: "#f97316" },
           { label: "Gross Salary",  value: formatCurrency(totalGross), color: "#a3a3a3" },
-          { label: "Total Bonus",   value: formatCurrency(totalBonus), color: "#a78bfa" },
+          { label: "Total Sales & PT",   value: formatCurrency(totalBonus), color: "#a78bfa" },
           { label: "Paid",          value: `${paidCount} / ${records.length}`, color: "#4ade80" },
         ].map(({ label, value, color }) => (
           <div key={label} className="rounded-xl p-4" style={CARD}>
@@ -214,7 +214,7 @@ export function PayrollClient({ records, month, year, userRole }: Props) {
           <table className="w-full text-sm">
             <thead style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.03)" }}>
               <tr>
-                {["Employee", "Attendance", "Gross", "Deductions", "Bonus", "Net Salary", "Status"].map((h) => (
+                {["Employee", "Attendance", "Gross", "Deductions", "Sales & PT", "Net Salary", "Status"].map((h) => (
                   <th key={h} className={cn("px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider",
                     h === "Employee" ? "text-left" : h === "Status" ? "text-center" : "text-right"
                   )}>{h}</th>
