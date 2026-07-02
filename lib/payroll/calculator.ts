@@ -90,10 +90,11 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
 
   const isTrainer   = employee.role === "TRAINER";
   const hoursPerDay = dailyShiftHours(employee.shifts);
-  // shiftDays: which weekdays this employee works. null/empty = all days (0=Sun … 6=Sat)
+  // shiftDays: which weekdays this employee works.
+  // Default when not set = Mon–Sat (0=Sun is the off-day, auto-credited)
   const shiftDays: number[] = Array.isArray(employee.shiftDays) && (employee.shiftDays as number[]).length > 0
     ? (employee.shiftDays as number[])
-    : [0, 1, 2, 3, 4, 5, 6];
+    : [1, 2, 3, 4, 5, 6];
 
   // Build set of off-day keys (days NOT in shiftDays) — these are auto-credited as full shift hours
   const offDayKeys = new Set<string>();
