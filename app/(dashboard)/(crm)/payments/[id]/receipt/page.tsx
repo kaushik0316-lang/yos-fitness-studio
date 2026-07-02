@@ -10,6 +10,7 @@ import { EditReceiptButton } from "@/components/receipts/EditReceiptButton";
 import { SendPDFButton } from "@/components/receipts/SendPDFButton";
 import { ReassignMemberButton } from "@/components/receipts/ReassignMemberButton";
 import { VoidReceiptButton } from "@/components/receipts/VoidReceiptButton";
+import { AssignCommissionButton } from "@/components/receipts/AssignCommissionButton";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +95,16 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
 
   if (!payment) notFound();
 
+  const [existingCommission, activeTrainers] = session.user.role === "ADMIN" && !payment.isVoided
+    ? await Promise.all([
+        prisma.trainerCommission.findUnique({
+          where: { paymentId: params.id },
+          select: { id: true, trainerId: true, trainer: { select: { fullName: true } }, commissionPct: true, commissionAmount: true },
+        }),
+        prisma.employee.findMany({ where: { role: "TRAINER", isActive: true }, select: { id: true, fullName: true }, orderBy: { fullName: "asc" } }),
+      ])
+    : [null, []];
+
   const isYFS = payment.company === "YOS_FITNESS_STUDIO";
   const companyName = isYFS ? "YOS FITNESS STUDIO" : "YOS FITNESS";
   const companyShort = isYFS ? "Yos Fitness Studio" : "Yos Fitness";
@@ -162,6 +173,22 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
         )}
         {session.user.role === "ADMIN" && !payment.isVoided && (
           <VoidReceiptButton paymentId={payment.id} />
+        )}
+        {session.user.role === "ADMIN" && !payment.isVoided && (
+          <AssignCommissionButton
+            paymentId={payment.id}
+            paymentAmount={amountNum}
+            memberName={payment.member.fullName}
+            packageName={category}
+            trainers={activeTrainers}
+            existing={existingCommission ? {
+              id:               existingCommission.id,
+              trainerId:        existingCommission.trainerId,
+              trainerName:      existingCommission.trainer.fullName,
+              commissionPct:    Number(existingCommission.commissionPct),
+              commissionAmount: Number(existingCommission.commissionAmount),
+            } : null}
+          />
         )}
         <SendPDFButton
           phone={payment.member.phone}

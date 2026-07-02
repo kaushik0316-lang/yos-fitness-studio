@@ -54,6 +54,67 @@ export async function deleteTrainerCommission(id: string) {
   return { success: true };
 }
 
+export async function assignCommissionToPayment(input: {
+  paymentId: string;
+  trainerId: string;
+  commissionPct: number;
+  clientName: string;
+  packageType: string;
+  totalAmount: number;
+}) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ADMIN") throw new Error("Unauthorized");
+
+  const commissionAmount = Math.round(input.totalAmount * input.commissionPct) / 100;
+  const now = new Date();
+
+  // Upsert: if a commission already exists for this payment, replace it
+  const existing = await prisma.trainerCommission.findUnique({ where: { paymentId: input.paymentId } });
+  if (existing) {
+    await prisma.trainerCommission.update({
+      where: { paymentId: input.paymentId },
+      data: {
+        trainerId:       input.trainerId,
+        clientName:      input.clientName,
+        packageType:     input.packageType,
+        totalAmount:     input.totalAmount,
+        commissionPct:   input.commissionPct,
+        commissionAmount,
+        month:           now.getMonth() + 1,
+        year:            now.getFullYear(),
+      },
+    });
+  } else {
+    await prisma.trainerCommission.create({
+      data: {
+        trainerId:       input.trainerId,
+        paymentId:       input.paymentId,
+        clientName:      input.clientName,
+        packageType:     input.packageType,
+        totalAmount:     input.totalAmount,
+        commissionPct:   input.commissionPct,
+        commissionAmount,
+        month:           now.getMonth() + 1,
+        year:            now.getFullYear(),
+      },
+    });
+  }
+
+  revalidatePath(`/payments/${input.paymentId}/receipt`);
+  revalidatePath("/payroll");
+  return { success: true };
+}
+
+export async function removeCommissionFromPayment(paymentId: string) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ADMIN") throw new Error("Unauthorized");
+
+  await prisma.trainerCommission.deleteMany({ where: { paymentId } });
+  revalidatePath(`/payments/${paymentId}/receipt`);
+  revalidatePath("/payroll");
+  return { success: true };
+}
+
 export async function updateSalesCommissionPct(employeeId: string, pct: number | null) {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") {
