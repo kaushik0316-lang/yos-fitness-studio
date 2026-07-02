@@ -129,24 +129,30 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
   // Required hours = hoursPerDay × ALL calendar days (off-days auto-credited, shift days from kiosk)
   const requiredHours = isTrainer && hoursPerDay > 0 ? hoursPerDay * totalCalendarDays : 0;
 
+  // 1 automatic paid leave credit per month for all employees
+  const AUTO_PAID_LEAVE = 1;
+
   let grossSalary = 0;
   let deductions = 0;
 
   if (isTrainer && requiredHours > 0) {
-    // Pro-rata: pay = monthlySalary × min(1, actualHours / requiredHours)
+    // Paid leave adds full shift hours for the credited day
+    const adjustedActual = Math.min(requiredHours, actualHours + hoursPerDay * AUTO_PAID_LEAVE);
     const monthlySalary = Number(employee.monthlySalary ?? 0);
-    grossSalary = monthlySalary * Math.min(1, actualHours / requiredHours);
+    grossSalary = monthlySalary * Math.min(1, adjustedActual / requiredHours);
     deductions = 0;
   } else if (employee.salaryType === SalaryType.FIXED_MONTHLY) {
     const monthlySalary = Number(employee.monthlySalary ?? 0);
     grossSalary = monthlySalary;
     const perDay = workingDays > 0 ? monthlySalary / workingDays : 0;
-    deductions += absentDays * perDay;
+    // Paid leave credit offsets up to AUTO_PAID_LEAVE days of absent/leave deductions
+    const deductibleAbsent = Math.max(0, absentDays - AUTO_PAID_LEAVE);
+    deductions += deductibleAbsent * perDay;
     deductions += halfDays * (perDay * 0.5);
     deductions += leaveDays * perDay;
   } else if (employee.salaryType === SalaryType.PER_DAY) {
     const perDay = Number(employee.perDaySalary ?? 0);
-    grossSalary = (presentDays + paidLeaveDays) * perDay + halfDays * perDay * 0.5;
+    grossSalary = (presentDays + paidLeaveDays + AUTO_PAID_LEAVE) * perDay + halfDays * perDay * 0.5;
   }
 
   const netSalary = Math.max(0, grossSalary - deductions);
