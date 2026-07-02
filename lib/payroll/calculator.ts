@@ -88,9 +88,23 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     }
   }
 
-  // Sum actual hours from completed kiosk shifts
+  const isTrainer   = employee.role === "TRAINER";
+  const hoursPerDay = dailyShiftHours(employee.shifts);
+
+  // Build set of Sunday date keys for this month
+  const sundayKeys = new Set<string>();
+  for (let d = 1; d <= totalCalendarDays; d++) {
+    if (new Date(input.year, input.month - 1, d).getDay() === 0) {
+      sundayKeys.add(`${input.year}-${String(input.month).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
+    }
+  }
+
+  // Sum kiosk hours — for trainers skip Sundays (always credited as full shift below)
   let actualHours = 0;
   for (const a of attendances) {
+    const ad = new Date(a.date);
+    const aKey = `${ad.getFullYear()}-${String(ad.getMonth()+1).padStart(2,"0")}-${String(ad.getDate()).padStart(2,"0")}`;
+    if (isTrainer && sundayKeys.has(aKey)) continue; // Sunday handled separately
     for (const s of a.shifts) {
       if (s.checkInTime && s.checkOutTime) {
         actualHours += (new Date(s.checkOutTime).getTime() - new Date(s.checkInTime).getTime()) / 3600000;
@@ -98,16 +112,9 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     }
   }
 
-  const isTrainer  = employee.role === "TRAINER";
-  const hoursPerDay = dailyShiftHours(employee.shifts);
-
-  // For trainers: unrecorded Sundays count as a full day's shift hours
+  // For trainers: every Sunday = full shift hours regardless of kiosk
   if (isTrainer && hoursPerDay > 0) {
-    for (let d = 1; d <= totalCalendarDays; d++) {
-      if (new Date(input.year, input.month - 1, d).getDay() !== 0) continue;
-      const key = `${input.year}-${String(input.month).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-      if (!recordedStatus.has(key)) actualHours += hoursPerDay;
-    }
+    actualHours += hoursPerDay * sundayKeys.size;
   }
 
   actualHours = Math.round(actualHours * 100) / 100;
