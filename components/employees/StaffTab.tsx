@@ -16,8 +16,7 @@ type Shift = { start: string; end: string };
 type Employee = {
   id: string; employeeId: string; fullName: string; role: string;
   phone: string; salaryType: string; monthlySalary: number | null;
-  perDaySalary: number | null; requiredHoursPerMonth: number | null;
-  pin: string | null; shiftEndTime: string | null;
+  perDaySalary: number | null; pin: string | null; shiftEndTime: string | null;
   shifts: Shift[] | null; notes: string | null; isActive: boolean; joinDate: Date;
 };
 
@@ -196,11 +195,6 @@ function StaffRow({ emp, idx, salesThisMonth, pinRevealed, onTogglePin, onEdit, 
         </div>
         <div className="flex items-center gap-3 mt-0.5">
           <p className="text-xs text-gray-500">{emp.phone}</p>
-          {emp.role === "TRAINER" && emp.requiredHoursPerMonth && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-purple-500/10 text-purple-400">
-              {emp.requiredHoursPerMonth}h/mo
-            </span>
-          )}
           {emp.shifts && Array.isArray(emp.shifts) && emp.shifts.length > 0 ? (
             <div className="flex items-center gap-1 flex-wrap">
               {(emp.shifts as Shift[]).filter(s => s.start && s.end).map((s, i) => (

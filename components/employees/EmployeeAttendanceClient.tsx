@@ -20,8 +20,7 @@ type EmployeeShiftDef = { start: string; end: string };
 type Employee = {
   id: string; employeeId: string; fullName: string; role: string;
   phone: string; salaryType: string; monthlySalary: number | null;
-  perDaySalary: number | null; requiredHoursPerMonth: number | null;
-  pin: string | null; shiftEndTime: string | null;
+  perDaySalary: number | null; pin: string | null; shiftEndTime: string | null;
   shifts: EmployeeShiftDef[] | null; notes: string | null; isActive: boolean; joinDate: Date;
 };
 

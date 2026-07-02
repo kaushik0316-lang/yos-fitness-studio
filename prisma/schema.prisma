@@ -379,10 +379,9 @@ model Employee {
   perDaySalary  Decimal?     @db.Decimal(10, 2)
   isActive      Boolean      @default(true)
   pin           String?      @unique
-  shiftEndTime          String?  // Legacy — kept for fallback. Use shifts[] instead.
-  shifts                Json?    // [{"start":"07:00","end":"12:00"},{"start":"16:00","end":"21:30"}]
-  requiredHoursPerMonth Float?   // Monthly hours target — used for TRAINER payroll calculation
-  notes                 String?
+  shiftEndTime  String?  // Legacy — kept for fallback. Use shifts[] instead.
+  shifts        Json?    // [{"start":"07:00","end":"12:00"},{"start":"16:00","end":"21:30"}]
+  notes         String?
 
   // Link to auth user (optional — not all employees need login access)
   userId String? @unique

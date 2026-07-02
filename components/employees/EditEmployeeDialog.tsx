@@ -12,8 +12,7 @@ type Shift = { start: string; end: string };
 type Employee = {
   id: string; employeeId: string; fullName: string; role: string;
   phone: string; salaryType: string; monthlySalary: number | null;
-  perDaySalary: number | null; requiredHoursPerMonth: number | null;
-  pin: string | null; shiftEndTime: string | null;
+  perDaySalary: number | null; pin: string | null; shiftEndTime: string | null;
   shifts: Shift[] | null; notes: string | null;
 };
 
@@ -22,7 +21,6 @@ type Props = { employee: Employee | null; onClose: () => void };
 type FormValues = {
   fullName: string; role: string; phone: string;
   salaryType: string; monthlySalary: string; perDaySalary: string;
-  requiredHoursPerMonth: string;
   pin: string; shifts: Shift[]; notes: string;
 };
 
@@ -38,26 +36,24 @@ function parseShifts(emp: Employee): Shift[] {
 export function EditEmployeeDialog({ employee, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const { register, handleSubmit, reset, watch, control, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { fullName: "", role: "FRONT_DESK", phone: "", salaryType: "FIXED_MONTHLY", monthlySalary: "", perDaySalary: "", requiredHoursPerMonth: "", pin: "", shifts: [{ start: "", end: "" }], notes: "" },
+    defaultValues: { fullName: "", role: "FRONT_DESK", phone: "", salaryType: "FIXED_MONTHLY", monthlySalary: "", perDaySalary: "", pin: "", shifts: [{ start: "", end: "" }], notes: "" },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "shifts" });
   const salaryType = watch("salaryType");
-  const role = watch("role");
 
   useEffect(() => {
     if (employee) {
       reset({
-        fullName:             employee.fullName,
-        role:                 employee.role,
-        phone:                employee.phone,
-        salaryType:           employee.salaryType,
-        monthlySalary:        employee.monthlySalary?.toString() ?? "",
-        perDaySalary:         employee.perDaySalary?.toString() ?? "",
-        requiredHoursPerMonth: employee.requiredHoursPerMonth?.toString() ?? "",
-        pin:                  employee.pin ?? "",
-        shifts:               parseShifts(employee),
-        notes:                employee.notes ?? "",
+        fullName:      employee.fullName,
+        role:          employee.role,
+        phone:         employee.phone,
+        salaryType:    employee.salaryType,
+        monthlySalary: employee.monthlySalary?.toString() ?? "",
+        perDaySalary:  employee.perDaySalary?.toString() ?? "",
+        pin:           employee.pin ?? "",
+        shifts:        parseShifts(employee),
+        notes:         employee.notes ?? "",
       });
     }
   }, [employee, reset]);
@@ -68,17 +64,16 @@ export function EditEmployeeDialog({ employee, onClose }: Props) {
     try {
       const validShifts = data.shifts.filter(s => s.start && s.end);
       await updateEmployee({
-        id:                   employee.id,
-        fullName:             data.fullName,
-        role:                 data.role as any,
-        phone:                data.phone,
-        salaryType:           data.salaryType as any,
-        monthlySalary:        data.monthlySalary ? Number(data.monthlySalary) : undefined,
-        perDaySalary:         data.perDaySalary  ? Number(data.perDaySalary)  : undefined,
-        requiredHoursPerMonth: data.requiredHoursPerMonth ? Number(data.requiredHoursPerMonth) : undefined,
-        pin:                  data.pin,
-        shifts:               validShifts,
-        notes:                data.notes,
+        id:            employee.id,
+        fullName:      data.fullName,
+        role:          data.role as any,
+        phone:         data.phone,
+        salaryType:    data.salaryType as any,
+        monthlySalary: data.monthlySalary ? Number(data.monthlySalary) : undefined,
+        perDaySalary:  data.perDaySalary  ? Number(data.perDaySalary)  : undefined,
+        pin:           data.pin,
+        shifts:        validShifts,
+        notes:         data.notes,
       });
       toast({ title: "Saved!", description: `${data.fullName}'s profile updated.` });
       onClose();
@@ -187,13 +182,6 @@ export function EditEmployeeDialog({ employee, onClose }: Props) {
             </div>
           </div>
 
-          {/* Required hours — trainers only */}
-          {role === "TRAINER" && (
-            <div>
-              <label className={labelCls}>Required Hours / Month <span className="text-gray-600 font-normal">(for hours-based payroll)</span></label>
-              <input {...register("requiredHoursPerMonth")} type="number" placeholder="e.g. 160" className={inputCls} />
-            </div>
-          )}
 
           {/* Notes */}
           <div>

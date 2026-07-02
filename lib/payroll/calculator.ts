@@ -2,6 +2,20 @@ import { prisma } from "@/lib/prisma";
 import { EmployeeAttendanceStatus, SalaryType } from "@prisma/client";
 import { getDaysInMonth, startOfMonth, endOfMonth } from "date-fns";
 
+// Sum hours across all shift windows defined on an employee
+function dailyShiftHours(shifts: unknown): number {
+  if (!Array.isArray(shifts)) return 0;
+  let total = 0;
+  for (const s of shifts as { start?: string; end?: string }[]) {
+    if (!s.start || !s.end) continue;
+    const [sh, sm] = s.start.split(":").map(Number);
+    const [eh, em] = s.end.split(":").map(Number);
+    const mins = eh * 60 + em - (sh * 60 + sm);
+    if (mins > 0) total += mins / 60;
+  }
+  return total;
+}
+
 export type PayrollInput = {
   employeeId: string;
   month: number; // 1-12
@@ -71,8 +85,9 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
   }
   actualHours = Math.round(actualHours * 100) / 100;
 
-  // Calendar working days (all days minus Sundays)
   const totalCalendarDays = getDaysInMonth(monthStart);
+
+  // For non-trainer daily logic: exclude Sundays from working days
   let sundaysInMonth = 0;
   for (let d = 1; d <= totalCalendarDays; d++) {
     if (new Date(input.year, input.month - 1, d).getDay() === 0) sundaysInMonth++;
@@ -80,17 +95,19 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
   const workingDays = totalCalendarDays - sundaysInMonth;
 
   const isTrainer = employee.role === "TRAINER";
-  const requiredHours = isTrainer ? (employee.requiredHoursPerMonth ?? 0) : 0;
+
+  // Required hours = shift hours per day × ALL days in month (Sundays + holidays count)
+  const hoursPerDay = dailyShiftHours(employee.shifts);
+  const requiredHours = isTrainer && hoursPerDay > 0 ? hoursPerDay * totalCalendarDays : 0;
 
   let grossSalary = 0;
   let deductions = 0;
 
   if (isTrainer && requiredHours > 0) {
-    // Hours-based pro-rata: pay = monthlySalary × min(1, actualHours / requiredHours)
+    // Pro-rata: pay = monthlySalary × min(1, actualHours / requiredHours)
     const monthlySalary = Number(employee.monthlySalary ?? 0);
-    const ratio = Math.min(1, actualHours / requiredHours);
-    grossSalary = monthlySalary * ratio;
-    deductions = 0; // No separate deduction — shortfall already baked into grossSalary
+    grossSalary = monthlySalary * Math.min(1, actualHours / requiredHours);
+    deductions = 0;
   } else if (employee.salaryType === SalaryType.FIXED_MONTHLY) {
     const monthlySalary = Number(employee.monthlySalary ?? 0);
     grossSalary = monthlySalary;
