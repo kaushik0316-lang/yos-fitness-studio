@@ -88,7 +88,7 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     }
   }
 
-  // Sum actual hours from completed shifts
+  // Sum actual hours from completed kiosk shifts
   let actualHours = 0;
   for (const a of attendances) {
     for (const s of a.shifts) {
@@ -97,15 +97,25 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
       }
     }
   }
+
+  const isTrainer  = employee.role === "TRAINER";
+  const hoursPerDay = dailyShiftHours(employee.shifts);
+
+  // For trainers: unrecorded Sundays count as a full day's shift hours
+  if (isTrainer && hoursPerDay > 0) {
+    for (let d = 1; d <= totalCalendarDays; d++) {
+      if (new Date(input.year, input.month - 1, d).getDay() !== 0) continue;
+      const key = `${input.year}-${String(input.month).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+      if (!recordedStatus.has(key)) actualHours += hoursPerDay;
+    }
+  }
+
   actualHours = Math.round(actualHours * 100) / 100;
 
   // Sundays are full working days — use all calendar days as the base
   const workingDays = totalCalendarDays;
 
-  const isTrainer = employee.role === "TRAINER";
-
   // Required hours = shift hours per day × ALL days in month (Sundays + holidays count)
-  const hoursPerDay = dailyShiftHours(employee.shifts);
   const requiredHours = isTrainer && hoursPerDay > 0 ? hoursPerDay * totalCalendarDays : 0;
 
   let grossSalary = 0;
