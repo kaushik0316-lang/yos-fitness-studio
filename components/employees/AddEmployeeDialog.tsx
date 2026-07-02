@@ -14,6 +14,7 @@ type Props = { open: boolean; onClose: () => void };
 type FormValues = {
   fullName: string; role: string; phone: string; joinDate: string;
   salaryType: string; monthlySalary: string; perDaySalary: string;
+  requiredHoursPerMonth: string;
   pin: string; shifts: Shift[]; notes: string;
 };
 
@@ -26,12 +27,14 @@ export function AddEmployeeDialog({ open, onClose }: Props) {
     defaultValues: {
       fullName: "", role: "TRAINER", phone: "", joinDate: format(new Date(), "yyyy-MM-dd"),
       salaryType: "FIXED_MONTHLY", monthlySalary: "", perDaySalary: "",
+      requiredHoursPerMonth: "",
       pin: "", shifts: [{ start: "", end: "" }], notes: "",
     },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "shifts" });
   const salaryType = watch("salaryType");
+  const role = watch("role");
 
   function handleClose() { reset(); onClose(); }
 
@@ -40,16 +43,17 @@ export function AddEmployeeDialog({ open, onClose }: Props) {
     try {
       const validShifts = data.shifts.filter(s => s.start && s.end);
       const result = await createEmployee({
-        fullName:      data.fullName,
-        role:          data.role as any,
-        phone:         data.phone,
-        joinDate:      data.joinDate,
-        salaryType:    data.salaryType as any,
-        monthlySalary: data.monthlySalary ? Number(data.monthlySalary) : undefined,
-        perDaySalary:  data.perDaySalary  ? Number(data.perDaySalary)  : undefined,
-        pin:           data.pin,
-        shifts:        validShifts,
-        notes:         data.notes,
+        fullName:             data.fullName,
+        role:                 data.role as any,
+        phone:                data.phone,
+        joinDate:             data.joinDate,
+        salaryType:           data.salaryType as any,
+        monthlySalary:        data.monthlySalary ? Number(data.monthlySalary) : undefined,
+        perDaySalary:         data.perDaySalary  ? Number(data.perDaySalary)  : undefined,
+        requiredHoursPerMonth: data.requiredHoursPerMonth ? Number(data.requiredHoursPerMonth) : undefined,
+        pin:                  data.pin,
+        shifts:               validShifts,
+        notes:                data.notes,
       });
       toast({ title: "Staff added!", description: `Registered as ${result.employeeId}. PIN: ${data.pin}` });
       handleClose();
@@ -151,13 +155,21 @@ export function AddEmployeeDialog({ open, onClose }: Props) {
             </div>
           </div>
 
-          {/* Salary amount */}
-          <div>
-            <label className={labelCls}>{salaryType === "FIXED_MONTHLY" ? "Monthly Salary (₹)" : "Per Day Salary (₹)"}</label>
-            {salaryType === "FIXED_MONTHLY"
-              ? <input {...register("monthlySalary")} type="number" placeholder="25000" className={inputCls} />
-              : <input {...register("perDaySalary")}  type="number" placeholder="800"   className={inputCls} />
-            }
+          {/* Salary amount + required hours */}
+          <div className={role === "TRAINER" ? "grid grid-cols-2 gap-3" : ""}>
+            <div>
+              <label className={labelCls}>{salaryType === "FIXED_MONTHLY" ? "Monthly Salary (₹)" : "Per Day Salary (₹)"}</label>
+              {salaryType === "FIXED_MONTHLY"
+                ? <input {...register("monthlySalary")} type="number" placeholder="25000" className={inputCls} />
+                : <input {...register("perDaySalary")}  type="number" placeholder="800"   className={inputCls} />
+              }
+            </div>
+            {role === "TRAINER" && (
+              <div>
+                <label className={labelCls}>Required Hours / Month</label>
+                <input {...register("requiredHoursPerMonth")} type="number" placeholder="160" className={inputCls} />
+              </div>
+            )}
           </div>
 
           {/* Notes */}

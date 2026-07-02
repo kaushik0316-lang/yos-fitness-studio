@@ -13,16 +13,17 @@ const shiftSchema = z.object({
 });
 
 const employeeSchema = z.object({
-  fullName:      z.string().min(2),
-  role:          z.nativeEnum(EmployeeRole),
-  phone:         z.string().min(10),
-  joinDate:      z.string(),
-  salaryType:    z.nativeEnum(SalaryType),
-  monthlySalary: z.number().optional(),
-  perDaySalary:  z.number().optional(),
-  pin:           z.string().regex(/^\d{4,6}$/, "PIN must be 4–6 digits"),
-  shifts:        z.array(shiftSchema).optional(),
-  notes:         z.string().optional(),
+  fullName:             z.string().min(2),
+  role:                 z.nativeEnum(EmployeeRole),
+  phone:                z.string().min(10),
+  joinDate:             z.string(),
+  salaryType:           z.nativeEnum(SalaryType),
+  monthlySalary:        z.number().optional(),
+  perDaySalary:         z.number().optional(),
+  requiredHoursPerMonth: z.number().optional(),
+  pin:                  z.string().regex(/^\d{4,6}$/, "PIN must be 4–6 digits"),
+  shifts:               z.array(shiftSchema).optional(),
+  notes:                z.string().optional(),
 });
 
 export async function createEmployee(input: z.infer<typeof employeeSchema>) {
@@ -42,17 +43,18 @@ export async function createEmployee(input: z.infer<typeof employeeSchema>) {
   const employee = await prisma.employee.create({
     data: {
       employeeId,
-      fullName:      ucaseReq(data.fullName),
-      role:          data.role,
-      phone:         data.phone,
-      joinDate:      new Date(data.joinDate),
-      salaryType:    data.salaryType,
-      monthlySalary: data.monthlySalary,
-      perDaySalary:  data.perDaySalary,
-      pin:           data.pin,
+      fullName:             ucaseReq(data.fullName),
+      role:                 data.role,
+      phone:                data.phone,
+      joinDate:             new Date(data.joinDate),
+      salaryType:           data.salaryType,
+      monthlySalary:        data.monthlySalary,
+      perDaySalary:         data.perDaySalary,
+      requiredHoursPerMonth: data.requiredHoursPerMonth ?? null,
+      pin:                  data.pin,
       shiftEndTime,
-      shifts:        data.shifts ?? [],
-      notes:         ucase(data.notes),
+      shifts:               data.shifts ?? [],
+      notes:                ucase(data.notes),
     },
   });
 
@@ -61,16 +63,17 @@ export async function createEmployee(input: z.infer<typeof employeeSchema>) {
 }
 
 const updateSchema = z.object({
-  id:            z.string(),
-  fullName:      z.string().min(2),
-  role:          z.nativeEnum(EmployeeRole),
-  phone:         z.string().min(10),
-  salaryType:    z.nativeEnum(SalaryType),
-  monthlySalary: z.number().optional(),
-  perDaySalary:  z.number().optional(),
-  pin:           z.string().regex(/^\d{4,6}$/, "PIN must be 4–6 digits"),
-  shifts:        z.array(shiftSchema).optional(),
-  notes:         z.string().optional(),
+  id:                   z.string(),
+  fullName:             z.string().min(2),
+  role:                 z.nativeEnum(EmployeeRole),
+  phone:                z.string().min(10),
+  salaryType:           z.nativeEnum(SalaryType),
+  monthlySalary:        z.number().optional(),
+  perDaySalary:         z.number().optional(),
+  requiredHoursPerMonth: z.number().optional(),
+  pin:                  z.string().regex(/^\d{4,6}$/, "PIN must be 4–6 digits"),
+  shifts:               z.array(shiftSchema).optional(),
+  notes:                z.string().optional(),
 });
 
 export async function updateEmployee(input: z.infer<typeof updateSchema>) {
@@ -89,16 +92,17 @@ export async function updateEmployee(input: z.infer<typeof updateSchema>) {
   await prisma.employee.update({
     where: { id: data.id },
     data: {
-      fullName:      ucaseReq(data.fullName),
-      role:          data.role,
-      phone:         data.phone,
-      salaryType:    data.salaryType,
-      monthlySalary: data.monthlySalary ?? null,
-      perDaySalary:  data.perDaySalary ?? null,
-      pin:           data.pin,
+      fullName:             ucaseReq(data.fullName),
+      role:                 data.role,
+      phone:                data.phone,
+      salaryType:           data.salaryType,
+      monthlySalary:        data.monthlySalary ?? null,
+      perDaySalary:         data.perDaySalary ?? null,
+      requiredHoursPerMonth: data.requiredHoursPerMonth ?? null,
+      pin:                  data.pin,
       shiftEndTime,
-      shifts:        data.shifts ?? [],
-      notes:         ucase(data.notes),
+      shifts:               data.shifts ?? [],
+      notes:                ucase(data.notes),
     },
   });
 

@@ -22,6 +22,7 @@ type PayrollRecord = {
   month: number; year: number;
   presentDays: number; absentDays: number; halfDays: number;
   weeklyOffs: number; leaveDays: number; workingDays: number;
+  requiredHours: any; actualHours: any;
   grossSalary: any; deductions: any; bonus: any; netSalary: any;
   isPaid: boolean; paidDate: Date | null; paidMode: string | null;
   employee: { fullName: string; role: string; salaryType: string; employeeId: string };
@@ -102,10 +103,11 @@ export function PayrollClient({ records, month, year, userRole }: Props) {
 
   function exportCSV() {
     const rows = [
-      ["Employee", "ID", "Role", "Present", "Absent", "Half", "Working Days", "Gross", "Deductions", "Bonus", "Net", "Paid", "Mode"],
+      ["Employee", "ID", "Role", "Present", "Absent", "Half", "Working Days", "Required Hours", "Actual Hours", "Gross", "Deductions", "Bonus", "Net", "Paid", "Mode"],
       ...records.map((r) => [
         r.employee.fullName, r.employee.employeeId, r.employee.role,
         r.presentDays, r.absentDays, r.halfDays, r.workingDays,
+        Number(r.requiredHours), Number(r.actualHours),
         Number(r.grossSalary), Number(r.deductions), Number(r.bonus), Number(r.netSalary),
         r.isPaid ? "Yes" : "No", r.paidMode ?? "",
       ]),
@@ -212,7 +214,7 @@ export function PayrollClient({ records, month, year, userRole }: Props) {
           <table className="w-full text-sm">
             <thead style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.03)" }}>
               <tr>
-                {["Employee", "Present", "Absent", "Half", "Working Days", "Gross", "Deductions", "Bonus", "Net Salary", "Status"].map((h) => (
+                {["Employee", "Attendance", "Gross", "Deductions", "Bonus", "Net Salary", "Status"].map((h) => (
                   <th key={h} className={cn("px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider",
                     h === "Employee" ? "text-left" : h === "Status" ? "text-center" : "text-right"
                   )}>{h}</th>
@@ -226,10 +228,35 @@ export function PayrollClient({ records, month, year, userRole }: Props) {
                     <p className="font-semibold text-white">{toTitleCase(r.employee.fullName)}</p>
                     <p className="text-xs text-gray-500">{r.employee.employeeId} · {r.employee.role.replace("_", " ")}</p>
                   </td>
-                  <td className="text-right px-4 py-3 text-emerald-400 font-medium">{r.presentDays}</td>
-                  <td className="text-right px-4 py-3 text-red-400 font-medium">{r.absentDays}</td>
-                  <td className="text-right px-4 py-3 text-amber-400 font-medium">{r.halfDays}</td>
-                  <td className="text-right px-4 py-3 text-gray-400">{r.workingDays}</td>
+                  {/* Attendance column — hours-based for trainers, days for others */}
+                  <td className="text-right px-4 py-3">
+                    {r.employee.role === "TRAINER" && Number(r.requiredHours) > 0 ? (
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-sm font-bold text-white">
+                          {Number(r.actualHours).toFixed(1)}h
+                          <span className="text-gray-600 font-normal text-xs"> / {Number(r.requiredHours).toFixed(0)}h</span>
+                        </span>
+                        {/* Progress bar */}
+                        <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${Math.min(100, (Number(r.actualHours) / Number(r.requiredHours)) * 100).toFixed(1)}%`,
+                              background: Number(r.actualHours) >= Number(r.requiredHours)
+                                ? "linear-gradient(90deg,#4ade80,#22c55e)"
+                                : "linear-gradient(90deg,#fb923c,#f97316)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-end gap-0.5 text-xs">
+                        <span className="text-emerald-400 font-medium">{r.presentDays}P</span>
+                        <span className="text-red-400 font-medium">{r.absentDays}A</span>
+                        {r.halfDays > 0 && <span className="text-amber-400 font-medium">{r.halfDays}H</span>}
+                      </div>
+                    )}
+                  </td>
                   <td className="text-right px-4 py-3 text-gray-300">{formatCurrency(Number(r.grossSalary))}</td>
                   <td className="text-right px-4 py-3 text-red-400">-{formatCurrency(Number(r.deductions))}</td>
 
@@ -302,7 +329,7 @@ export function PayrollClient({ records, month, year, userRole }: Props) {
             </tbody>
             <tfoot style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}>
               <tr>
-                <td className="px-4 py-3 font-bold text-gray-400 text-xs uppercase" colSpan={5}>Total</td>
+                <td className="px-4 py-3 font-bold text-gray-400 text-xs uppercase" colSpan={2}>Total</td>
                 <td className="text-right px-4 py-3 font-semibold text-gray-300">{formatCurrency(totalGross)}</td>
                 <td className="text-right px-4 py-3 font-semibold text-red-400">
                   -{formatCurrency(records.reduce((s, r) => s + Number(r.deductions), 0))}

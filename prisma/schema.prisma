@@ -379,9 +379,10 @@ model Employee {
   perDaySalary  Decimal?     @db.Decimal(10, 2)
   isActive      Boolean      @default(true)
   pin           String?      @unique
-  shiftEndTime  String?      // Legacy — kept for fallback. Use shifts[] instead.
-  shifts        Json?        // [{"start":"07:00","end":"12:00"},{"start":"16:00","end":"21:30"}]
-  notes         String?
+  shiftEndTime          String?  // Legacy — kept for fallback. Use shifts[] instead.
+  shifts                Json?    // [{"start":"07:00","end":"12:00"},{"start":"16:00","end":"21:30"}]
+  requiredHoursPerMonth Float?   // Monthly hours target — used for TRAINER payroll calculation
+  notes                 String?
 
   // Link to auth user (optional — not all employees need login access)
   userId String? @unique
@@ -457,11 +458,13 @@ model PayrollRecord {
   weeklyOffs   Int      @default(0)
   leaveDays    Int      @default(0)
   paidLeaveDays Int     @default(0)
-  workingDays  Int      @default(0) // calendar working days in month
-  grossSalary  Decimal  @db.Decimal(10, 2)
-  deductions   Decimal  @db.Decimal(10, 2) @default(0)
-  bonus        Decimal  @db.Decimal(10, 2) @default(0)
-  netSalary    Decimal  @db.Decimal(10, 2)
+  workingDays    Int      @default(0) // calendar working days in month
+  requiredHours  Decimal  @db.Decimal(8, 2) @default(0) // hours target for the month
+  actualHours    Decimal  @db.Decimal(8, 2) @default(0) // hours actually worked (from shifts)
+  grossSalary    Decimal  @db.Decimal(10, 2)
+  deductions     Decimal  @db.Decimal(10, 2) @default(0)
+  bonus          Decimal  @db.Decimal(10, 2) @default(0)
+  netSalary      Decimal  @db.Decimal(10, 2)
   isPaid       Boolean  @default(false)
   paidDate     DateTime?
   paidMode     String?
