@@ -3,13 +3,14 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format, eachDayOfInterval, startOfMonth, endOfMonth } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2, Save, CalendarDays, Users, Clock, Pencil } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Save, CalendarDays, Users, Clock, Pencil, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { markEmployeeAttendance } from "@/lib/actions/attendance";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { StaffTab } from "./StaffTab";
+import { SalesTab } from "./SalesTab";
 import { ManualAttendanceDialog } from "./ManualAttendanceDialog";
 import type { UserRole } from "@prisma/client";
 
@@ -61,7 +62,7 @@ type Props = {
 
 export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMap, salesMap, month, year, userId, userRole }: Props) {
   const router = useRouter();
-  const [tab, setTab] = useState<"attendance" | "staff">("attendance");
+  const [tab, setTab] = useState<"attendance" | "staff" | "sales">("attendance");
   const [detailEmp, setDetailEmp] = useState<Employee | null>(null);
   const [editDay, setEditDay] = useState<{ dateStr: string; displayDate: string } | null>(null);
   const [localMap, setLocalMap] = useState<Record<string, Record<string, string>>>(() => {
@@ -288,25 +289,21 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
     <div className="space-y-5">
       {/* Tabs */}
       <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: "rgba(255,255,255,0.05)" }}>
-        {(["attendance", "staff"] as const).map((t) => (
+        {([
+          { key: "attendance", label: "Staff Attendance", icon: CalendarDays },
+          { key: "staff",      label: "Payroll",          icon: Users        },
+          { key: "sales",      label: "Sales",            icon: TrendingUp   },
+        ] as const).map(({ key, label, icon: Icon }) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={key}
+            onClick={() => setTab(key)}
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all",
-              tab === t ? "bg-orange-500 text-white shadow-lg" : "text-gray-500 hover:text-gray-300"
+              tab === key ? "bg-orange-500 text-white shadow-lg" : "text-gray-500 hover:text-gray-300"
             )}
           >
-            {t === "attendance" ? <CalendarDays className="h-4 w-4" /> : <Users className="h-4 w-4" />}
-            {t === "attendance" ? "Attendance" : "Staff Details"}
-            {t === "staff" && (
-              <span className={cn(
-                "text-[10px] px-1.5 py-0.5 rounded-full font-bold",
-                tab === "staff" ? "bg-white/20 text-white" : "text-gray-600"
-              )}>
-                {allEmployees.filter(e => e.isActive).length}
-              </span>
-            )}
+            <Icon className="h-4 w-4" />
+            {label}
           </button>
         ))}
       </div>
@@ -525,6 +522,13 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
       )}
 
       {tab === "staff" && <StaffTab employees={allEmployees} salesMap={salesMap} month={month} year={year} />}
+      {tab === "sales" && (
+        <SalesTab
+          allEmployees={allEmployees.filter((e) => e.isActive).map((e) => ({ id: e.id, fullName: e.fullName }))}
+          initMonth={month}
+          initYear={year}
+        />
+      )}
     </div>
   );
 }

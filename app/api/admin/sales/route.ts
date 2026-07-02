@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { startOfMonth, endOfMonth } from "date-fns";
 
-// GET /api/admin/sales?employeeId=xxx&month=6&year=2026
+// GET /api/admin/sales?month=6&year=2026 (all) or ?employeeId=xxx&month=6&year=2026 (one employee)
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session || !["ADMIN", "ACCOUNTANT"].includes(session.user.role)) {
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const month = parseInt(searchParams.get("month") ?? "0");
   const year  = parseInt(searchParams.get("year")  ?? "0");
 
-  if (!employeeId || !month || !year) {
+  if (!month || !year) {
     return NextResponse.json({ error: "Missing params" }, { status: 400 });
   }
 
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   const payments = await prisma.payment.findMany({
     where: {
-      soldById: employeeId,
+      ...(employeeId ? { soldById: employeeId } : { soldById: { not: null } }),
       isVoided: false,
       date: { gte: start, lte: end },
     },
