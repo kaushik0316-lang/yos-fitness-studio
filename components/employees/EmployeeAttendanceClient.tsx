@@ -139,6 +139,59 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
     const totalDays = new Date(year, month, 0).getDate();
     const todayStr = new Date().toISOString().split("T")[0];
     const isCurrentMonth = month === new Date().getMonth() + 1 && year === new Date().getFullYear();
+    const isTrainer = detailEmp.role === "TRAINER";
+
+    // Compute hours per day from employee shift schedule
+    const emp = detailEmp;
+    const empShifts = Array.isArray(emp.shifts) ? (emp.shifts as { start: string; end: string }[]) : [];
+    let hoursPerDay = 0;
+    for (const sh of empShifts) {
+      if (!sh.start || !sh.end) continue;
+      const [hh, mm] = sh.start.split(":").map(Number);
+      const [eh, em] = sh.end.split(":").map(Number);
+      const mins = eh * 60 + em - (hh * 60 + mm);
+      if (mins > 0) hoursPerDay += mins / 60;
+    }
+
+    const shiftDays: number[] = Array.isArray(emp.shiftDays) && (emp.shiftDays as number[]).length > 0
+      ? (emp.shiftDays as number[])
+      : [1, 2, 3, 4, 5, 6];
+    const offDaySet = new Set<string>();
+    for (let d = 1; d <= totalDays; d++) {
+      if (!shiftDays.includes(new Date(year, month - 1, d).getDay())) {
+        offDaySet.add(`${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
+      }
+    }
+
+    // Sum kiosk hours (mirrors calculator logic)
+    const shiftDuration = (s: AttendanceShift): number => {
+      if (!s.checkInTime || !s.checkOutTime) return 0;
+      return (new Date(s.checkOutTime).getTime() - new Date(s.checkInTime).getTime()) / 3600000;
+    };
+    const dayKioskHours = (shifts: AttendanceShift[]): number =>
+      shifts.reduce((sum, s) => sum + shiftDuration(s), 0);
+
+    let actualHours = 0;
+    for (const [dateStr, rec] of Object.entries(empRecords)) {
+      if (isTrainer && offDaySet.has(dateStr)) continue;
+      actualHours += dayKioskHours(rec.shifts);
+    }
+    if (isTrainer && hoursPerDay > 0) actualHours += hoursPerDay * offDaySet.size;
+    actualHours = Math.round(actualHours * 10) / 10;
+    const requiredHours = isTrainer && hoursPerDay > 0 ? hoursPerDay * totalDays : 0;
+    const pct = requiredHours > 0 ? Math.min(100, (actualHours / requiredHours) * 100) : 0;
+    const hoursBarColor = pct >= 90 ? "#4ade80" : pct >= 60 ? "#fb923c" : "#f87171";
+
+    // Group days into weeks (Mon start, Sun ends week)
+    const weeks: number[][] = [];
+    let curWeek: number[] = [];
+    for (let d = 1; d <= totalDays; d++) {
+      curWeek.push(d);
+      if (new Date(year, month - 1, d).getDay() === 0 || d === totalDays) {
+        weeks.push(curWeek);
+        curWeek = [];
+      }
+    }
 
     const deviceToEmployees: Record<string, Set<string>> = {};
     for (const [empId, dates] of Object.entries(attendanceMap)) {
@@ -154,6 +207,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
 
     return (
       <div className="space-y-4">
+        {/* Back + title */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setDetailEmp(null)}
@@ -168,89 +222,158 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
           </div>
         </div>
 
+        {/* Hours summary card — trainers only */}
+        {isTrainer && requiredHours > 0 && (
+          <div className="rounded-2xl p-4" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-gray-400 flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" /> Hours This Month
+              </span>
+              <span className="text-sm font-bold" style={{ color: hoursBarColor }}>
+                {actualHours.toFixed(1)}h <span className="text-gray-600 font-normal text-xs">/ {requiredHours}h required</span>
+              </span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: hoursBarColor }} />
+            </div>
+            <p className="text-[10px] text-gray-600 mt-1.5">
+              {pct.toFixed(0)}% completed · {Math.max(0, requiredHours - actualHours).toFixed(1)}h remaining
+            </p>
+          </div>
+        )}
+
+        {/* Day list grouped by week */}
         <div className="rounded-2xl overflow-hidden" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
-          {Array.from({ length: totalDays }, (_, i) => {
-            const day = i + 1;
-            const dateStr = `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-            const rec = empRecords[dateStr];
-            const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date(dateStr).getDay()];
-            const isSunday = dayName === "Sun";
-            const isToday = dateStr === todayStr;
-            const isFuture = isCurrentMonth && day > new Date().getDate();
-            const displayDate = format(new Date(dateStr), "EEE, d MMM");
+          {weeks.map((weekDays, wi) => {
+            const weekHrs = weekDays.reduce((sum, d) => {
+              const ds = `${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+              const rec = empRecords[ds];
+              return sum + (rec && !offDaySet.has(ds) ? dayKioskHours(rec.shifts) : 0);
+            }, 0);
 
             return (
-              <div
-                key={dateStr}
-                className="px-5 py-3.5 flex items-start gap-4"
-                style={{
-                  borderBottom: "1px solid rgba(255,255,255,0.04)",
-                  background: isToday ? "rgba(249,115,22,0.06)" : isSunday ? "rgba(255,255,255,0.01)" : undefined,
-                }}
-              >
-                <div className="w-10 flex-shrink-0 text-center">
-                  <p className={cn("text-sm font-bold", isSunday ? "text-red-400" : isToday ? "text-orange-400" : "text-white")}>{day}</p>
-                  <p className={cn("text-[10px]", isSunday ? "text-red-500/60" : "text-gray-600")}>{dayName}</p>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  {rec ? (
-                    <>
-                      <span className={cn("text-[10px] px-2.5 py-0.5 rounded-full font-bold", STATUS_STYLE[rec.status]?.cell ?? "bg-white/5 text-gray-400")}>
-                        {STATUS_OPTIONS.find((s) => s.value === rec.status)?.title ?? rec.status}
-                      </span>
-                      {rec.shifts.length > 0 && (
-                        <div className="mt-2 space-y-2">
-                          {rec.shifts.map((s) => {
-                            const sharedWith = s.deviceId
-                              ? Array.from(deviceToEmployees[s.deviceId] ?? []).filter((id) => id !== detailEmp.id)
-                              : [];
-                            const sharedNames = sharedWith.map((id) => toTitleCase(allEmployees.find((e) => e.id === id)?.fullName ?? "Unknown")).join(", ");
-                            return (
-                              <div key={s.shiftIndex} className="space-y-0.5">
-                                <div className="flex items-center gap-3 text-xs">
-                                  {rec.shifts.length > 1 && <span className="text-gray-600 w-12 font-medium">Shift {s.shiftIndex}</span>}
-                                  <span className="text-emerald-400 font-semibold">▲ {fmtTime(s.checkInTime)}</span>
-                                  {s.checkOutTime
-                                    ? <span className="text-red-400 font-semibold">▼ {fmtTime(s.checkOutTime)}</span>
-                                    : <span className="text-amber-400 italic text-xs">still in</span>
-                                  }
-                                  {s.checkOutTime && (() => {
-                                    const mins = (new Date(s.checkOutTime).getTime() - new Date(s.checkInTime).getTime()) / 60000;
-                                    const h = Math.floor(mins / 60), m = Math.round(mins % 60);
-                                    return <span className="text-gray-600">({h > 0 ? `${h}h ${m}m` : `${m}m`})</span>;
-                                  })()}
-                                </div>
-                                {s.deviceId && (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-[10px] text-gray-700 font-mono">📱 ···{s.deviceId.slice(-6)}</span>
-                                    {sharedWith.length > 0 && (
-                                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "rgba(239,68,68,0.15)", color: "#f87171" }}>
-                                        ⚠ also {sharedNames}
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <span className="text-xs text-gray-700">{isFuture ? "" : isSunday ? "—" : "Not marked"}</span>
+              <div key={wi}>
+                {/* Week separator */}
+                <div className="px-5 py-1.5 flex items-center justify-between"
+                  style={{ background: "rgba(255,255,255,0.015)", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                  <span className="text-[9px] font-bold text-gray-700 uppercase tracking-widest">Week {wi + 1}</span>
+                  {weekHrs > 0 && (
+                    <span className="text-[9px] font-semibold text-gray-600">Σ {weekHrs.toFixed(1)}h</span>
                   )}
                 </div>
 
-                {canEdit && !isFuture && (
-                  <button
-                    onClick={() => setEditDay({ dateStr, displayDate })}
-                    className="flex-shrink-0 p-1.5 rounded-lg text-gray-700 hover:text-orange-400 transition-colors"
-                    style={{ background: "rgba(255,255,255,0.04)" }}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                )}
+                {weekDays.map((day) => {
+                  const dateStr = `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+                  const rec = empRecords[dateStr];
+                  const dayOfWeek = new Date(dateStr).getDay();
+                  const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dayOfWeek];
+                  const isSunday = dayOfWeek === 0;
+                  const isToday = dateStr === todayStr;
+                  const isFuture = isCurrentMonth && day > new Date().getDate();
+                  const isOffDay = offDaySet.has(dateStr);
+                  const displayDate = format(new Date(dateStr), "EEE, d MMM");
+                  const totalDayHrs = rec && !isOffDay ? dayKioskHours(rec.shifts) : 0;
+
+                  return (
+                    <div
+                      key={dateStr}
+                      className="px-5 py-3 flex items-start gap-4"
+                      style={{
+                        borderBottom: "1px solid rgba(255,255,255,0.04)",
+                        background: isToday ? "rgba(249,115,22,0.06)" : undefined,
+                      }}
+                    >
+                      {/* Day number */}
+                      <div className="w-10 flex-shrink-0 text-center pt-0.5">
+                        <p className={cn("text-sm font-bold", isSunday ? "text-red-400" : isToday ? "text-orange-400" : "text-white")}>{day}</p>
+                        <p className={cn("text-[10px]", isSunday ? "text-red-500/60" : "text-gray-600")}>{dayName}</p>
+                        {isOffDay && <span className="text-[8px] font-bold uppercase tracking-wide" style={{ color: "#374151" }}>off</span>}
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        {isOffDay ? (
+                          <span className="text-[10px] font-medium" style={{ color: "#374151" }}>Off day — auto credited</span>
+                        ) : rec ? (
+                          <>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={cn("text-[10px] px-2.5 py-0.5 rounded-full font-bold", STATUS_STYLE[rec.status]?.cell ?? "bg-white/5 text-gray-400")}>
+                                {STATUS_OPTIONS.find((s) => s.value === rec.status)?.title ?? rec.status}
+                              </span>
+                              {totalDayHrs > 0 && (
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.05)", color: "#9ca3af" }}>
+                                  Σ {totalDayHrs.toFixed(1)}h
+                                </span>
+                              )}
+                            </div>
+
+                            {rec.shifts.length > 0 && (
+                              <div className="mt-2 space-y-1.5">
+                                {rec.shifts.map((s) => {
+                                  const sharedWith = s.deviceId
+                                    ? Array.from(deviceToEmployees[s.deviceId] ?? []).filter((id) => id !== detailEmp.id)
+                                    : [];
+                                  const sharedNames = sharedWith.map((id) => toTitleCase(allEmployees.find((e) => e.id === id)?.fullName ?? "Unknown")).join(", ");
+                                  const shiftMins = s.checkInTime && s.checkOutTime
+                                    ? (new Date(s.checkOutTime).getTime() - new Date(s.checkInTime).getTime()) / 60000
+                                    : 0;
+                                  const sh = Math.floor(shiftMins / 60), sm = Math.round(shiftMins % 60);
+
+                                  return (
+                                    <div key={s.shiftIndex} className="flex items-center gap-3 text-xs">
+                                      {rec.shifts.length > 1 && (
+                                        <span className="text-[9px] text-gray-700 font-bold w-4">S{s.shiftIndex}</span>
+                                      )}
+                                      {/* IN column */}
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[9px] font-bold text-gray-700 w-5">IN</span>
+                                        <span className="text-emerald-400 font-semibold text-xs">{fmtTime(s.checkInTime)}</span>
+                                      </div>
+                                      {/* OUT column */}
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[9px] font-bold text-gray-700 w-7">OUT</span>
+                                        {s.checkOutTime
+                                          ? <span className="text-red-400 font-semibold text-xs">{fmtTime(s.checkOutTime)}</span>
+                                          : <span className="text-amber-400 italic text-xs">still in</span>
+                                        }
+                                      </div>
+                                      {/* Duration */}
+                                      {shiftMins > 0 && (
+                                        <span className="text-gray-600 text-[10px] ml-auto">
+                                          {sh > 0 ? `${sh}h ${sm}m` : `${sm}m`}
+                                        </span>
+                                      )}
+                                      {/* Shared device: collapsed to icon */}
+                                      {sharedWith.length > 0 && (
+                                        <span
+                                          title={`Shared kiosk — also checked in: ${sharedNames}`}
+                                          className="text-[11px] cursor-help flex-shrink-0"
+                                          style={{ color: "#f87171" }}
+                                        >⚠</span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-xs text-gray-700">{isFuture ? "" : isSunday ? "—" : "Not marked"}</span>
+                        )}
+                      </div>
+
+                      {canEdit && !isFuture && !isOffDay && (
+                        <button
+                          onClick={() => setEditDay({ dateStr, displayDate })}
+                          className="flex-shrink-0 p-1.5 rounded-lg text-gray-700 hover:text-orange-400 transition-colors"
+                          style={{ background: "rgba(255,255,255,0.04)" }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
