@@ -381,18 +381,20 @@ model Employee {
   pin           String?      @unique
   shiftEndTime  String?  // Legacy — kept for fallback. Use shifts[] instead.
   shifts        Json?    // [{"start":"07:00","end":"12:00"},{"start":"16:00","end":"21:30"}]
-  shiftDays     Json?    // [1,2,3,4,5] — 0=Sun,1=Mon,...,6=Sat. null = all days
-  notes         String?
+  shiftDays          Json?    // [1,2,3,4,5] — 0=Sun,1=Mon,...,6=Sat. null = all days
+  salesCommissionPct Decimal? @db.Decimal(5,2) // % of monthly sales total credited as commission
+  notes              String?
 
   // Link to auth user (optional — not all employees need login access)
   userId String? @unique
   user   User?   @relation(fields: [userId], references: [id])
 
-  traineeMembers  Member[]             @relation("TrainerMembers")
-  attendances     EmployeeAttendance[]
-  payrollRecords  PayrollRecord[]
-  salesMade       Payment[]            @relation("SoldByEmployee")
-  enquiries       Enquiry[]
+  traineeMembers     Member[]             @relation("TrainerMembers")
+  attendances        EmployeeAttendance[]
+  payrollRecords     PayrollRecord[]
+  salesMade          Payment[]            @relation("SoldByEmployee")
+  enquiries          Enquiry[]
+  trainerCommissions TrainerCommission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -475,6 +477,30 @@ model PayrollRecord {
 
   @@unique([employeeId, month, year])
   @@map("payroll_records")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRAINER COMMISSIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model TrainerCommission {
+  id               String   @id @default(cuid())
+  trainerId        String
+  trainer          Employee @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  clientName       String
+  packageType      String   // PERSONAL_TRAINING, SEMI_PRIVATE, HIT, OTHER
+  totalAmount      Decimal  @db.Decimal(10,2)
+  commissionPct    Decimal  @db.Decimal(5,2)
+  commissionAmount Decimal  @db.Decimal(10,2)
+  month            Int
+  year             Int
+  notes            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([trainerId, month, year])
+  @@map("trainer_commissions")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

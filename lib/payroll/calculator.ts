@@ -145,7 +145,6 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     const monthlySalary = Number(employee.monthlySalary ?? 0);
     grossSalary = monthlySalary;
     const perDay = workingDays > 0 ? monthlySalary / workingDays : 0;
-    // Paid leave credit offsets up to AUTO_PAID_LEAVE days of absent/leave deductions
     const deductibleAbsent = Math.max(0, absentDays - AUTO_PAID_LEAVE);
     deductions += deductibleAbsent * perDay;
     deductions += halfDays * (perDay * 0.5);
@@ -155,7 +154,28 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     grossSalary = (presentDays + paidLeaveDays + AUTO_PAID_LEAVE) * perDay + halfDays * perDay * 0.5;
   }
 
-  const netSalary = Math.max(0, grossSalary - deductions);
+  // ── Sales & PT commission (bonus) ────────────────────────────────────────
+  let bonus = 0;
+
+  // Sales commission: salesCommissionPct % of total sales made this month
+  if (employee.salesCommissionPct) {
+    const salesPct = Number(employee.salesCommissionPct);
+    const salesAgg = await prisma.payment.aggregate({
+      where: { soldById: input.employeeId, date: { gte: monthStart, lte: monthEnd }, isVoided: false },
+      _sum: { amount: true },
+    });
+    bonus += Number(salesAgg._sum.amount ?? 0) * (salesPct / 100);
+  }
+
+  // PT/Semi-Private/HIT commissions entered manually for this month
+  const ptAgg = await prisma.trainerCommission.aggregate({
+    where: { trainerId: input.employeeId, month: input.month, year: input.year },
+    _sum: { commissionAmount: true },
+  });
+  bonus += Number(ptAgg._sum.commissionAmount ?? 0);
+  bonus = Math.round(bonus * 100) / 100;
+
+  const netSalary = Math.max(0, grossSalary - deductions + bonus);
 
   return {
     employeeId: input.employeeId,
@@ -174,7 +194,7 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     actualHours,
     grossSalary: Math.round(grossSalary * 100) / 100,
     deductions:  Math.round(deductions  * 100) / 100,
-    bonus: 0,
+    bonus,
     netSalary: Math.round(netSalary * 100) / 100,
   };
 }

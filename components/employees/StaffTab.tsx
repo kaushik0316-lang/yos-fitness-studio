@@ -17,7 +17,7 @@ type Employee = {
   id: string; employeeId: string; fullName: string; role: string;
   phone: string; salaryType: string; monthlySalary: number | null;
   perDaySalary: number | null; pin: string | null; shiftEndTime: string | null;
-  shifts: Shift[] | null; shiftDays: number[] | null; notes: string | null; isActive: boolean; joinDate: Date;
+  shifts: Shift[] | null; shiftDays: number[] | null; salesCommissionPct: number | null; notes: string | null; isActive: boolean; joinDate: Date;
 };
 
 const ROLE_LABELS: Record<string, string> = {

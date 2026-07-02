@@ -13,7 +13,7 @@ type Employee = {
   id: string; employeeId: string; fullName: string; role: string;
   phone: string; salaryType: string; monthlySalary: number | null;
   perDaySalary: number | null; pin: string | null; shiftEndTime: string | null;
-  shifts: Shift[] | null; shiftDays: number[] | null; notes: string | null;
+  shifts: Shift[] | null; shiftDays: number[] | null; salesCommissionPct: number | null; notes: string | null;
 };
 
 type Props = { employee: Employee | null; onClose: () => void };
@@ -21,7 +21,7 @@ type Props = { employee: Employee | null; onClose: () => void };
 type FormValues = {
   fullName: string; role: string; phone: string;
   salaryType: string; monthlySalary: string; perDaySalary: string;
-  pin: string; shifts: Shift[]; shiftDays: number[]; notes: string;
+  pin: string; shifts: Shift[]; shiftDays: number[]; salesCommissionPct: string; notes: string;
 };
 
 const inputCls = "w-full rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500";
@@ -36,12 +36,13 @@ function parseShifts(emp: Employee): Shift[] {
 export function EditEmployeeDialog({ employee, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const { register, handleSubmit, reset, watch, control, setValue, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { fullName: "", role: "FRONT_DESK", phone: "", salaryType: "FIXED_MONTHLY", monthlySalary: "", perDaySalary: "", pin: "", shifts: [{ start: "", end: "" }], shiftDays: [0,1,2,3,4,5,6], notes: "" },
+    defaultValues: { fullName: "", role: "FRONT_DESK", phone: "", salaryType: "FIXED_MONTHLY", monthlySalary: "", perDaySalary: "", pin: "", shifts: [{ start: "", end: "" }], shiftDays: [0,1,2,3,4,5,6], salesCommissionPct: "", notes: "" },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "shifts" });
   const salaryType = watch("salaryType");
   const shiftDays  = watch("shiftDays");
+  const role       = watch("role");
 
   useEffect(() => {
     if (employee) {
@@ -54,8 +55,9 @@ export function EditEmployeeDialog({ employee, onClose }: Props) {
         perDaySalary:  employee.perDaySalary?.toString() ?? "",
         pin:           employee.pin ?? "",
         shifts:        parseShifts(employee),
-        shiftDays:     (employee.shiftDays && employee.shiftDays.length > 0) ? employee.shiftDays : [0,1,2,3,4,5,6],
-        notes:         employee.notes ?? "",
+        shiftDays:          (employee.shiftDays && employee.shiftDays.length > 0) ? employee.shiftDays : [0,1,2,3,4,5,6],
+        salesCommissionPct: employee.salesCommissionPct?.toString() ?? "",
+        notes:              employee.notes ?? "",
       });
     }
   }, [employee, reset]);
@@ -74,9 +76,10 @@ export function EditEmployeeDialog({ employee, onClose }: Props) {
         monthlySalary: data.monthlySalary ? Number(data.monthlySalary) : undefined,
         perDaySalary:  data.perDaySalary  ? Number(data.perDaySalary)  : undefined,
         pin:           data.pin,
-        shifts:        validShifts,
-        shiftDays:     data.shiftDays,
-        notes:         data.notes,
+        shifts:             validShifts,
+        shiftDays:          data.shiftDays,
+        salesCommissionPct: data.salesCommissionPct ? Number(data.salesCommissionPct) : undefined,
+        notes:              data.notes,
       });
       toast({ title: "Saved!", description: `${data.fullName}'s profile updated.` });
       onClose();
@@ -188,6 +191,15 @@ export function EditEmployeeDialog({ employee, onClose }: Props) {
               })}
             </div>
           </div>
+
+          {/* Sales commission % — trainers only */}
+          {role === "TRAINER" && (
+            <div>
+              <label className={labelCls}>Sales Commission % <span className="text-gray-600 font-normal">(% of monthly sales credited to trainer)</span></label>
+              <input {...register("salesCommissionPct")} type="number" min="0" max="100" step="0.5"
+                placeholder="e.g. 5" className={inputCls} />
+            </div>
+          )}
 
           {/* Salary */}
           <div className="grid grid-cols-2 gap-3">

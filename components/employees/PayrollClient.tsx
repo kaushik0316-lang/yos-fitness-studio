@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, RefreshCw, CheckCircle2, Loader2, Download, Trash2 } from "lucide-react";
 import { generatePayrollAction, markPayrollPaid, updateBonus, clearPayrollAction } from "@/lib/actions/payroll";
@@ -28,10 +28,11 @@ type PayrollRecord = {
   employee: { fullName: string; role: string; salaryType: string; employeeId: string };
 };
 
-type Props = { records: PayrollRecord[]; month: number; year: number; userRole: UserRole };
+type Props = { records: PayrollRecord[]; month: number; year: number; userRole: UserRole; commissionsTab?: React.ReactNode };
 
-export function PayrollClient({ records, month, year, userRole }: Props) {
+export function PayrollClient({ records, month, year, userRole, commissionsTab }: Props) {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"payroll" | "commissions">("payroll");
   const [generating, setGenerating] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -127,6 +128,22 @@ export function PayrollClient({ records, month, year, userRole }: Props) {
 
   return (
     <div className="space-y-5">
+      {/* Tabs */}
+      <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: "rgba(255,255,255,0.05)" }}>
+        {([
+          { key: "payroll",     label: "Payroll" },
+          { key: "commissions", label: "Sales & PT Commissions" },
+        ] as const).map(({ key, label }) => (
+          <button key={key} onClick={() => setActiveTab(key)}
+            className={cn("px-4 py-2 rounded-lg text-sm font-semibold transition-all",
+              activeTab === key ? "bg-orange-500 text-white shadow-lg" : "text-gray-500 hover:text-gray-300"
+            )}>{label}</button>
+        ))}
+      </div>
+
+      {activeTab === "commissions" && commissionsTab}
+
+      {activeTab === "payroll" && <>
       {/* Header controls */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
@@ -344,6 +361,7 @@ export function PayrollClient({ records, month, year, userRole }: Props) {
           </table>
         )}
       </div>
+      </>}
     </div>
   );
 }

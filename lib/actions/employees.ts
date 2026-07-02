@@ -72,8 +72,9 @@ const updateSchema = z.object({
   perDaySalary:  z.number().optional(),
   pin:           z.string().regex(/^\d{4,6}$/, "PIN must be 4–6 digits"),
   shifts:        z.array(shiftSchema).optional(),
-  shiftDays:     z.array(z.number().min(0).max(6)).optional(),
-  notes:         z.string().optional(),
+  shiftDays:          z.array(z.number().min(0).max(6)).optional(),
+  salesCommissionPct: z.number().min(0).max(100).optional(),
+  notes:              z.string().optional(),
 });
 
 export async function updateEmployee(input: z.infer<typeof updateSchema>) {
@@ -100,9 +101,10 @@ export async function updateEmployee(input: z.infer<typeof updateSchema>) {
       perDaySalary:  data.perDaySalary ?? null,
       pin:           data.pin,
       shiftEndTime,
-      shifts:        data.shifts ?? [],
-      shiftDays:     data.shiftDays ?? [],
-      notes:         ucase(data.notes),
+      shifts:             data.shifts ?? [],
+      shiftDays:          data.shiftDays ?? [],
+      salesCommissionPct: data.salesCommissionPct ?? null,
+      notes:              ucase(data.notes),
     },
   });
 
