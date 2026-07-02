@@ -95,21 +95,20 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     ? (employee.shiftDays as number[])
     : [0, 1, 2, 3, 4, 5, 6];
 
-  // Build set of date keys for scheduled Sundays (Sun is in shiftDays AND it's a Sunday)
-  const scheduledSundayKeys = new Set<string>();
+  // Build set of off-day keys (days NOT in shiftDays) — these are auto-credited as full shift hours
+  const offDayKeys = new Set<string>();
   for (let d = 1; d <= totalCalendarDays; d++) {
-    const date = new Date(input.year, input.month - 1, d);
-    if (date.getDay() === 0 && shiftDays.includes(0)) {
-      scheduledSundayKeys.add(`${input.year}-${String(input.month).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
+    if (!shiftDays.includes(new Date(input.year, input.month - 1, d).getDay())) {
+      offDayKeys.add(`${input.year}-${String(input.month).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
     }
   }
 
-  // Sum kiosk hours — skip scheduled Sundays for trainers (credited as full shift below)
+  // Sum kiosk hours for shift days only; off-days are auto-credited below
   let actualHours = 0;
   for (const a of attendances) {
     const ad = new Date(a.date);
     const aKey = `${ad.getFullYear()}-${String(ad.getMonth()+1).padStart(2,"0")}-${String(ad.getDate()).padStart(2,"0")}`;
-    if (isTrainer && scheduledSundayKeys.has(aKey)) continue;
+    if (isTrainer && offDayKeys.has(aKey)) continue;
     for (const s of a.shifts) {
       if (s.checkInTime && s.checkOutTime) {
         actualHours += (new Date(s.checkOutTime).getTime() - new Date(s.checkInTime).getTime()) / 3600000;
@@ -117,23 +116,17 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     }
   }
 
-  // For trainers: scheduled Sundays always = full shift hours regardless of kiosk
+  // For trainers: off-days (outside shiftDays) always = full shift hours
   if (isTrainer && hoursPerDay > 0) {
-    actualHours += hoursPerDay * scheduledSundayKeys.size;
+    actualHours += hoursPerDay * offDayKeys.size;
   }
 
   actualHours = Math.round(actualHours * 100) / 100;
 
   const workingDays = totalCalendarDays;
 
-  // Required hours = hoursPerDay × days in month that fall on scheduled working days
-  let scheduledDaysCount = 0;
-  if (isTrainer && hoursPerDay > 0) {
-    for (let d = 1; d <= totalCalendarDays; d++) {
-      if (shiftDays.includes(new Date(input.year, input.month - 1, d).getDay())) scheduledDaysCount++;
-    }
-  }
-  const requiredHours = isTrainer && hoursPerDay > 0 ? hoursPerDay * scheduledDaysCount : 0;
+  // Required hours = hoursPerDay × ALL calendar days (off-days auto-credited, shift days from kiosk)
+  const requiredHours = isTrainer && hoursPerDay > 0 ? hoursPerDay * totalCalendarDays : 0;
 
   let grossSalary = 0;
   let deductions = 0;
