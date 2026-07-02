@@ -61,10 +61,24 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     include: { shifts: true },
   });
 
-  // Count daily statuses
-  let presentDays = 0, absentDays = 0, halfDays = 0, weeklyOffs = 0, leaveDays = 0, paidLeaveDays = 0;
+  // Build date → status map from explicit attendance records
+  const recordedStatus = new Map<string, EmployeeAttendanceStatus>();
   for (const a of attendances) {
-    switch (a.status) {
+    const d = new Date(a.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    recordedStatus.set(key, a.status);
+  }
+
+  // Count statuses — unrecorded Sundays default to PRESENT
+  let presentDays = 0, absentDays = 0, halfDays = 0, weeklyOffs = 0, leaveDays = 0, paidLeaveDays = 0;
+  const totalCalendarDays = getDaysInMonth(monthStart);
+  for (let d = 1; d <= totalCalendarDays; d++) {
+    const date = new Date(input.year, input.month - 1, d);
+    const key = `${input.year}-${String(input.month).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const isSunday = date.getDay() === 0;
+    const status = recordedStatus.get(key) ?? (isSunday ? EmployeeAttendanceStatus.PRESENT : null);
+    if (!status) continue;
+    switch (status) {
       case EmployeeAttendanceStatus.PRESENT:    presentDays++;    break;
       case EmployeeAttendanceStatus.ABSENT:     absentDays++;     break;
       case EmployeeAttendanceStatus.HALF_DAY:   halfDays++;       break;
@@ -85,14 +99,8 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
   }
   actualHours = Math.round(actualHours * 100) / 100;
 
-  const totalCalendarDays = getDaysInMonth(monthStart);
-
-  // For non-trainer daily logic: exclude Sundays from working days
-  let sundaysInMonth = 0;
-  for (let d = 1; d <= totalCalendarDays; d++) {
-    if (new Date(input.year, input.month - 1, d).getDay() === 0) sundaysInMonth++;
-  }
-  const workingDays = totalCalendarDays - sundaysInMonth;
+  // Sundays are full working days — use all calendar days as the base
+  const workingDays = totalCalendarDays;
 
   const isTrainer = employee.role === "TRAINER";
 
