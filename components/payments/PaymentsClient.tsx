@@ -429,7 +429,7 @@ export function PaymentsClient({
       <RecordPaymentDialog
         open={showRecord} onClose={() => setShowRecord(false)}
         member={{ id: "", memberId: "", fullName: "Select member…" }}
-        packages={packages} trainers={trainers} userId={userId}
+        packages={packages} trainers={trainers} userId={userId} userRole={userRole}
       />
     </div>
   );

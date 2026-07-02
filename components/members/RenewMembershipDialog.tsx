@@ -19,10 +19,11 @@ type Props = {
   member: { id: string; memberId: string; fullName: string };
   packages: { id: string; name: string; price: any; durationDays: number; company: Company | null }[];
   userId: string;
+  userRole?: string;
   trainers?: Trainer[];
 };
 
-export function RenewMembershipDialog({ open, onClose, member, packages, userId, trainers = [] }: Props) {
+export function RenewMembershipDialog({ open, onClose, member, packages, userId, userRole, trainers = [] }: Props) {
   const [loading, setLoading] = useState(false);
   const [successPaymentId, setSuccessPaymentId] = useState<string | null>(null);
   const [successExpiry, setSuccessExpiry] = useState<Date | null>(null);
@@ -208,8 +209,8 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId,
             <input {...register("notes")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Optional note..." />
           </div>
 
-          {/* Trainer commission */}
-          {trainers.length > 0 && (
+          {/* Trainer commission — admin only */}
+          {userRole === "ADMIN" && trainers.length > 0 && (
             <div className="rounded-lg p-3 space-y-3" style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.15)" }}>
               <p className="text-xs font-bold text-orange-400">Trainer Commission <span className="font-normal text-gray-500">(optional)</span></p>
               <div className="grid grid-cols-2 gap-3">

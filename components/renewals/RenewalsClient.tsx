@@ -360,7 +360,7 @@ export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expir
         <RenewMembershipDialog
           open={!!renewFor} onClose={() => setRenewFor(null)}
           member={renewFor}
-          packages={packages} trainers={trainers} userId={userId}
+          packages={packages} trainers={trainers} userId={userId} userRole={userRole}
         />
       )}
     </div>
