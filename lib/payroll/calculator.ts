@@ -90,21 +90,26 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
 
   const isTrainer   = employee.role === "TRAINER";
   const hoursPerDay = dailyShiftHours(employee.shifts);
+  // shiftDays: which weekdays this employee works. null/empty = all days (0=Sun … 6=Sat)
+  const shiftDays: number[] = Array.isArray(employee.shiftDays) && (employee.shiftDays as number[]).length > 0
+    ? (employee.shiftDays as number[])
+    : [0, 1, 2, 3, 4, 5, 6];
 
-  // Build set of Sunday date keys for this month
-  const sundayKeys = new Set<string>();
+  // Build set of date keys for scheduled Sundays (Sun is in shiftDays AND it's a Sunday)
+  const scheduledSundayKeys = new Set<string>();
   for (let d = 1; d <= totalCalendarDays; d++) {
-    if (new Date(input.year, input.month - 1, d).getDay() === 0) {
-      sundayKeys.add(`${input.year}-${String(input.month).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
+    const date = new Date(input.year, input.month - 1, d);
+    if (date.getDay() === 0 && shiftDays.includes(0)) {
+      scheduledSundayKeys.add(`${input.year}-${String(input.month).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
     }
   }
 
-  // Sum kiosk hours — for trainers skip Sundays (always credited as full shift below)
+  // Sum kiosk hours — skip scheduled Sundays for trainers (credited as full shift below)
   let actualHours = 0;
   for (const a of attendances) {
     const ad = new Date(a.date);
     const aKey = `${ad.getFullYear()}-${String(ad.getMonth()+1).padStart(2,"0")}-${String(ad.getDate()).padStart(2,"0")}`;
-    if (isTrainer && sundayKeys.has(aKey)) continue; // Sunday handled separately
+    if (isTrainer && scheduledSundayKeys.has(aKey)) continue;
     for (const s of a.shifts) {
       if (s.checkInTime && s.checkOutTime) {
         actualHours += (new Date(s.checkOutTime).getTime() - new Date(s.checkInTime).getTime()) / 3600000;
@@ -112,18 +117,23 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     }
   }
 
-  // For trainers: every Sunday = full shift hours regardless of kiosk
+  // For trainers: scheduled Sundays always = full shift hours regardless of kiosk
   if (isTrainer && hoursPerDay > 0) {
-    actualHours += hoursPerDay * sundayKeys.size;
+    actualHours += hoursPerDay * scheduledSundayKeys.size;
   }
 
   actualHours = Math.round(actualHours * 100) / 100;
 
-  // Sundays are full working days — use all calendar days as the base
   const workingDays = totalCalendarDays;
 
-  // Required hours = shift hours per day × ALL days in month (Sundays + holidays count)
-  const requiredHours = isTrainer && hoursPerDay > 0 ? hoursPerDay * totalCalendarDays : 0;
+  // Required hours = hoursPerDay × days in month that fall on scheduled working days
+  let scheduledDaysCount = 0;
+  if (isTrainer && hoursPerDay > 0) {
+    for (let d = 1; d <= totalCalendarDays; d++) {
+      if (shiftDays.includes(new Date(input.year, input.month - 1, d).getDay())) scheduledDaysCount++;
+    }
+  }
+  const requiredHours = isTrainer && hoursPerDay > 0 ? hoursPerDay * scheduledDaysCount : 0;
 
   let grossSalary = 0;
   let deductions = 0;

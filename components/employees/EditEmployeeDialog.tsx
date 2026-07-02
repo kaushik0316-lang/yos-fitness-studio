@@ -13,7 +13,7 @@ type Employee = {
   id: string; employeeId: string; fullName: string; role: string;
   phone: string; salaryType: string; monthlySalary: number | null;
   perDaySalary: number | null; pin: string | null; shiftEndTime: string | null;
-  shifts: Shift[] | null; notes: string | null;
+  shifts: Shift[] | null; shiftDays: number[] | null; notes: string | null;
 };
 
 type Props = { employee: Employee | null; onClose: () => void };
@@ -21,7 +21,7 @@ type Props = { employee: Employee | null; onClose: () => void };
 type FormValues = {
   fullName: string; role: string; phone: string;
   salaryType: string; monthlySalary: string; perDaySalary: string;
-  pin: string; shifts: Shift[]; notes: string;
+  pin: string; shifts: Shift[]; shiftDays: number[]; notes: string;
 };
 
 const inputCls = "w-full rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500";
@@ -35,12 +35,13 @@ function parseShifts(emp: Employee): Shift[] {
 
 export function EditEmployeeDialog({ employee, onClose }: Props) {
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit, reset, watch, control, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { fullName: "", role: "FRONT_DESK", phone: "", salaryType: "FIXED_MONTHLY", monthlySalary: "", perDaySalary: "", pin: "", shifts: [{ start: "", end: "" }], notes: "" },
+  const { register, handleSubmit, reset, watch, control, setValue, formState: { errors } } = useForm<FormValues>({
+    defaultValues: { fullName: "", role: "FRONT_DESK", phone: "", salaryType: "FIXED_MONTHLY", monthlySalary: "", perDaySalary: "", pin: "", shifts: [{ start: "", end: "" }], shiftDays: [0,1,2,3,4,5,6], notes: "" },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "shifts" });
   const salaryType = watch("salaryType");
+  const shiftDays  = watch("shiftDays");
 
   useEffect(() => {
     if (employee) {
@@ -53,6 +54,7 @@ export function EditEmployeeDialog({ employee, onClose }: Props) {
         perDaySalary:  employee.perDaySalary?.toString() ?? "",
         pin:           employee.pin ?? "",
         shifts:        parseShifts(employee),
+        shiftDays:     (employee.shiftDays && employee.shiftDays.length > 0) ? employee.shiftDays : [0,1,2,3,4,5,6],
         notes:         employee.notes ?? "",
       });
     }
@@ -73,6 +75,7 @@ export function EditEmployeeDialog({ employee, onClose }: Props) {
         perDaySalary:  data.perDaySalary  ? Number(data.perDaySalary)  : undefined,
         pin:           data.pin,
         shifts:        validShifts,
+        shiftDays:     data.shiftDays,
         notes:         data.notes,
       });
       toast({ title: "Saved!", description: `${data.fullName}'s profile updated.` });
@@ -161,6 +164,28 @@ export function EditEmployeeDialog({ employee, onClose }: Props) {
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Shift Days */}
+          <div>
+            <label className={labelCls}>Working Days</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {[{d:1,l:"Mon"},{d:2,l:"Tue"},{d:3,l:"Wed"},{d:4,l:"Thu"},{d:5,l:"Fri"},{d:6,l:"Sat"},{d:0,l:"Sun"}].map(({d,l}) => {
+                const active = shiftDays?.includes(d);
+                return (
+                  <button key={d} type="button"
+                    onClick={() => {
+                      const cur = shiftDays ?? [];
+                      setValue("shiftDays", active ? cur.filter(x => x !== d) : [...cur, d]);
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    style={active
+                      ? { background: "linear-gradient(135deg,#f97316,#ea580c)", color: "#fff" }
+                      : { background: "rgba(255,255,255,0.06)", color: "#6b7280" }}
+                  >{l}</button>
+                );
+              })}
             </div>
           </div>
 

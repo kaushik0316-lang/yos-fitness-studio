@@ -17,7 +17,7 @@ type Employee = {
   id: string; employeeId: string; fullName: string; role: string;
   phone: string; salaryType: string; monthlySalary: number | null;
   perDaySalary: number | null; pin: string | null; shiftEndTime: string | null;
-  shifts: Shift[] | null; notes: string | null; isActive: boolean; joinDate: Date;
+  shifts: Shift[] | null; shiftDays: number[] | null; notes: string | null; isActive: boolean; joinDate: Date;
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -195,6 +195,18 @@ function StaffRow({ emp, idx, salesThisMonth, pinRevealed, onTogglePin, onEdit, 
         </div>
         <div className="flex items-center gap-3 mt-0.5">
           <p className="text-xs text-gray-500">{emp.phone}</p>
+          {emp.shiftDays && emp.shiftDays.length > 0 && emp.shiftDays.length < 7 && (
+            <div className="flex items-center gap-0.5">
+              {[{d:1,l:"M"},{d:2,l:"T"},{d:3,l:"W"},{d:4,l:"T"},{d:5,l:"F"},{d:6,l:"S"},{d:0,l:"S"}].map(({d,l},i) => (
+                <span key={i} className="text-[9px] w-4 h-4 rounded flex items-center justify-center font-bold"
+                  style={emp.shiftDays!.includes(d)
+                    ? { background: "rgba(249,115,22,0.2)", color: "#fb923c" }
+                    : { background: "rgba(255,255,255,0.04)", color: "#374151" }}>
+                  {l}
+                </span>
+              ))}
+            </div>
+          )}
           {emp.shifts && Array.isArray(emp.shifts) && emp.shifts.length > 0 ? (
             <div className="flex items-center gap-1 flex-wrap">
               {(emp.shifts as Shift[]).filter(s => s.start && s.end).map((s, i) => (

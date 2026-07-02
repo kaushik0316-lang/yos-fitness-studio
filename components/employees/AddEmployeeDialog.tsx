@@ -14,7 +14,7 @@ type Props = { open: boolean; onClose: () => void };
 type FormValues = {
   fullName: string; role: string; phone: string; joinDate: string;
   salaryType: string; monthlySalary: string; perDaySalary: string;
-  pin: string; shifts: Shift[]; notes: string;
+  pin: string; shifts: Shift[]; shiftDays: number[]; notes: string;
 };
 
 const inputCls = "w-full rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500";
@@ -22,16 +22,17 @@ const labelCls = "block text-xs font-medium text-gray-500 mb-1";
 
 export function AddEmployeeDialog({ open, onClose }: Props) {
   const [loading, setLoading] = useState(false);
-  const { register, handleSubmit, watch, reset, control, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, watch, reset, control, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
       fullName: "", role: "TRAINER", phone: "", joinDate: format(new Date(), "yyyy-MM-dd"),
       salaryType: "FIXED_MONTHLY", monthlySalary: "", perDaySalary: "",
-      pin: "", shifts: [{ start: "", end: "" }], notes: "",
+      pin: "", shifts: [{ start: "", end: "" }], shiftDays: [0,1,2,3,4,5,6], notes: "",
     },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "shifts" });
   const salaryType = watch("salaryType");
+  const shiftDays  = watch("shiftDays");
 
   function handleClose() { reset(); onClose(); }
 
@@ -49,6 +50,7 @@ export function AddEmployeeDialog({ open, onClose }: Props) {
         perDaySalary:  data.perDaySalary  ? Number(data.perDaySalary)  : undefined,
         pin:           data.pin,
         shifts:        validShifts,
+        shiftDays:     data.shiftDays,
         notes:         data.notes,
       });
       toast({ title: "Staff added!", description: `Registered as ${result.employeeId}. PIN: ${data.pin}` });
@@ -133,6 +135,28 @@ export function AddEmployeeDialog({ open, onClose }: Props) {
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Shift Days */}
+          <div>
+            <label className={labelCls}>Working Days</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {[{d:1,l:"Mon"},{d:2,l:"Tue"},{d:3,l:"Wed"},{d:4,l:"Thu"},{d:5,l:"Fri"},{d:6,l:"Sat"},{d:0,l:"Sun"}].map(({d,l}) => {
+                const active = shiftDays?.includes(d);
+                return (
+                  <button key={d} type="button"
+                    onClick={() => {
+                      const cur = shiftDays ?? [];
+                      setValue("shiftDays", active ? cur.filter(x => x !== d) : [...cur, d]);
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    style={active
+                      ? { background: "linear-gradient(135deg,#f97316,#ea580c)", color: "#fff" }
+                      : { background: "rgba(255,255,255,0.06)", color: "#6b7280" }}
+                  >{l}</button>
+                );
+              })}
             </div>
           </div>
 

@@ -381,6 +381,7 @@ model Employee {
   pin           String?      @unique
   shiftEndTime  String?  // Legacy — kept for fallback. Use shifts[] instead.
   shifts        Json?    // [{"start":"07:00","end":"12:00"},{"start":"16:00","end":"21:30"}]
+  shiftDays     Json?    // [1,2,3,4,5] — 0=Sun,1=Mon,...,6=Sat. null = all days
   notes         String?
 
   // Link to auth user (optional — not all employees need login access)
