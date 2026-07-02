@@ -216,8 +216,7 @@ export default function MyAttendancePage() {
 
         {/* Header */}
         <div className="px-4 pt-8 pb-4 flex flex-col items-center">
-          <Image src="/Logo.png" alt="Yos" width={120} height={120} className="h-10 w-auto object-contain mb-4" />
-          <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold mb-3"
+          <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold mb-3"
             style={{ background: "linear-gradient(135deg,#f97316,#ea580c)", color: "#fff" }}>
             {data.employee.fullName.trim().split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
           </div>
@@ -227,20 +226,24 @@ export default function MyAttendancePage() {
           </p>
         </div>
 
-        {/* Month nav — card style */}
-        <div className="mx-4 mb-4 flex items-center justify-between px-3 py-2.5 rounded-2xl"
-          style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.06)" }}>
-          <button onClick={() => changeMonth(-1)}
-            className="px-3 py-1.5 rounded-xl text-sm font-semibold transition-colors"
-            style={{ background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
-            ← Prev
-          </button>
-          <span className="text-white font-bold text-sm">{MONTH_NAMES[data.month - 1]} {data.year}</span>
-          <button onClick={() => changeMonth(1)} disabled={isCurrentMonth}
-            className="px-3 py-1.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-30"
-            style={{ background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
-            Next →
-          </button>
+        {/* Month nav — compact centered pill */}
+        <div className="flex justify-center mb-4 px-4">
+          <div className="inline-flex items-center gap-2 px-2 py-1.5 rounded-2xl"
+            style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <button onClick={() => changeMonth(-1)}
+              className="px-3 py-1 rounded-xl text-sm font-semibold transition-colors"
+              style={{ background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
+              ←
+            </button>
+            <span className="text-white font-bold text-sm px-2 min-w-[120px] text-center">
+              {MONTH_NAMES[data.month - 1]} {data.year}
+            </span>
+            <button onClick={() => changeMonth(1)} disabled={isCurrentMonth}
+              className="px-3 py-1 rounded-xl text-sm font-semibold transition-colors disabled:opacity-30"
+              style={{ background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
+              →
+            </button>
+          </div>
         </div>
 
         {/* Hours progress bar — trainers only */}
@@ -269,7 +272,7 @@ export default function MyAttendancePage() {
         )}
 
         {/* Unified 3×2 stat grid */}
-        <div className="px-4 pb-4 grid grid-cols-3 gap-2">
+        <div className="px-4 pb-36 grid grid-cols-3 gap-2">
           {summaryItems.map(({ key, label, val }) => {
             const cfg = STATUS_CONFIG[key];
             return (
