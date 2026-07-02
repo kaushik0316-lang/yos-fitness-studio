@@ -201,6 +201,10 @@ export async function renewMembership(input: {
   paymentMode: PaymentMode;
   company: Company;
   notes?: string;
+  commissionTrainerId?: string;
+  commissionPct?: number;
+  memberName?: string;
+  packageName?: string;
 }) {
   const session = await auth();
   if (!session?.user) throw new Error("Unauthorized");
@@ -250,6 +254,24 @@ export async function renewMembership(input: {
         lastPaymentDate: new Date(),
       },
     });
+
+    if (input.commissionTrainerId && input.commissionPct) {
+      const now = new Date();
+      const commissionAmount = Math.round(input.amount * input.commissionPct) / 100;
+      await tx.trainerCommission.create({
+        data: {
+          trainerId:       input.commissionTrainerId,
+          paymentId:       payment.id,
+          clientName:      input.memberName ?? "Unknown",
+          packageType:     input.packageName ?? "OTHER",
+          totalAmount:     input.amount,
+          commissionPct:   input.commissionPct,
+          commissionAmount,
+          month:           now.getMonth() + 1,
+          year:            now.getFullYear(),
+        },
+      });
+    }
 
     await tx.auditLog.create({
       data: {

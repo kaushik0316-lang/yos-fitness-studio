@@ -24,6 +24,8 @@ type Payment = {
 
 type Stats = { company: Company; _sum: { amount: any }; _count: number }[];
 
+type Trainer = { id: string; fullName: string };
+
 type Props = {
   payments: Payment[]; total: number; totalAmount: number;
   page: number; pageSize: number;
@@ -31,6 +33,7 @@ type Props = {
   selectedMonthStats?: Stats | null; selectedMonthLabel?: string;
   filteredStats?: Stats | null; filteredLabel?: string;
   packages: any[];
+  trainers?: Trainer[];
   members: { id: string; memberId: string; fullName: string }[];
   userRole: UserRole; userId: string;
   dateFilter?: string; currentSort: string;
@@ -90,7 +93,7 @@ export function PaymentsClient({
   payments, total, totalAmount, page, pageSize,
   todayStats, monthStats, selectedMonthStats, selectedMonthLabel,
   filteredStats, filteredLabel,
-  packages, members,
+  packages, trainers = [], members,
   userRole, userId, dateFilter, currentSort,
 }: Props) {
   const router   = useRouter();
@@ -426,7 +429,7 @@ export function PaymentsClient({
       <RecordPaymentDialog
         open={showRecord} onClose={() => setShowRecord(false)}
         member={{ id: "", memberId: "", fullName: "Select member…" }}
-        packages={packages} userId={userId}
+        packages={packages} trainers={trainers} userId={userId}
       />
     </div>
   );

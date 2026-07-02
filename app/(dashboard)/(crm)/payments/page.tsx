@@ -89,7 +89,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   }
   selectedMonthLabel ??= today.toLocaleString("en-US", { month: "long", year: "numeric" });
 
-  const [payments, total, totalAmount, todayStats, monthStats, filteredStats, selectedMonthStats, packages, members] = await Promise.all([
+  const [payments, total, totalAmount, todayStats, monthStats, filteredStats, selectedMonthStats, packages, trainers, members] = await Promise.all([
     prisma.payment.findMany({
       where,
       include: {
@@ -123,6 +123,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
       _sum: { amount: true }, _count: true,
     }),
     prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.employee.findMany({ where: { role: "TRAINER", isActive: true }, select: { id: true, fullName: true }, orderBy: { fullName: "asc" } }),
     prisma.member.findMany({
       where: { memberId: { not: { startsWith: "IMP-" } } },
       select: { id: true, memberId: true, fullName: true },
@@ -162,6 +163,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
             hasFilter ? "Filtered" : undefined
           }
           packages={packages}
+          trainers={trainers}
           members={members as any}
           userRole={session!.user.role}
           userId={session!.user.id}

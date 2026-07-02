@@ -18,7 +18,7 @@ export default async function RenewalsPage() {
   const past30Days = startOfDay(addDays(today, -30));
   const endOfToday = endOfDay(today);
 
-  const [allMembers, renewedToday, packages] = await Promise.all([
+  const [allMembers, renewedToday, packages, trainers] = await Promise.all([
     prisma.member.findMany({
       where: {
         status: { in: [MemberStatus.EXPIRED, MemberStatus.ACTIVE] },
@@ -57,6 +57,7 @@ export default async function RenewalsPage() {
       orderBy: { createdAt: "desc" },
     }),
     prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.employee.findMany({ where: { role: "TRAINER", isActive: true }, select: { id: true, fullName: true }, orderBy: { fullName: "asc" } }),
   ]);
 
   type MRow = {
@@ -164,6 +165,7 @@ export default async function RenewalsPage() {
           expiring30={expiring30 as any}
           renewedToday={renewedToday as any}
           packages={packages}
+          trainers={trainers}
           userRole={session!.user.role}
           userId={session!.user.id}
         />

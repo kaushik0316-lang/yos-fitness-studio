@@ -22,9 +22,12 @@ type RenewalMembership = {
   member: MemberInfo;
 };
 
+type Trainer = { id: string; fullName: string };
+
 type Props = {
   expiredMemberships: RenewalMembership[]; expiring1: RenewalMembership[]; expiring3: RenewalMembership[];
   expiring7: RenewalMembership[]; expiring30: RenewalMembership[]; renewedToday: any[]; packages: any[];
+  trainers?: Trainer[];
   userRole: UserRole; userId: string;
 };
 
@@ -73,7 +76,7 @@ function buildWhatsAppMessage(memberships: RenewalMembership[], tabLabel: string
   return msg.trim();
 }
 
-export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expiring7, expiring30, renewedToday, packages, userRole, userId }: Props) {
+export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expiring7, expiring30, renewedToday, packages, trainers = [], userRole, userId }: Props) {
   const [activeTab, setActiveTab] = useState("expired");
   const [renewFor, setRenewFor] = useState<{ id: string; memberId: string; fullName: string } | null>(null);
   const [search, setSearch] = useState("");
@@ -357,7 +360,7 @@ export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expir
         <RenewMembershipDialog
           open={!!renewFor} onClose={() => setRenewFor(null)}
           member={renewFor}
-          packages={packages} userId={userId}
+          packages={packages} trainers={trainers} userId={userId}
         />
       )}
     </div>

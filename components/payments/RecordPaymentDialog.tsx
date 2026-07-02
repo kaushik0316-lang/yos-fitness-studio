@@ -11,19 +11,22 @@ import { recordPayment } from "@/lib/actions/payments";
 import { toast } from "@/hooks/use-toast";
 import { Company, PaymentMode } from "@prisma/client";
 
+type Trainer = { id: string; fullName: string };
+
 type Props = {
   open: boolean;
   onClose: () => void;
   member: { id: string; memberId: string; fullName: string };
   packages: { id: string; name: string; price: any; durationDays: number; company: Company | null }[];
   userId: string;
+  trainers?: Trainer[];
 };
 
-export function RecordPaymentDialog({ open, onClose, member, packages, userId }: Props) {
+export function RecordPaymentDialog({ open, onClose, member, packages, userId, trainers = [] }: Props) {
   const [loading, setLoading] = useState(false);
   const [successPaymentId, setSuccessPaymentId] = useState<string | null>(null);
 
-  const { register, handleSubmit, reset, control } = useForm({
+  const { register, handleSubmit, reset, control, watch } = useForm({
     defaultValues: {
       amount: "",
       discount: "0",
@@ -34,8 +37,15 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId }:
       transactionRef: "",
       notes: "",
       startDate: format(new Date(), "yyyy-MM-dd"),
+      commissionTrainerId: "",
+      commissionPct: "",
     },
   });
+
+  const commissionTrainerId = watch("commissionTrainerId");
+  const commissionPct = parseFloat(watch("commissionPct") ?? "") || 0;
+  const amountVal = parseFloat(watch("amount") ?? "") || 0;
+  const commissionPreview = amountVal && commissionPct ? Math.round(amountVal * commissionPct) / 100 : 0;
 
   const selectedPackageId = useWatch({ control, name: "packageId" });
   const selectedPackage = packages.find((p) => p.id === selectedPackageId);
@@ -54,6 +64,7 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId }:
     setLoading(true);
     try {
       const hasPackageAndDate = !!data.packageId && !!data.startDate;
+      const selectedPkg = packages.find(p => p.id === data.packageId);
       const result = await recordPayment({
         memberId: member.id,
         amount: Number(data.amount),
@@ -66,6 +77,10 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId }:
         notes: data.notes || undefined,
         createMembership: hasPackageAndDate,
         startDate: hasPackageAndDate ? data.startDate : undefined,
+        commissionTrainerId: data.commissionTrainerId || undefined,
+        commissionPct: data.commissionPct ? Number(data.commissionPct) : undefined,
+        memberName: member.fullName,
+        packageName: selectedPkg?.name,
       });
       setSuccessPaymentId(result.paymentId);
     } catch (e: any) {
@@ -184,6 +199,32 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId }:
               <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
               <input {...register("notes")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Optional note..." />
             </div>
+
+            {/* Trainer commission */}
+            {trainers.length > 0 && (
+              <div className="rounded-lg p-3 space-y-3" style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.15)" }}>
+                <p className="text-xs font-bold text-orange-400">Trainer Commission <span className="font-normal text-gray-500">(optional)</span></p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Assign to Trainer</label>
+                    <select {...register("commissionTrainerId")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none">
+                      <option value="">— None —</option>
+                      {trainers.map(t => <option key={t.id} value={t.id}>{t.fullName}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Commission %</label>
+                    <input {...register("commissionPct")} type="number" min="0" max="100" step="0.5"
+                      placeholder="e.g. 35" className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none" />
+                  </div>
+                </div>
+                {commissionTrainerId && commissionPreview > 0 && (
+                  <p className="text-xs font-bold" style={{ color: "#fb923c" }}>
+                    Trainer gets: ₹{commissionPreview.toLocaleString("en-IN")}
+                  </p>
+                )}
+              </div>
+            )}
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>Cancel</Button>

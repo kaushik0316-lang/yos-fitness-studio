@@ -20,6 +20,11 @@ const paymentSchema = z.object({
   notes: z.string().optional(),
   createMembership: z.boolean().default(false),
   startDate: z.string().optional(),
+  // Trainer commission — optional
+  commissionTrainerId: z.string().optional(),
+  commissionPct:       z.number().min(0).max(100).optional(),
+  memberName:          z.string().optional(),
+  packageName:         z.string().optional(),
 });
 
 export async function recordPayment(input: z.infer<typeof paymentSchema>) {
@@ -86,6 +91,25 @@ export async function recordPayment(input: z.infer<typeof paymentSchema>) {
       await tx.member.update({
         where: { id: data.memberId },
         data: { lastPaymentDate: new Date() },
+      });
+    }
+
+    // Trainer commission linked to this bill
+    if (data.commissionTrainerId && data.commissionPct) {
+      const now = new Date();
+      const commissionAmount = Math.round(data.amount * data.commissionPct) / 100;
+      await tx.trainerCommission.create({
+        data: {
+          trainerId:       data.commissionTrainerId,
+          paymentId:       payment.id,
+          clientName:      data.memberName ?? "Unknown",
+          packageType:     data.packageName ?? "OTHER",
+          totalAmount:     data.amount,
+          commissionPct:   data.commissionPct,
+          commissionAmount,
+          month:           now.getMonth() + 1,
+          year:            now.getFullYear(),
+        },
       });
     }
 
