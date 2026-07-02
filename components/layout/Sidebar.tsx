@@ -6,7 +6,7 @@ import { signOut } from "next-auth/react";
 import {
   Users, CalendarCheck, RotateCcw, CreditCard,
   ClipboardList, DollarSign, BarChart3, MessageSquare,
-  Zap, Settings, LogOut, Dumbbell, Wrench, FileUp, UserSearch,
+  Zap, Settings, LogOut, Dumbbell, Wrench, FileUp, UserSearch, TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@prisma/client";
@@ -28,6 +28,7 @@ const navGroups = [
     items: [
       { label: "Staff Attendance", href: "/employee-attendance", icon: ClipboardList, roles: ["ADMIN", "ACCOUNTANT"] },
       { label: "Payroll",          href: "/payroll",            icon: DollarSign,    roles: ["ADMIN", "ACCOUNTANT"] },
+      { label: "Sales",            href: "/sales",              icon: TrendingUp,    roles: ["ADMIN", "ACCOUNTANT"] },
     ],
   },
   {

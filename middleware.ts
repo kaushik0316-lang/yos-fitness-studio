@@ -40,6 +40,7 @@ const PROTECTED_PREFIXES = [
   "/payments",
   "/payroll",
   "/renewals",
+  "/sales",
   "/reports",
   "/settings",
   "/staff-tools",

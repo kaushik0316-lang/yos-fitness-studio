@@ -3,14 +3,13 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format, eachDayOfInterval, startOfMonth, endOfMonth } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2, Save, CalendarDays, Users, Clock, Pencil, TrendingUp } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Save, CalendarDays, Users, Clock, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { markEmployeeAttendance } from "@/lib/actions/attendance";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { StaffTab } from "./StaffTab";
-import { SalesTab } from "./SalesTab";
 import { ManualAttendanceDialog } from "./ManualAttendanceDialog";
 import type { UserRole } from "@prisma/client";
 
@@ -62,7 +61,7 @@ type Props = {
 
 export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMap, salesMap, month, year, userId, userRole }: Props) {
   const router = useRouter();
-  const [tab, setTab] = useState<"attendance" | "staff" | "sales">("attendance");
+  const [tab, setTab] = useState<"attendance" | "staff">("attendance");
   const [detailEmp, setDetailEmp] = useState<Employee | null>(null);
   const [editDay, setEditDay] = useState<{ dateStr: string; displayDate: string } | null>(null);
   const [localMap, setLocalMap] = useState<Record<string, Record<string, string>>>(() => {
@@ -291,8 +290,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
       <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: "rgba(255,255,255,0.05)" }}>
         {([
           { key: "attendance", label: "Staff Attendance", icon: CalendarDays },
-          { key: "staff",      label: "Payroll",          icon: Users        },
-          { key: "sales",      label: "Sales",            icon: TrendingUp   },
+          { key: "staff",      label: "Staff Details",    icon: Users        },
         ] as const).map(({ key, label, icon: Icon }) => (
           <button
             key={key}
@@ -522,13 +520,6 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
       )}
 
       {tab === "staff" && <StaffTab employees={allEmployees} salesMap={salesMap} month={month} year={year} />}
-      {tab === "sales" && (
-        <SalesTab
-          allEmployees={allEmployees.filter((e) => e.isActive).map((e) => ({ id: e.id, fullName: e.fullName }))}
-          initMonth={month}
-          initYear={year}
-        />
-      )}
     </div>
   );
 }
