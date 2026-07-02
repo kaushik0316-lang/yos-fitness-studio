@@ -46,6 +46,8 @@ export async function POST(req: NextRequest) {
         fullName: employee.fullName,
         employeeId: employee.employeeId,
         role: employee.role,
+        shifts: employee.shifts,
+        shiftDays: employee.shiftDays,
       },
       month: m,
       year: y,
