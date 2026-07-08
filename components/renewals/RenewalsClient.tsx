@@ -64,14 +64,14 @@ function packageName(ms: RenewalMembership): string | null {
 
 function buildWhatsAppMessage(memberships: RenewalMembership[], tabLabel: string): string {
   const date = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-  let msg = `📋 *Follow-up List — ${tabLabel}*\n🗓️ ${date}\n\n`;
+  let msg = `*Follow-up List — ${tabLabel}*\n${date}\n\n`;
   memberships.forEach((ms, i) => {
     const net = getNetAmount(ms);
     msg += `*${i + 1}. ${toTitleCase(ms.member.fullName)}*\n`;
-    msg += `📞 ${ms.member.phone}\n`;
-    msg += `📦 ${packageName(ms) ?? "—"}\n`;
-    msg += `🗓️ Renewal: ${ms.expiryDate ? formatDate(ms.expiryDate) : "—"}\n`;
-    msg += `💰 Amount: ${net != null ? `₹${net.toLocaleString("en-IN")}` : "—"}\n\n`;
+    msg += `Ph: ${ms.member.phone}\n`;
+    msg += `Pkg: ${packageName(ms) ?? "—"}\n`;
+    msg += `Renewal: ${ms.expiryDate ? formatDate(ms.expiryDate) : "—"}\n`;
+    msg += `Amount: ${net != null ? `Rs.${net.toLocaleString("en-IN")}` : "—"}\n\n`;
   });
   return msg.trim();
 }
