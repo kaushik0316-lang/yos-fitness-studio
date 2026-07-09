@@ -91,21 +91,25 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
   const isTrainer = employee.role === "TRAINER";
 
   // Find the shift record effective for this month.
-  // Fetch all and filter in JS to avoid Prisma/Postgres timezone issues with @db.Date comparisons.
-  const allShiftHistory = await prisma.employeeShiftHistory.findMany({
-    where: { employeeId: input.employeeId },
-    orderBy: { effectiveFrom: "desc" },
-  });
-  const historyRecord = allShiftHistory.find(h => {
-    const eff = new Date(h.effectiveFrom);
-    const effYear  = eff.getUTCFullYear();
-    const effMonth = eff.getUTCMonth() + 1;
-    const effDay   = eff.getUTCDate();
-    // Record is effective if it starts on or before the 1st of the payroll month
-    return effYear < input.year
-      || (effYear === input.year && effMonth < input.month)
-      || (effYear === input.year && effMonth === input.month && effDay <= 1);
-  });
+  // Wrapped in try-catch so a missing table or error never breaks payroll calculation.
+  let historyRecord: { shifts: unknown; shiftDays: unknown; monthlySalary: unknown } | null = null;
+  try {
+    const allShiftHistory = await prisma.employeeShiftHistory.findMany({
+      where: { employeeId: input.employeeId },
+      orderBy: { effectiveFrom: "desc" },
+    });
+    historyRecord = allShiftHistory.find(h => {
+      const eff = new Date(h.effectiveFrom);
+      const effYear  = eff.getUTCFullYear();
+      const effMonth = eff.getUTCMonth() + 1;
+      const effDay   = eff.getUTCDate();
+      return effYear < input.year
+        || (effYear === input.year && effMonth < input.month)
+        || (effYear === input.year && effMonth === input.month && effDay <= 1);
+    }) ?? null;
+  } catch {
+    // shift history unavailable — fall back to current employee fields
+  }
 
   // Use historical shift/salary if available, otherwise fall back to employee fields
   const effectiveShifts    = historyRecord?.shifts        ?? employee.shifts;
@@ -268,9 +272,13 @@ export async function generateMonthlyPayroll(month: number, year: number): Promi
   const results: PayrollResult[] = [];
 
   for (const emp of employees) {
-    const result = await calculatePayroll({ employeeId: emp.id, month, year });
-    await savePayroll(result);
-    results.push(result);
+    try {
+      const result = await calculatePayroll({ employeeId: emp.id, month, year });
+      await savePayroll(result);
+      results.push(result);
+    } catch (e) {
+      console.error(`Payroll calculation failed for ${emp.fullName}:`, e);
+    }
   }
 
   return results;
