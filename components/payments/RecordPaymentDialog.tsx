@@ -33,6 +33,8 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId, u
       discount: "0",
       pendingAmount: "0",
       paymentMode: "CASH",
+      paymentType: "",
+      previousReceiptNo: "",
       packageId: "",
       company: "YOS_FITNESS",
       transactionRef: "",
@@ -43,6 +45,7 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId, u
     },
   });
 
+  const paymentType = watch("paymentType");
   const commissionTrainerId = watch("commissionTrainerId");
   const commissionPct = parseFloat(watch("commissionPct") ?? "") || 0;
   const amountVal = parseFloat(watch("amount") ?? "") || 0;
@@ -78,6 +81,8 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId, u
         notes: data.notes || undefined,
         createMembership: hasPackageAndDate,
         startDate: hasPackageAndDate ? data.startDate : undefined,
+        paymentType: data.paymentType as any || undefined,
+        previousReceiptNo: data.previousReceiptNo ? Number(data.previousReceiptNo) : undefined,
         commissionTrainerId: data.commissionTrainerId || undefined,
         commissionPct: data.commissionPct ? Number(data.commissionPct) : undefined,
         memberName: member.fullName,
@@ -163,6 +168,33 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId, u
                 </select>
               </div>
             </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Payment Type</label>
+              <select {...register("paymentType")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 outline-none">
+                <option value="">— Not specified —</option>
+                <option value="ADMISSION">Admission</option>
+                <option value="RENEWAL">Renewal</option>
+                <option value="BALANCE">Balance (clearing dues)</option>
+              </select>
+            </div>
+
+            {/* Previous Receipt # — shown only for BALANCE payments */}
+            {paymentType === "BALANCE" && (
+              <div className="rounded-lg p-3 space-y-2" style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                <p className="text-xs font-bold text-red-400">Clearing balance on original receipt</p>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Original Receipt # *</label>
+                  <input
+                    {...register("previousReceiptNo")}
+                    type="number"
+                    placeholder="e.g. 2501"
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-400 outline-none"
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">The pending amount on that receipt will be reduced automatically.</p>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Package</label>

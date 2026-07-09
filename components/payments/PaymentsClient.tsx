@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { CreditCard, IndianRupee, TrendingUp, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { CreditCard, IndianRupee, TrendingUp, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { RecordPaymentDialog } from "@/components/payments/RecordPaymentDialog";
+import { reconcilePendingAmounts } from "@/lib/actions/admin";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import type { Company, UserRole } from "@prisma/client";
@@ -102,6 +103,7 @@ export function PaymentsClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [showRecord, setShowRecord] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -276,9 +278,35 @@ export function PaymentsClient({
             <span className="text-xs font-semibold text-red-400">
               {pendingCount} payment{pendingCount !== 1 ? "s" : ""} with outstanding balance
             </span>
-            <span className="text-sm font-extrabold text-red-300">
-              Total due: {formatCurrency(pendingTotal)}
-            </span>
+            <div className="flex items-center gap-3">
+              {userRole === "ADMIN" && (
+                <button
+                  onClick={async () => {
+                    if (!confirm("Reconcile pending balances? This will scan all BALANCE payments and reduce the original bill's pending amount. Safe to run multiple times.")) return;
+                    setReconciling(true);
+                    try {
+                      const res = await reconcilePendingAmounts();
+                      alert(`Done — ${res.updated} bill${res.updated !== 1 ? "s" : ""} updated out of ${res.total} BALANCE payment group${res.total !== 1 ? "s" : ""} found.`);
+                      router.refresh();
+                    } catch (e: any) {
+                      alert("Error: " + e.message);
+                    } finally {
+                      setReconciling(false);
+                    }
+                  }}
+                  disabled={reconciling}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors"
+                  style={{ background: "rgba(239,68,68,0.15)", color: "#fca5a5", border: "1px solid rgba(239,68,68,0.3)" }}
+                  title="Reconcile — reduce original bills by linked BALANCE payments"
+                >
+                  <RefreshCw className={cn("h-3 w-3", reconciling && "animate-spin")} />
+                  {reconciling ? "Reconciling…" : "Reconcile"}
+                </button>
+              )}
+              <span className="text-sm font-extrabold text-red-300">
+                Total due: {formatCurrency(pendingTotal)}
+              </span>
+            </div>
           </div>
         )}
       </div>

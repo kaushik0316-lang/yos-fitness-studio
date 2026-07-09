@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { Company, PaymentMode, MemberStatus } from "@prisma/client";
+import { Company, PaymentMode, PaymentType, MemberStatus } from "@prisma/client";
 import { addDays } from "date-fns";
 import { ucase } from "@/lib/utils";
 import { z } from "zod";
@@ -20,6 +20,8 @@ const paymentSchema = z.object({
   notes: z.string().optional(),
   createMembership: z.boolean().default(false),
   startDate: z.string().optional(),
+  paymentType: z.nativeEnum(PaymentType).optional(),
+  previousReceiptNo: z.number().optional(),
   // Trainer commission — optional
   commissionTrainerId: z.string().optional(),
   commissionPct:       z.number().min(0).max(100).optional(),
@@ -46,8 +48,23 @@ export async function recordPayment(input: z.infer<typeof paymentSchema>) {
         collectedById: session.user.id,
         transactionRef: ucase(data.transactionRef),
         notes: ucase(data.notes),
+        paymentType: data.paymentType ?? null,
+        previousReceiptNo: data.previousReceiptNo ?? null,
       },
     });
+
+    // If this is a BALANCE payment referencing a previous receipt,
+    // reduce that receipt's pendingAmount by the amount just paid (floor at 0).
+    if (data.paymentType === "BALANCE" && data.previousReceiptNo) {
+      const original = await tx.payment.findFirst({
+        where: { company: data.company, receiptNumber: data.previousReceiptNo },
+        select: { id: true, pendingAmount: true },
+      });
+      if (original) {
+        const newPending = Math.max(0, Number(original.pendingAmount ?? 0) - data.amount);
+        await tx.payment.update({ where: { id: original.id }, data: { pendingAmount: newPending } });
+      }
+    }
 
     // Optionally create/extend membership
     if (data.createMembership && data.packageId && data.startDate) {
