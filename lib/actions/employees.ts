@@ -137,6 +137,24 @@ export async function addShiftHistory(input: z.infer<typeof shiftHistorySchema>)
   const data = shiftHistorySchema.parse(input);
   const effectiveDate = new Date(data.effectiveFrom);
 
+  // If this is the first history entry, auto-seed the current employee values as the baseline
+  const existingCount = await prisma.employeeShiftHistory.count({ where: { employeeId: data.employeeId } });
+  if (existingCount === 0) {
+    const emp = await prisma.employee.findUnique({ where: { id: data.employeeId } });
+    if (emp && emp.shifts && emp.monthlySalary) {
+      await prisma.employeeShiftHistory.create({
+        data: {
+          employeeId:    data.employeeId,
+          shifts:        emp.shifts,
+          shiftDays:     emp.shiftDays ?? [1,2,3,4,5,6],
+          monthlySalary: emp.monthlySalary,
+          effectiveFrom: emp.joinDate,
+          notes:         "Initial record (auto-created)",
+        },
+      });
+    }
+  }
+
   await prisma.employeeShiftHistory.create({
     data: {
       employeeId:    data.employeeId,
@@ -167,6 +185,24 @@ export async function addShiftHistory(input: z.infer<typeof shiftHistorySchema>)
 export async function getShiftHistory(employeeId: string) {
   const session = await auth();
   if (!session?.user) throw new Error("Unauthorized");
+
+  // If no history exists yet, auto-seed from current employee values (join date as effectiveFrom)
+  const count = await prisma.employeeShiftHistory.count({ where: { employeeId } });
+  if (count === 0) {
+    const emp = await prisma.employee.findUnique({ where: { id: employeeId } });
+    if (emp && emp.shifts && emp.monthlySalary) {
+      await prisma.employeeShiftHistory.create({
+        data: {
+          employeeId,
+          shifts:        emp.shifts,
+          shiftDays:     emp.shiftDays ?? [1,2,3,4,5,6],
+          monthlySalary: emp.monthlySalary,
+          effectiveFrom: emp.joinDate,
+          notes:         "Initial record (auto-created)",
+        },
+      });
+    }
+  }
 
   return prisma.employeeShiftHistory.findMany({
     where: { employeeId },
