@@ -48,7 +48,7 @@ export async function recordPayment(input: z.infer<typeof paymentSchema>) {
         collectedById: session.user.id,
         transactionRef: ucase(data.transactionRef),
         notes: ucase(data.notes),
-        paymentType: data.paymentType ?? null,
+        paymentType: data.paymentType ?? undefined,
         previousReceiptNo: data.previousReceiptNo ?? null,
       },
     });

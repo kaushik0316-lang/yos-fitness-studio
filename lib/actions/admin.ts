@@ -32,7 +32,7 @@ export async function reconcilePendingAmounts(): Promise<{ updated: number; tota
 
   let updated = 0;
 
-  for (const [key, totalPaid] of paidMap) {
+  for (const [key, totalPaid] of Array.from(paidMap)) {
     const [company, receiptNoStr] = key.split("::");
     const receiptNo = Number(receiptNoStr);
 
