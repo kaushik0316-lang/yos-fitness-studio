@@ -166,8 +166,11 @@ export async function addShiftHistory(input: z.infer<typeof shiftHistorySchema>)
     },
   });
 
-  // If effectiveFrom is today or in the past, update the employee's live fields too
-  if (effectiveDate <= new Date()) {
+  // Only update live employee fields if this record is the most recent period
+  const newerExists = await prisma.employeeShiftHistory.findFirst({
+    where: { employeeId: data.employeeId, effectiveFrom: { gt: effectiveDate } },
+  });
+  if (!newerExists && effectiveDate <= new Date()) {
     await prisma.employee.update({
       where: { id: data.employeeId },
       data: {
