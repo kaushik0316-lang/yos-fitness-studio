@@ -90,9 +90,11 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
 
   const isTrainer = employee.role === "TRAINER";
 
-  // Look up shift history: find the most recent record effective on or before monthStart
+  // Look up shift history: find the most recent record effective on or before the 1st of the month.
+  // Use UTC midnight to avoid timezone issues (effectiveFrom is stored as a Date type = UTC midnight).
+  const monthStartUTC = new Date(Date.UTC(input.year, input.month - 1, 1));
   const historyRecord = await prisma.employeeShiftHistory.findFirst({
-    where: { employeeId: input.employeeId, effectiveFrom: { lte: monthStart } },
+    where: { employeeId: input.employeeId, effectiveFrom: { lte: monthStartUTC } },
     orderBy: { effectiveFrom: "desc" },
   });
 
