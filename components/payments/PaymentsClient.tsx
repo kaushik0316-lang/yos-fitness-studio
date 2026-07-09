@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { CreditCard, IndianRupee, TrendingUp, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { RecordPaymentDialog } from "@/components/payments/RecordPaymentDialog";
-import { reconcilePendingAmounts } from "@/lib/actions/admin";
+import { reconcilePendingAmounts, clearPendingAmount } from "@/lib/actions/admin";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import type { Company, UserRole } from "@prisma/client";
@@ -286,7 +286,7 @@ export function PaymentsClient({
                     setReconciling(true);
                     try {
                       const res = await reconcilePendingAmounts();
-                      alert(`Done — ${res.updated} bill${res.updated !== 1 ? "s" : ""} updated out of ${res.total} BALANCE payment group${res.total !== 1 ? "s" : ""} found.`);
+                      alert(`Done — ${res.updated} bill${res.updated !== 1 ? "s" : ""} updated.\n• ${res.linkedGroups} linked BALANCE group${res.linkedGroups !== 1 ? "s" : ""} (had receipt #)\n• ${res.unlinkedMembers} member${res.unlinkedMembers !== 1 ? "s" : ""} with unlinked BALANCE payments auto-matched`);
                       router.refresh();
                     } catch (e: any) {
                       alert("Error: " + e.message);
@@ -338,6 +338,9 @@ export function PaymentsClient({
                 <th className="hidden lg:table-cell text-left px-3 sm:px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest whitespace-nowrap">Valid Until</th>
                 <th className="hidden lg:table-cell text-left px-3 sm:px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Company</th>
                 <th className="hidden md:table-cell text-left px-3 sm:px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest">Sold By</th>
+                {pendingOnly && userRole === "ADMIN" && (
+                  <th className="px-3 sm:px-5 py-3 text-[11px] font-bold text-gray-600 uppercase tracking-widest"></th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -441,6 +444,27 @@ export function PaymentsClient({
                           ? <span className="font-semibold text-orange-400">{toTitleCase(p.soldBy.fullName)}</span>
                           : <span className="text-gray-600 text-xs">Common</span>}
                       </td>
+                      {/* Clear balance — admin only, pending tab only */}
+                      {pendingOnly && userRole === "ADMIN" && (
+                        <td className="px-3 sm:px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Mark ₹${Number(p.pendingAmount).toLocaleString("en-IN")} balance as cleared on receipt #${p.receiptNumber}?`)) return;
+                              try {
+                                await clearPendingAmount(p.id);
+                                router.refresh();
+                              } catch (e: any) {
+                                alert("Error: " + e.message);
+                              }
+                            }}
+                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors whitespace-nowrap"
+                            style={{ background: "rgba(239,68,68,0.12)", color: "#f87171", border: "1px solid rgba(239,68,68,0.25)" }}
+                            title="Mark balance as cleared"
+                          >
+                            Clear
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })
