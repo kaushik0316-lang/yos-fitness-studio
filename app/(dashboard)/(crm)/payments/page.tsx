@@ -14,6 +14,7 @@ type SearchParams = {
   company?: string; mode?: string; page?: string; dateFilter?: string;
   search?: string; paymentType?: string; sort?: string;
   dateFrom?: string; dateTo?: string; statMonth?: string;
+  pendingOnly?: string;
 };
 
 export default async function PaymentsPage({ searchParams }: { searchParams: SearchParams }) {
@@ -33,6 +34,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
 
   if (searchParams.paymentType && searchParams.paymentType !== "ALL")
     where.paymentType = searchParams.paymentType;
+
+  if (searchParams.pendingOnly === "1")
+    where.pendingAmount = { gt: 0 };
 
   if (searchParams.search) {
     const s = searchParams.search.trim();
@@ -89,7 +93,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   }
   selectedMonthLabel ??= today.toLocaleString("en-US", { month: "long", year: "numeric" });
 
-  const [payments, total, totalAmount, todayStats, monthStats, filteredStats, selectedMonthStats, packages, trainers, members] = await Promise.all([
+  const [payments, total, totalAmount, todayStats, monthStats, filteredStats, selectedMonthStats, pendingAggregate, packages, trainers, members] = await Promise.all([
     prisma.payment.findMany({
       where,
       include: {
@@ -122,6 +126,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
       where: { date: { gte: selectedMonthStart, lte: selectedMonthEnd }, isVoided: false },
       _sum: { amount: true }, _count: true,
     }),
+    prisma.payment.aggregate({ where: { pendingAmount: { gt: 0 }, isVoided: false }, _sum: { pendingAmount: true }, _count: true }),
     prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.employee.findMany({ where: { role: "TRAINER", isActive: true }, select: { id: true, fullName: true }, orderBy: { fullName: "asc" } }),
     prisma.member.findMany({
@@ -169,6 +174,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
           userId={session!.user.id}
           dateFilter={searchParams.dateFilter}
           currentSort={searchParams.sort ?? "date_desc"}
+          pendingOnly={searchParams.pendingOnly === "1"}
+          pendingCount={pendingAggregate._count}
+          pendingTotal={Number(pendingAggregate._sum.pendingAmount ?? 0)}
         />
       </div>
     </>

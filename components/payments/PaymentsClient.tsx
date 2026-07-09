@@ -37,6 +37,7 @@ type Props = {
   members: { id: string; memberId: string; fullName: string }[];
   userRole: UserRole; userId: string;
   dateFilter?: string; currentSort: string;
+  pendingOnly?: boolean; pendingCount?: number; pendingTotal?: number;
 };
 
 const MODE_STYLES: Record<string, { bg: string; color: string }> = {
@@ -95,6 +96,7 @@ export function PaymentsClient({
   filteredStats, filteredLabel,
   packages, trainers = [], members,
   userRole, userId, dateFilter, currentSort,
+  pendingOnly = false, pendingCount = 0, pendingTotal = 0,
 }: Props) {
   const router   = useRouter();
   const pathname = usePathname();
@@ -228,7 +230,7 @@ export function PaymentsClient({
           </select>
         </div>
 
-        {/* Row 2: Date chips */}
+        {/* Row 2: Date chips + Balance Pending tab */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Date:</span>
           {DATE_FILTERS.map((f) => (
@@ -241,7 +243,24 @@ export function PaymentsClient({
               {f.label}
             </button>
           ))}
-          {(searchParams.get("dateFilter") || currentSort !== "date_desc" || searchParams.get("company") || searchParams.get("mode") || searchParams.get("paymentType") || search) && (
+          <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest ml-2">|</span>
+          <button
+            onClick={() => updateQuery({ pendingOnly: pendingOnly ? "" : "1" })}
+            className="px-3 py-1 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
+            style={pendingOnly
+              ? { background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.35)" }
+              : { background: "rgba(255,255,255,0.04)", color: "#6b7280", border: "1px solid rgba(255,255,255,0.08)" }}>
+            Balance Pending
+            {pendingCount > 0 && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                style={pendingOnly
+                  ? { background: "rgba(239,68,68,0.3)", color: "#fca5a5" }
+                  : { background: "rgba(255,255,255,0.1)", color: "#9ca3af" }}>
+                {pendingCount}
+              </span>
+            )}
+          </button>
+          {(searchParams.get("dateFilter") || currentSort !== "date_desc" || searchParams.get("company") || searchParams.get("mode") || searchParams.get("paymentType") || search || pendingOnly) && (
             <button onClick={() => { setSearch(""); router.push(pathname); }}
               className="px-3 py-1 rounded-lg text-xs font-semibold transition-colors ml-auto"
               style={{ background: "rgba(239,68,68,0.08)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>
@@ -249,6 +268,19 @@ export function PaymentsClient({
             </button>
           )}
         </div>
+
+        {/* Balance pending summary banner */}
+        {pendingOnly && (
+          <div className="flex items-center justify-between px-3 py-2 rounded-xl"
+            style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+            <span className="text-xs font-semibold text-red-400">
+              {pendingCount} payment{pendingCount !== 1 ? "s" : ""} with outstanding balance
+            </span>
+            <span className="text-sm font-extrabold text-red-300">
+              Total due: {formatCurrency(pendingTotal)}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* ── Table ── */}
