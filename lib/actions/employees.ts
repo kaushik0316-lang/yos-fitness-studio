@@ -120,3 +120,56 @@ export async function setEmployeeActive(id: string, isActive: boolean) {
   revalidatePath("/employee-attendance");
   return { success: true };
 }
+
+const shiftHistorySchema = z.object({
+  employeeId:    z.string().min(1),
+  shifts:        z.array(shiftSchema).min(1),
+  shiftDays:     z.array(z.number().min(0).max(6)).min(1),
+  monthlySalary: z.number().positive(),
+  effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  notes:         z.string().optional(),
+});
+
+export async function addShiftHistory(input: z.infer<typeof shiftHistorySchema>) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ADMIN") throw new Error("Unauthorized");
+
+  const data = shiftHistorySchema.parse(input);
+  const effectiveDate = new Date(data.effectiveFrom);
+
+  await prisma.employeeShiftHistory.create({
+    data: {
+      employeeId:    data.employeeId,
+      shifts:        data.shifts,
+      shiftDays:     data.shiftDays,
+      monthlySalary: data.monthlySalary,
+      effectiveFrom: effectiveDate,
+      notes:         data.notes,
+    },
+  });
+
+  // If effectiveFrom is today or in the past, update the employee's live fields too
+  if (effectiveDate <= new Date()) {
+    await prisma.employee.update({
+      where: { id: data.employeeId },
+      data: {
+        shifts:        data.shifts,
+        shiftDays:     data.shiftDays,
+        monthlySalary: data.monthlySalary,
+      },
+    });
+  }
+
+  revalidatePath("/employee-attendance");
+  return { success: true };
+}
+
+export async function getShiftHistory(employeeId: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
+
+  return prisma.employeeShiftHistory.findMany({
+    where: { employeeId },
+    orderBy: { effectiveFrom: "desc" },
+  });
+}

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Plus, Pencil, Eye, EyeOff, UserCheck, UserX, TrendingUp } from "lucide-react";
+import { ShiftHistoryButton } from "./ShiftHistoryButton";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
@@ -250,6 +251,13 @@ function StaffRow({ emp, idx, salesThisMonth, pinRevealed, onTogglePin, onEdit, 
             <TrendingUp className="h-3.5 w-3.5" />
           </button>
         )}
+        <ShiftHistoryButton
+          employeeId={emp.id}
+          employeeName={emp.fullName}
+          currentShifts={emp.shifts}
+          currentShiftDays={emp.shiftDays}
+          currentSalary={emp.monthlySalary}
+        />
         <button onClick={onEdit} className="p-1.5 rounded-lg text-gray-600 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.04)" }} title="Edit">
           <Pencil className="h-3.5 w-3.5" />
         </button>

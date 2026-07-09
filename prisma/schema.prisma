@@ -395,11 +395,31 @@ model Employee {
   salesMade          Payment[]            @relation("SoldByEmployee")
   enquiries          Enquiry[]
   trainerCommissions TrainerCommission[]
+  shiftHistory       EmployeeShiftHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("employees")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EMPLOYEE SHIFT HISTORY
+// ─────────────────────────────────────────────────────────────────────────────
+
+model EmployeeShiftHistory {
+  id            String   @id @default(cuid())
+  employeeId    String
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  shifts        Json     // [{"start":"06:00","end":"09:00"}]
+  shiftDays     Json     // [1,2,3,4,5,6]
+  monthlySalary Decimal  @db.Decimal(10, 2)
+  effectiveFrom DateTime @db.Date
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  @@index([employeeId, effectiveFrom])
+  @@map("employee_shift_history")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

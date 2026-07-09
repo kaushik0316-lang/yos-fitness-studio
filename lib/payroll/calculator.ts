@@ -88,12 +88,22 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     }
   }
 
-  const isTrainer   = employee.role === "TRAINER";
-  const hoursPerDay = dailyShiftHours(employee.shifts);
-  // shiftDays: which weekdays this employee works.
-  // Default when not set = Mon–Sat (0=Sun is the off-day, auto-credited)
-  const shiftDays: number[] = Array.isArray(employee.shiftDays) && (employee.shiftDays as number[]).length > 0
-    ? (employee.shiftDays as number[])
+  const isTrainer = employee.role === "TRAINER";
+
+  // Look up shift history: find the most recent record effective on or before monthStart
+  const historyRecord = await prisma.employeeShiftHistory.findFirst({
+    where: { employeeId: input.employeeId, effectiveFrom: { lte: monthStart } },
+    orderBy: { effectiveFrom: "desc" },
+  });
+
+  // Use historical shift/salary if available, otherwise fall back to employee fields
+  const effectiveShifts    = historyRecord?.shifts        ?? employee.shifts;
+  const effectiveShiftDays = historyRecord?.shiftDays     ?? employee.shiftDays;
+  const effectiveSalary    = historyRecord ? Number(historyRecord.monthlySalary) : Number(employee.monthlySalary ?? 0);
+
+  const hoursPerDay = dailyShiftHours(effectiveShifts);
+  const shiftDays: number[] = Array.isArray(effectiveShiftDays) && (effectiveShiftDays as number[]).length > 0
+    ? (effectiveShiftDays as number[])
     : [1, 2, 3, 4, 5, 6];
 
   // Build set of off-day keys (days NOT in shiftDays) — these are auto-credited as full shift hours
@@ -136,13 +146,11 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
   let deductions = 0;
 
   if (isTrainer && requiredHours > 0) {
-    // Paid leave adds full shift hours for the credited day
     const adjustedActual = Math.min(requiredHours, actualHours + hoursPerDay * AUTO_PAID_LEAVE);
-    const monthlySalary = Number(employee.monthlySalary ?? 0);
-    grossSalary = monthlySalary * Math.min(1, adjustedActual / requiredHours);
+    grossSalary = effectiveSalary * Math.min(1, adjustedActual / requiredHours);
     deductions = 0;
   } else if (employee.salaryType === SalaryType.FIXED_MONTHLY) {
-    const monthlySalary = Number(employee.monthlySalary ?? 0);
+    const monthlySalary = effectiveSalary;
     grossSalary = monthlySalary;
     const perDay = workingDays > 0 ? monthlySalary / workingDays : 0;
     const deductibleAbsent = Math.max(0, absentDays - AUTO_PAID_LEAVE);
