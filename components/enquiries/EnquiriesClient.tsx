@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { Plus, Phone, MessageCircle, Search, X, ChevronDown, UserCircle, Calendar, StickyNote, Trash2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
@@ -58,6 +58,7 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [showAdd, setShowAdd]     = useState(false);
   const [editing, setEditing]     = useState<Enquiry | null>(null);
+  const [openStatusId, setOpenStatusId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const isAdmin = userRole === "ADMIN";
@@ -126,7 +127,7 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
     <div className="space-y-5 pb-16">
 
       {/* ── Stats row ── */}
-      <div className="grid grid-cols-6 gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
         {[{ key: "ALL", label: "All" }, ...STATUSES.map((s) => ({ key: s, label: STATUS_CONFIG[s].label }))].map(({ key, label }) => {
           const cfg = key === "ALL" ? null : STATUS_CONFIG[key];
           const isActive = statusFilter === key;
@@ -225,9 +226,8 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
                         )}
                       </div>
 
-                      {/* Row 2: phone + assignee + follow-up */}
+                      {/* Row 2: assignee + follow-up */}
                       <div className="flex items-center gap-3 mt-1 flex-wrap text-xs text-gray-500">
-                        <span>{e.phone}</span>
                         {e.assignedTo && (
                           <span className="flex items-center gap-1">
                             <UserCircle className="h-3 w-3" />
@@ -269,26 +269,16 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
                           <MessageCircle className="h-3 w-3" />WhatsApp
                         </a>
 
-                        {/* Status dropdown */}
-                        <div className="relative group">
-                          <button className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors"
-                            style={{ background: cfg.bg, color: cfg.color }}>
-                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }} />
-                            {cfg.label}
-                            <ChevronDown className="h-3 w-3" />
-                          </button>
-                          <div className="absolute left-0 top-full mt-1 z-20 rounded-xl overflow-hidden shadow-2xl hidden group-hover:block"
-                            style={{ background: "#1e1e1e", border: "1px solid rgba(255,255,255,0.1)", minWidth: "140px" }}>
-                            {STATUSES.map((s) => (
-                              <button key={s} onClick={() => handleStatusChange(e.id, s)}
-                                className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-left hover:bg-white/[0.06] transition-colors"
-                                style={{ color: STATUS_CONFIG[s].color }}>
-                                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: STATUS_CONFIG[s].dot }} />
-                                {STATUS_CONFIG[s].label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        {/* Status dropdown — click-based */}
+                        <StatusDropdown
+                          enquiryId={e.id}
+                          status={e.status}
+                          cfg={cfg}
+                          open={openStatusId === e.id}
+                          onToggle={() => setOpenStatusId(openStatusId === e.id ? null : e.id)}
+                          onClose={() => setOpenStatusId(null)}
+                          onChange={(s) => { handleStatusChange(e.id, s); setOpenStatusId(null); }}
+                        />
 
                         <button onClick={() => setEditing(e)}
                           className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors text-gray-400 hover:text-white ml-auto"
@@ -331,6 +321,51 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
           onClose={() => setEditing(null)}
           onSubmit={handleUpdate}
         />
+      )}
+    </div>
+  );
+}
+
+function StatusDropdown({ enquiryId, status, cfg, open, onToggle, onClose, onChange }: {
+  enquiryId: string; status: string;
+  cfg: { label: string; bg: string; color: string; dot: string };
+  open: boolean; onToggle: () => void; onClose: () => void;
+  onChange: (s: string) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open, onClose]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors"
+        style={{ background: cfg.bg, color: cfg.color }}>
+        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }} />
+        {cfg.label}
+        <ChevronDown className="h-3 w-3" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-30 rounded-xl overflow-hidden shadow-2xl"
+          style={{ background: "#1e1e1e", border: "1px solid rgba(255,255,255,0.1)", minWidth: "140px" }}>
+          {STATUSES.map((s) => (
+            <button key={s}
+              onClick={(e) => { e.stopPropagation(); onChange(s); }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-left hover:bg-white/[0.06] transition-colors"
+              style={{ color: STATUS_CONFIG[s].color, background: s === status ? "rgba(255,255,255,0.04)" : undefined }}>
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: STATUS_CONFIG[s].dot }} />
+              {STATUS_CONFIG[s].label}
+              {s === status && <span className="ml-auto text-[10px] opacity-60">✓</span>}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
