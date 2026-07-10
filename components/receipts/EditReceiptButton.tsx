@@ -7,6 +7,7 @@ import { Pencil, Check, X } from "lucide-react";
 
 type Props = {
   paymentId: string;
+  employees: { id: string; fullName: string }[];
   current: {
     memberName: string;
     memberPhone: string;
@@ -22,6 +23,9 @@ type Props = {
     notes: string;
     transactionRef: string;
     company: string;
+    soldById: string | null;
+    soldById2: string | null;
+    soldByPct: number;
   };
 };
 
@@ -57,12 +61,17 @@ const LBL: React.CSSProperties = {
   marginBottom: "4px",
 };
 
-export function EditReceiptButton({ paymentId, current }: Props) {
+export function EditReceiptButton({ paymentId, employees, current }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ ...current });
+
+  // Split sale state
+  const [soldById, setSoldById] = useState<string | null>(current.soldById);
+  const [soldById2, setSoldById2] = useState<string | null>(current.soldById2);
+  const [soldByPct, setSoldByPct] = useState<number>(current.soldByPct ?? 100);
 
   // Member search state
   const [memberQuery, setMemberQuery] = useState(current.memberName);
@@ -79,6 +88,9 @@ export function EditReceiptButton({ paymentId, current }: Props) {
     setSelectedMemberId(null);
     setMemberResults([]);
     setShowDropdown(false);
+    setSoldById(current.soldById);
+    setSoldById2(current.soldById2);
+    setSoldByPct(current.soldByPct ?? 100);
     setError("");
     setOpen(true);
   }
@@ -132,6 +144,9 @@ export function EditReceiptButton({ paymentId, current }: Props) {
         memberName: memberQuery,
         memberPhone: form.memberPhone,
         ...(selectedMemberId ? { newMemberId: selectedMemberId } : {}),
+        soldById: soldById ?? null,
+        soldById2: soldById2 ?? null,
+        soldByPct: soldById2 ? soldByPct : 100,
       };
       const res = await fetch(`/api/payments/${paymentId}/edit`, {
         method: "PATCH",
@@ -305,6 +320,97 @@ export function EditReceiptButton({ paymentId, current }: Props) {
                   onChange={(e) => set("notes", e.target.value)}
                   placeholder="Optional note…" />
               </div>
+
+              {/* Who made the sale */}
+              {employees.length > 0 && (
+                <div style={{ border: "1.5px solid #e5e7eb", borderRadius: "10px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <p style={{ ...LBL, marginBottom: 0 }}>Who Made the Sale?</p>
+
+                  {/* Primary seller */}
+                  <div>
+                    <label style={{ ...LBL, fontSize: "10px" }}>Primary Seller</label>
+                    <select
+                      style={INP}
+                      value={soldById ?? ""}
+                      onChange={(e) => {
+                        setSoldById(e.target.value || null);
+                        if (!e.target.value) { setSoldById2(null); setSoldByPct(100); }
+                      }}
+                    >
+                      <option value="">— None —</option>
+                      {employees.map((emp) => (
+                        <option key={emp.id} value={emp.id}>{emp.fullName}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Split section */}
+                  {soldById && !soldById2 && (
+                    <button
+                      type="button"
+                      onClick={() => setSoldByPct(80)}
+                      style={{ alignSelf: "flex-start", fontSize: "12px", color: "#f97316", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: 600 }}
+                    >
+                      + Split with someone
+                    </button>
+                  )}
+
+                  {soldById && soldById2 !== undefined && soldById2 !== null ? (
+                    <>
+                      {/* Slider */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#374151", fontWeight: 600 }}>
+                          <span>{employees.find(e => e.id === soldById)?.fullName ?? "Primary"} {soldByPct}%</span>
+                          <span>{employees.find(e => e.id === soldById2)?.fullName ?? "Secondary"} {100 - soldByPct}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={10} max={90} step={5}
+                          value={soldByPct}
+                          onChange={(e) => setSoldByPct(Number(e.target.value))}
+                          style={{ width: "100%" }}
+                        />
+                      </div>
+                      {/* Secondary seller */}
+                      <div>
+                        <label style={{ ...LBL, fontSize: "10px" }}>Secondary Seller</label>
+                        <select
+                          style={INP}
+                          value={soldById2}
+                          onChange={(e) => setSoldById2(e.target.value || null)}
+                        >
+                          <option value="">— None —</option>
+                          {employees.filter(e => e.id !== soldById).map((emp) => (
+                            <option key={emp.id} value={emp.id}>{emp.fullName}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setSoldById2(null); setSoldByPct(100); }}
+                        style={{ alignSelf: "flex-start", fontSize: "12px", color: "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                      >
+                        Remove split
+                      </button>
+                    </>
+                  ) : soldById && soldById2 === null && soldByPct < 100 ? (
+                    // User clicked "Split" but hasn't picked secondary yet
+                    <div>
+                      <label style={{ ...LBL, fontSize: "10px" }}>Secondary Seller</label>
+                      <select
+                        style={INP}
+                        value=""
+                        onChange={(e) => setSoldById2(e.target.value || null)}
+                      >
+                        <option value="">— Pick a person —</option>
+                        {employees.filter(e => e.id !== soldById).map((emp) => (
+                          <option key={emp.id} value={emp.id}>{emp.fullName}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
+                </div>
+              )}
 
               {error && (
                 <p style={{ fontSize: "13px", color: "#dc2626", fontWeight: 500, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", padding: "8px 12px", margin: 0 }}>{error}</p>

@@ -21,6 +21,9 @@ const editSchema = z.object({
   notes: z.string().optional().nullable(),
   transactionRef: z.string().optional().nullable(),
   company: z.nativeEnum(Company).optional(),
+  soldById: z.string().nullable().optional(),
+  soldById2: z.string().nullable().optional(),
+  soldByPct: z.number().int().min(1).max(99).optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -36,7 +39,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
     const { memberName, memberPhone, newMemberId, date, amount, discount, pendingAmount, paymentMode,
             categoryLabel, periodLabel, startDate, expiryDate,
-            notes, transactionRef, company } = parsed.data;
+            notes, transactionRef, company, soldById, soldById2, soldByPct } = parsed.data;
 
     const payment = await prisma.payment.findUnique({
       where: { id: params.id },
@@ -93,6 +96,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         transactionRef: transactionRef ?? undefined,
         company:        company           || undefined,
         receiptNumber:  newReceiptNumber  ?? undefined,
+        ...(soldById  !== undefined ? { soldById:  soldById  ?? null } : {}),
+        ...(soldById2 !== undefined ? { soldById2: soldById2 ?? null } : {}),
+        ...(soldByPct !== undefined ? { soldByPct } : {}),
       },
     });
 

@@ -86,16 +86,18 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
   const payment = await prisma.payment.findUnique({
     where: { id: params.id },
     include: {
-      member: { select: { id: true, memberId: true, fullName: true, phone: true } },
-      package: { select: { name: true, durationDays: true } },
+      member:     { select: { id: true, memberId: true, fullName: true, phone: true } },
+      package:    { select: { name: true, durationDays: true } },
       collectedBy: { select: { name: true } },
-      voidedBy: { select: { name: true } },
+      voidedBy:   { select: { name: true } },
+      soldBy:     { select: { id: true, fullName: true } },
+      soldBy2:    { select: { id: true, fullName: true } },
     },
   });
 
   if (!payment) notFound();
 
-  const [existingCommissions, activeTrainers] = session.user.role === "ADMIN" && !payment.isVoided
+  const [existingCommissions, activeTrainers, allEmployees] = session.user.role === "ADMIN" && !payment.isVoided
     ? await Promise.all([
         prisma.trainerCommission.findMany({
           where: { paymentId: params.id },
@@ -103,8 +105,9 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
           orderBy: { createdAt: "asc" },
         }),
         prisma.employee.findMany({ where: { role: "TRAINER", isActive: true }, select: { id: true, fullName: true }, orderBy: { fullName: "asc" } }),
+        prisma.employee.findMany({ where: { isActive: true }, select: { id: true, fullName: true }, orderBy: { fullName: "asc" } }),
       ])
-    : [[], []];
+    : [[], [], []];
 
   const isYFS = payment.company === "YOS_FITNESS_STUDIO";
   const companyName = isYFS ? "YOS FITNESS STUDIO" : "YOS FITNESS";
@@ -143,6 +146,7 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
         {session.user.role === "ADMIN" && !payment.isVoided && (
           <EditReceiptButton
             paymentId={payment.id}
+            employees={allEmployees}
             current={{
               memberName:    toTitleCase(payment.member.fullName),
               memberPhone:   payment.member.phone ?? "",
@@ -158,6 +162,9 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
               notes:         payment.notes ?? "",
               transactionRef: payment.transactionRef ?? "",
               company:       payment.company,
+              soldById:      payment.soldBy?.id ?? null,
+              soldById2:     payment.soldBy2?.id ?? null,
+              soldByPct:     payment.soldByPct ?? 100,
             }}
           />
         )}
