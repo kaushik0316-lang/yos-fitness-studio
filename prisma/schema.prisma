@@ -321,7 +321,10 @@ model Payment {
 
   // Sales attribution — for employee incentive tracking (not shown on receipt)
   soldById       String?
-  soldBy         Employee?   @relation("SoldByEmployee", fields: [soldById], references: [id], onDelete: SetNull)
+  soldBy         Employee?   @relation("SoldByEmployee",  fields: [soldById],  references: [id], onDelete: SetNull)
+  soldById2      String?                                           // second seller for split attribution
+  soldBy2        Employee?   @relation("SoldByEmployee2", fields: [soldById2], references: [id], onDelete: SetNull)
+  soldByPct      Int         @default(100)                        // % of sale credited to soldById; remainder goes to soldById2
 
   transactionRef    String?
   notes             String?
@@ -393,6 +396,7 @@ model Employee {
   attendances        EmployeeAttendance[]
   payrollRecords     PayrollRecord[]
   salesMade          Payment[]            @relation("SoldByEmployee")
+  salesMade2         Payment[]            @relation("SoldByEmployee2")
   enquiries          Enquiry[]
   trainerCommissions TrainerCommission[]
   shiftHistory       EmployeeShiftHistory[]

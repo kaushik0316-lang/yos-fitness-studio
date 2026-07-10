@@ -180,14 +180,24 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
   // ── Sales & PT commission (bonus) ────────────────────────────────────────
   let bonus = 0;
 
-  // Sales commission: salesCommissionPct % of total sales made this month
+  // Sales commission: salesCommissionPct % of total sales credited to this employee
+  // Supports split attribution: soldByPct% to primary, (100-soldByPct)% to secondary
   if (employee.salesCommissionPct) {
     const salesPct = Number(employee.salesCommissionPct);
-    const salesAgg = await prisma.payment.aggregate({
+
+    const primary = await prisma.payment.findMany({
       where: { soldById: input.employeeId, date: { gte: monthStart, lte: monthEnd }, isVoided: false },
-      _sum: { amount: true },
+      select: { amount: true, soldByPct: true },
     });
-    bonus += Number(salesAgg._sum.amount ?? 0) * (salesPct / 100);
+    const primaryCredit = primary.reduce((s, p) => s + Number(p.amount) * (p.soldByPct ?? 100) / 100, 0);
+
+    const secondary = await prisma.payment.findMany({
+      where: { soldById2: input.employeeId, date: { gte: monthStart, lte: monthEnd }, isVoided: false },
+      select: { amount: true, soldByPct: true },
+    });
+    const secondaryCredit = secondary.reduce((s, p) => s + Number(p.amount) * (100 - (p.soldByPct ?? 100)) / 100, 0);
+
+    bonus += (primaryCredit + secondaryCredit) * (salesPct / 100);
   }
 
   // PT/Semi-Private/HIT commissions entered manually for this month

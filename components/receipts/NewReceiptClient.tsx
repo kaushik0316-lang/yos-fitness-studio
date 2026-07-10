@@ -135,7 +135,9 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   const [notes, setNotes] = useState("");
   const [prevReceiptNo, setPrevReceiptNo] = useState("");
   const [prevAmount, setPrevAmount] = useState("");
-  const [soldById, setSoldById] = useState<string | null>(null); // null = common/unattributed
+  const [soldById, setSoldById]   = useState<string | null>(null);
+  const [soldById2, setSoldById2] = useState<string | null>(null);
+  const [soldByPct, setSoldByPct] = useState(80); // % for primary; (100-pct) to secondary
   const [phoneOverride, setPhoneOverride] = useState(""); // used when member has no phone saved
   const [isNewMember, setIsNewMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState("");
@@ -293,7 +295,9 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
         previousReceiptNo: prevReceiptNo ? Number(prevReceiptNo) : undefined,
         previousAmount: prevAmount ? Number(prevAmount) : undefined,
         notes: notes || undefined,
-        soldById: soldById ?? undefined,
+        soldById:  soldById  ?? undefined,
+        soldById2: soldById && soldById2 ? soldById2 : undefined,
+        soldByPct: soldById && soldById2 ? soldByPct : undefined,
         phoneOverride: phoneOverride || undefined,
       });
       router.push(`/payments/${result.paymentId}/receipt`);
@@ -838,15 +842,80 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
             </button>
           ))}
         </div>
-        {soldById && (
-          <p className="text-[11px] text-orange-600 font-semibold mt-2">
-            ✓ Attributed to {employees.find((e) => e.id === soldById)?.fullName}
-          </p>
-        )}
         {soldById === null && (
-          <p className="text-[11px] text-gray-400 mt-2">
-            Not attributed to a specific staff member
-          </p>
+          <p className="text-[11px] text-gray-400 mt-2">Not attributed to a specific staff member</p>
+        )}
+
+        {/* Split sale — shown when a primary seller is selected */}
+        {soldById && (
+          <div className="mt-3 space-y-2">
+            {/* Split toggle */}
+            {!soldById2 ? (
+              <div className="flex items-center gap-3">
+                <p className="text-[11px] text-orange-600 font-semibold">
+                  ✓ {employees.find((e) => e.id === soldById)?.fullName} · 100%
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSoldById2("")}
+                  className="text-[11px] font-semibold text-gray-400 hover:text-orange-500 transition-colors underline underline-offset-2"
+                >
+                  + Split with someone
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-orange-100 bg-orange-50/60 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold text-orange-600 uppercase tracking-widest">Split Sale</p>
+                  <button
+                    type="button"
+                    onClick={() => { setSoldById2(null); setSoldByPct(80); }}
+                    className="text-[10px] text-gray-400 hover:text-red-400 transition-colors"
+                  >
+                    Remove split
+                  </button>
+                </div>
+
+                {/* Percentage slider */}
+                <div className="flex items-center gap-3">
+                  <div className="text-center min-w-[80px]">
+                    <p className="text-xs font-bold text-orange-600">{soldByPct}%</p>
+                    <p className="text-[10px] text-gray-500 truncate max-w-[80px]">{employees.find((e) => e.id === soldById)?.fullName}</p>
+                  </div>
+                  <input
+                    type="range" min={10} max={90} step={5}
+                    value={soldByPct}
+                    onChange={(e) => setSoldByPct(Number(e.target.value))}
+                    className="flex-1 accent-orange-500"
+                  />
+                  <div className="text-center min-w-[80px]">
+                    <p className="text-xs font-bold text-orange-400">{100 - soldByPct}%</p>
+                    <p className="text-[10px] text-gray-500 truncate max-w-[80px]">
+                      {soldById2 ? employees.find((e) => e.id === soldById2)?.fullName : "2nd person"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Second person selector */}
+                <div className="flex flex-wrap gap-1.5">
+                  {employees.filter((e) => e.id !== soldById).map((emp) => (
+                    <button
+                      key={emp.id}
+                      type="button"
+                      onClick={() => setSoldById2(emp.id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border-2 transition-all ${
+                        soldById2 === emp.id
+                          ? "bg-orange-400 border-orange-400 text-white"
+                          : "bg-white border-gray-200 text-gray-500 hover:border-orange-300"
+                      }`}
+                    >
+                      {emp.fullName}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

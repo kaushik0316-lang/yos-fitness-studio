@@ -20,7 +20,9 @@ type Payment = {
   member: { id: string; memberId: string; fullName: string; phone: string };
   package: { name: string } | null;
   collectedBy: { name: string };
-  soldBy: { fullName: string; employeeId: string } | null;
+  soldBy:    { fullName: string; employeeId: string } | null;
+  soldBy2:   { fullName: string; employeeId: string } | null;
+  soldByPct: number | null;
 };
 
 type Stats = { company: Company; _sum: { amount: any }; _count: number }[];
@@ -440,9 +442,21 @@ export function PaymentsClient({
                       </td>
                       {/* Sold By */}
                       <td className="hidden md:table-cell px-3 sm:px-5 py-3.5 text-sm">
-                        {p.soldBy
-                          ? <span className="font-semibold text-orange-400">{toTitleCase(p.soldBy.fullName)}</span>
-                          : <span className="text-gray-600 text-xs">Common</span>}
+                        {p.soldBy ? (
+                          <div className="space-y-0.5">
+                            <span className="font-semibold text-orange-400">
+                              {toTitleCase(p.soldBy.fullName)}
+                              {p.soldBy2 && <span className="text-orange-300 font-normal"> {p.soldByPct ?? 100}%</span>}
+                            </span>
+                            {p.soldBy2 && (
+                              <p className="text-xs text-orange-300">
+                                {toTitleCase(p.soldBy2.fullName)} {100 - (p.soldByPct ?? 100)}%
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-600 text-xs">Common</span>
+                        )}
                       </td>
                       {/* Clear balance — admin only, pending tab only */}
                       {pendingOnly && userRole === "ADMIN" && (
