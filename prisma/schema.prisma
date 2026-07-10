@@ -507,7 +507,7 @@ model TrainerCommission {
   id               String   @id @default(cuid())
   trainerId        String
   trainer          Employee @relation(fields: [trainerId], references: [id], onDelete: Cascade)
-  paymentId        String?  @unique  // linked bill — null = manually entered
+  paymentId        String?  // linked bill — null = manually entered
   clientName       String
   packageType      String   // PERSONAL_TRAINING, SEMI_PRIVATE, HIT, OTHER
   totalAmount      Decimal  @db.Decimal(10,2)

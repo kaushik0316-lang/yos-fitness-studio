@@ -62,43 +62,51 @@ export async function assignCommissionToPayment(input: {
   packageType: string;
   totalAmount: number;
 }) {
+  return setPaymentCommissions({
+    paymentId:   input.paymentId,
+    clientName:  input.clientName,
+    packageType: input.packageType,
+    totalAmount: input.totalAmount,
+    entries: [{ trainerId: input.trainerId, commissionPct: input.commissionPct }],
+  });
+}
+
+/**
+ * Replace all commissions for a payment atomically.
+ * Supports 1 or 2 (or more) trainers splitting a single bill.
+ */
+export async function setPaymentCommissions(input: {
+  paymentId: string;
+  clientName: string;
+  packageType: string;
+  totalAmount: number;
+  entries: { trainerId: string; commissionPct: number }[];
+}) {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") throw new Error("Unauthorized");
 
-  const commissionAmount = Math.round(input.totalAmount * input.commissionPct) / 100;
   const now = new Date();
+  const month = now.getMonth() + 1;
+  const year  = now.getFullYear();
 
-  // Upsert: if a commission already exists for this payment, replace it
-  const existing = await prisma.trainerCommission.findUnique({ where: { paymentId: input.paymentId } });
-  if (existing) {
-    await prisma.trainerCommission.update({
-      where: { paymentId: input.paymentId },
-      data: {
-        trainerId:       input.trainerId,
-        clientName:      input.clientName,
-        packageType:     input.packageType,
-        totalAmount:     input.totalAmount,
-        commissionPct:   input.commissionPct,
-        commissionAmount,
-        month:           now.getMonth() + 1,
-        year:            now.getFullYear(),
-      },
-    });
-  } else {
-    await prisma.trainerCommission.create({
-      data: {
-        trainerId:       input.trainerId,
-        paymentId:       input.paymentId,
-        clientName:      input.clientName,
-        packageType:     input.packageType,
-        totalAmount:     input.totalAmount,
-        commissionPct:   input.commissionPct,
-        commissionAmount,
-        month:           now.getMonth() + 1,
-        year:            now.getFullYear(),
-      },
-    });
-  }
+  await prisma.$transaction([
+    prisma.trainerCommission.deleteMany({ where: { paymentId: input.paymentId } }),
+    ...input.entries.map((e) =>
+      prisma.trainerCommission.create({
+        data: {
+          trainerId:       e.trainerId,
+          paymentId:       input.paymentId,
+          clientName:      input.clientName,
+          packageType:     input.packageType,
+          totalAmount:     input.totalAmount,
+          commissionPct:   e.commissionPct,
+          commissionAmount: Math.round(input.totalAmount * e.commissionPct) / 100,
+          month,
+          year,
+        },
+      })
+    ),
+  ]);
 
   revalidatePath(`/payments/${input.paymentId}/receipt`);
   revalidatePath("/payroll");

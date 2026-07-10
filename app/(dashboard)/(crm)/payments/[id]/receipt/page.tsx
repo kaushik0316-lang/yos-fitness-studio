@@ -95,15 +95,16 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
 
   if (!payment) notFound();
 
-  const [existingCommission, activeTrainers] = session.user.role === "ADMIN" && !payment.isVoided
+  const [existingCommissions, activeTrainers] = session.user.role === "ADMIN" && !payment.isVoided
     ? await Promise.all([
-        prisma.trainerCommission.findUnique({
+        prisma.trainerCommission.findMany({
           where: { paymentId: params.id },
           select: { id: true, trainerId: true, trainer: { select: { fullName: true } }, commissionPct: true, commissionAmount: true },
+          orderBy: { createdAt: "asc" },
         }),
         prisma.employee.findMany({ where: { role: "TRAINER", isActive: true }, select: { id: true, fullName: true }, orderBy: { fullName: "asc" } }),
       ])
-    : [null, []];
+    : [[], []];
 
   const isYFS = payment.company === "YOS_FITNESS_STUDIO";
   const companyName = isYFS ? "YOS FITNESS STUDIO" : "YOS FITNESS";
@@ -181,13 +182,13 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
             memberName={payment.member.fullName}
             packageName={category}
             trainers={activeTrainers}
-            existing={existingCommission ? {
-              id:               existingCommission.id,
-              trainerId:        existingCommission.trainerId,
-              trainerName:      existingCommission.trainer.fullName,
-              commissionPct:    Number(existingCommission.commissionPct),
-              commissionAmount: Number(existingCommission.commissionAmount),
-            } : null}
+            existing={existingCommissions.map((c) => ({
+              id:               c.id,
+              trainerId:        c.trainerId,
+              trainerName:      c.trainer.fullName,
+              commissionPct:    Number(c.commissionPct),
+              commissionAmount: Number(c.commissionAmount),
+            }))}
           />
         )}
         <SendPDFButton
