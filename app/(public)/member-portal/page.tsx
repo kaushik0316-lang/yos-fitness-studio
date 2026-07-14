@@ -541,6 +541,8 @@ export default function MemberPortalPage() {
   // ── DASHBOARD ──────────────────────────────────────────────────────────────
   const isActive  = member?.status === "ACTIVE";
   const isExpired = member?.status !== "ACTIVE";
+  const prog = isActive ? membershipProgress(member?.startDate ?? null, member?.expiryDate ?? null) : null;
+  const barColor = prog ? (prog.pct >= 85 ? "#f87171" : prog.pct >= 60 ? "#fb923c" : "#4ade80") : "#4ade80";
 
   return (
     <div className="min-h-screen flex flex-col overflow-y-auto" style={{ background: "#0a0a0a" }}>
@@ -570,77 +572,90 @@ export default function MemberPortalPage() {
           {/* Watermark */}
           <div className="absolute right-0 bottom-0 text-[96px] leading-none select-none font-black pointer-events-none"
             style={{ color: isActive ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.04)", lineHeight: 1 }}>YOS</div>
-          <p className="text-white/40 text-[11px] font-semibold uppercase tracking-widest">{todayLabel()}</p>
-          <h2 className="text-2xl font-extrabold text-white mt-1 leading-tight uppercase">
+
+          {/* Date + status row */}
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-white/40 text-[11px] font-semibold uppercase tracking-widest">{todayLabel()}</p>
+            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full flex-shrink-0"
+              style={{ background: isActive ? "rgba(34,197,94,0.2)" : "rgba(220,38,38,0.15)", color: isActive ? "#86efac" : "#fca5a5" }}>
+              {isActive ? "Active" : "Expired"}
+            </span>
+          </div>
+
+          {/* Name */}
+          <h2 className="text-2xl font-extrabold text-white mt-2 leading-tight uppercase">
             {member?.fullName ?? ""}{isActive ? " 💪" : ""}
           </h2>
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-              style={{ background: isActive ? "rgba(34,197,94,0.2)" : "rgba(220,38,38,0.15)", color: isActive ? "#86efac" : "#fca5a5" }}>
-              {isActive ? "Active Member" : "Membership Expired"}
-            </span>
-            <span className="text-white/30 text-[11px]">{member?.memberId}</span>
+
+          {/* ID + package */}
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className="text-white/30 text-[11px] font-mono">{member?.memberId}</span>
+            {member?.packageName && (
+              <>
+                <span className="text-white/15 text-[11px]">·</span>
+                <span className="text-white/40 text-[11px]">{member.packageName}</span>
+              </>
+            )}
           </div>
-          {member?.packageName && (
-            <p className="text-white/40 text-xs mt-1">{member.packageName}</p>
-          )}
+
+          {/* Expiry */}
           {member?.expiryDate && (
             <p className="text-white/30 text-[11px] mt-1">
-              {isExpired ? "Expired" : "Valid until"}: {fmtExpiry(member.expiryDate)}
+              {isExpired ? "Expired" : "Valid until"}: <span className="text-white/50 font-semibold">{fmtExpiry(member.expiryDate)}</span>
             </p>
           )}
-          {/* Membership progress bar */}
-          {isActive && (() => {
-            const prog = membershipProgress(member?.startDate ?? null, member?.expiryDate ?? null);
-            if (!prog) return null;
-            const barColor = prog.pct >= 85 ? "#f87171" : prog.pct >= 60 ? "#fb923c" : "#4ade80";
-            return (
-              <div className="mt-3">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.25)" }}>
-                    Membership Usage
-                  </span>
-                  <span className="text-[10px] font-bold" style={{ color: barColor }}>
-                    {prog.daysLeft}d left
-                  </span>
+
+          {/* Membership progress */}
+          {prog && (
+            <div className="mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              <div className="flex justify-between items-end mb-2">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.25)" }}>
+                    Membership
+                  </p>
+                  <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.2)" }}>
+                    {prog.daysTotal - prog.daysLeft} of {prog.daysTotal} days used
+                  </p>
                 </div>
-                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.1)" }}>
-                  <div className="h-full rounded-full transition-all"
-                    style={{ width: `${prog.pct}%`, background: barColor, boxShadow: `0 0 8px ${barColor}60` }} />
-                </div>
-                <div className="flex justify-between mt-0.5">
-                  <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.15)" }}>Day 1</span>
-                  <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.15)" }}>{prog.daysTotal}d total</span>
+                <div className="text-right">
+                  <p className="font-extrabold text-lg leading-none" style={{ color: barColor }}>
+                    {prog.daysLeft}
+                  </p>
+                  <p className="text-[10px] font-bold" style={{ color: `${barColor}99` }}>days left</p>
                 </div>
               </div>
-            );
-          })()}
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+                <div className="h-full rounded-full"
+                  style={{ width: `${prog.pct}%`, background: `linear-gradient(90deg, ${barColor}99, ${barColor})`, boxShadow: `0 0 12px ${barColor}50`, transition: "width 0.8s ease" }} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats strip */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: "#1c1c1c" }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+          <div className="rounded-2xl p-4 flex flex-col gap-2" style={{ background: "#1c1c1c" }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center"
               style={{ background: "rgba(168,85,247,0.12)" }}>
               <TrendingUp className="h-4 w-4" style={{ color: "#c084fc" }} />
             </div>
             <div>
-              <p className="text-white font-extrabold text-xl leading-none">{totalVisits}</p>
-              <p className="text-[11px] text-gray-600 mt-0.5">Total Visits</p>
+              <p className="text-white font-extrabold text-2xl leading-none">{totalVisits}</p>
+              <p className="text-[11px] text-gray-600 mt-1">Total Visits</p>
             </div>
           </div>
-          <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: "#1c1c1c" }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+          <div className="rounded-2xl p-4 flex flex-col gap-2" style={{ background: "#1c1c1c" }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center"
               style={{ background: "rgba(251,146,60,0.12)" }}>
               <Clock className="h-4 w-4 text-orange-400" />
             </div>
             <div>
-              <p className="text-white font-extrabold text-sm leading-none">
+              <p className="text-white font-extrabold text-base leading-none">
                 {member?.lastAttendanceDate
                   ? new Date(member.lastAttendanceDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" })
                   : "—"}
               </p>
-              <p className="text-[11px] text-gray-600 mt-0.5">Last Visit</p>
+              <p className="text-[11px] text-gray-600 mt-1">Last Visit</p>
             </div>
           </div>
         </div>
