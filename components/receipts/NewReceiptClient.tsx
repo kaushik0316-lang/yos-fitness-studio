@@ -850,7 +850,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
         {soldById && (
           <div className="mt-3 space-y-2">
             {/* Split toggle */}
-            {!soldById2 ? (
+            {soldById2 === null ? (
               <div className="flex items-center gap-3">
                 <p className="text-[11px] text-orange-600 font-semibold">
                   ✓ {employees.find((e) => e.id === soldById)?.fullName} · 100%
