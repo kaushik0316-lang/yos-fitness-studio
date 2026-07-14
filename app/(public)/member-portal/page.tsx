@@ -237,7 +237,11 @@ export default function MemberPortalPage() {
       return;
     }
     if (setupStep === "confirmPin") {
-      if (confirmPin !== setupPin) { setSetupError("PINs do not match. Please try again."); setConfirmPin(""); return; }
+      if (confirmPin !== setupPin) {
+        setSetupError("PINs do not match. Try again.");
+        setSetupPin(""); setConfirmPin(""); setSetupStep("choosePin");
+        return;
+      }
       setSetupLoading(true); setSetupError("");
       try {
         const res = await fetch("/api/member/setup-pin", {
@@ -250,7 +254,11 @@ export default function MemberPortalPage() {
           }),
         });
         const data = await res.json();
-        if (!res.ok) { setSetupError(data.error ?? "Something went wrong."); setSetupLoading(false); return; }
+        if (!res.ok) {
+          setSetupError(data.error ?? "Something went wrong.");
+          setSetupPin(""); setConfirmPin(""); setSetupStep("choosePin");
+          setSetupLoading(false); return;
+        }
         setSetupName(data.fullName);
         setSetupStep("done");
       } catch { setSetupError("Network error. Please try again."); }
