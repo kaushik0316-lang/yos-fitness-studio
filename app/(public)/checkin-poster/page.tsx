@@ -152,7 +152,7 @@ export default function CheckinPosterPage() {
         <div className="flex items-center gap-3 w-full mb-5">
           <div className="flex-1 h-px" style={{ background: "#1A2E1E" }} />
           <span className="text-[10px] uppercase tracking-[0.2em] whitespace-nowrap" style={{ color: "#2E4A35" }}>
-            or use the kiosk tablet
+            or visit directly
           </span>
           <div className="flex-1 h-px" style={{ background: "#1A2E1E" }} />
         </div>
