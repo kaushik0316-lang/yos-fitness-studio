@@ -10,6 +10,18 @@ function getISTDate(): Date {
   return istNow;
 }
 
+function resolveExpiryDate(
+  memberships: { expiryDate: Date; package: { name: string } | null }[],
+  fallback: Date | null,
+): string | null {
+  if (!memberships.length) return fallback?.toISOString() ?? null;
+  const general = memberships.find((m) =>
+    m.package?.name?.toLowerCase().includes("general")
+  );
+  const chosen = general ?? memberships[0]; // memberships already sorted desc by expiryDate
+  return chosen.expiryDate.toISOString();
+}
+
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
@@ -43,16 +55,16 @@ export async function POST(req: NextRequest) {
 
     // Check today's attendance + lifetime visit count + latest expiry across all packages
     const todayIST = getISTDate();
-    const [todayAttendance, totalVisits, latestMembership] = await Promise.all([
+    const [todayAttendance, totalVisits, memberships] = await Promise.all([
       prisma.memberAttendance.findUnique({
         where: { memberId_date: { memberId: member.id, date: todayIST } },
         select: { id: true, checkInTime: true, checkOutTime: true, autoCheckedOut: true },
       }),
       prisma.memberAttendance.count({ where: { memberId: member.id } }),
-      prisma.membership.findFirst({
+      prisma.membership.findMany({
         where: { memberId: member.id },
         orderBy: { expiryDate: "desc" },
-        select: { expiryDate: true },
+        select: { expiryDate: true, package: { select: { name: true } } },
       }),
     ]);
 
@@ -62,7 +74,7 @@ export async function POST(req: NextRequest) {
         memberId:         member.memberId,
         fullName:         member.fullName,
         status:           member.status,
-        expiryDate:       latestMembership?.expiryDate?.toISOString() ?? member.expiryDate?.toISOString() ?? null,
+        expiryDate:       resolveExpiryDate(memberships, member.expiryDate),
         packageName:      member.currentPackage?.name ?? null,
         lastAttendanceDate: member.lastAttendanceDate?.toISOString() ?? null,
       },
