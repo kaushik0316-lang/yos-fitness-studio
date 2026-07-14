@@ -23,7 +23,7 @@ const editSchema = z.object({
   company: z.nativeEnum(Company).optional(),
   soldById: z.string().nullable().optional(),
   soldById2: z.string().nullable().optional(),
-  soldByPct: z.number().int().min(1).max(99).optional(),
+  soldByPct: z.number().int().min(1).max(100).optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
