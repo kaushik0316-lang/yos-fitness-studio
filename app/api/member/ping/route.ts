@@ -41,14 +41,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid PIN. Please try again." }, { status: 401 });
     }
 
-    // Check today's attendance + lifetime visit count
+    // Check today's attendance + lifetime visit count + latest expiry across all packages
     const todayIST = getISTDate();
-    const [todayAttendance, totalVisits] = await Promise.all([
+    const [todayAttendance, totalVisits, latestMembership] = await Promise.all([
       prisma.memberAttendance.findUnique({
         where: { memberId_date: { memberId: member.id, date: todayIST } },
         select: { id: true, checkInTime: true, checkOutTime: true, autoCheckedOut: true },
       }),
       prisma.memberAttendance.count({ where: { memberId: member.id } }),
+      prisma.membership.findFirst({
+        where: { memberId: member.id },
+        orderBy: { expiryDate: "desc" },
+        select: { expiryDate: true },
+      }),
     ]);
 
     return NextResponse.json({
@@ -57,7 +62,7 @@ export async function POST(req: NextRequest) {
         memberId:         member.memberId,
         fullName:         member.fullName,
         status:           member.status,
-        expiryDate:       member.expiryDate?.toISOString() ?? null,
+        expiryDate:       latestMembership?.expiryDate?.toISOString() ?? member.expiryDate?.toISOString() ?? null,
         packageName:      member.currentPackage?.name ?? null,
         lastAttendanceDate: member.lastAttendanceDate?.toISOString() ?? null,
       },
