@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { EditMemberButton } from "@/components/members/EditMemberButton";
 import { DeleteMemberButton } from "@/components/members/DeleteMemberButton";
-import { toggleDoNotDisturb, toggleKioskCheckin } from "@/lib/actions/members";
+import { toggleDoNotDisturb, toggleKioskCheckin, setMemberPin } from "@/lib/actions/members";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { MemberPhotoUpload } from "@/components/members/MemberPhotoUpload";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
@@ -51,6 +51,11 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
   const [dndLoading, setDndLoading] = useState(false);
   const [kioskCheckin, setKioskCheckin] = useState<boolean>(member.allowKioskCheckin ?? false);
   const [kioskLoading, setKioskLoading] = useState(false);
+  const [currentPin, setCurrentPin] = useState<string | null>(member.pin ?? null);
+  const [pinInput, setPinInput] = useState("");
+  const [pinEditing, setPinEditing] = useState(false);
+  const [pinLoading, setPinLoading] = useState(false);
+  const [pinError, setPinError] = useState("");
   const [showAllPayments, setShowAllPayments] = useState(false);
   const [showAllAttendances, setShowAllAttendances] = useState(false);
   const [showAllMemberships, setShowAllMemberships] = useState(false);
@@ -327,6 +332,87 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                       kioskCheckin ? "translate-x-6" : "translate-x-1"
                     }`} />
                   </button>
+                </div>
+              )}
+
+              {/* Kiosk PIN */}
+              {userRole === "ADMIN" && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Shield className={`h-4 w-4 ${currentPin ? "text-emerald-500" : "text-gray-400"}`} />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-700">Kiosk PIN</p>
+                        <p className="text-xs text-gray-400">4-digit code for self check-in at the kiosk</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {currentPin && !pinEditing && (
+                        <span className="font-mono text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                          {currentPin}
+                        </span>
+                      )}
+                      {!pinEditing && (
+                        <button
+                          onClick={() => { setPinEditing(true); setPinInput(""); setPinError(""); }}
+                          className="text-xs font-semibold text-orange-500 hover:text-orange-600 underline underline-offset-2"
+                        >
+                          {currentPin ? "Change" : "Set PIN"}
+                        </button>
+                      )}
+                      {currentPin && !pinEditing && (
+                        <button
+                          onClick={async () => {
+                            setPinLoading(true);
+                            try { await setMemberPin(member.id, null); setCurrentPin(null); }
+                            catch (e: any) { setPinError(e.message); }
+                            finally { setPinLoading(false); }
+                          }}
+                          disabled={pinLoading}
+                          className="text-xs font-semibold text-red-400 hover:text-red-600 underline underline-offset-2 disabled:opacity-40"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {pinEditing && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={4}
+                        value={pinInput}
+                        onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(""); }}
+                        placeholder="Enter 4-digit PIN"
+                        className="flex-1 border-2 border-gray-200 rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-orange-400 tracking-widest"
+                        autoFocus
+                      />
+                      <button
+                        onClick={async () => {
+                          setPinLoading(true); setPinError("");
+                          try {
+                            await setMemberPin(member.id, pinInput);
+                            setCurrentPin(pinInput);
+                            setPinEditing(false);
+                          } catch (e: any) { setPinError(e.message); }
+                          finally { setPinLoading(false); }
+                        }}
+                        disabled={pinInput.length !== 4 || pinLoading}
+                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition-colors"
+                      >
+                        {pinLoading ? "Saving…" : "Save"}
+                      </button>
+                      <button
+                        onClick={() => { setPinEditing(false); setPinError(""); }}
+                        className="px-3 py-1.5 border border-gray-200 text-gray-400 text-xs font-semibold rounded-lg hover:border-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                  {pinError && <p className="mt-1.5 text-xs text-red-500 font-medium">{pinError}</p>}
                 </div>
               )}
 

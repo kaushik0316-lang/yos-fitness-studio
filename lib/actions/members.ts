@@ -320,3 +320,24 @@ export async function toggleKioskCheckin(memberId: string, value: boolean) {
   revalidatePath(`/members/${memberId}`);
   return { success: true };
 }
+
+export async function setMemberPin(memberId: string, pin: string | null) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
+  if (session.user.role !== "ADMIN") throw new Error("Admin only");
+
+  if (pin !== null && !/^\d{4}$/.test(pin)) throw new Error("PIN must be exactly 4 digits");
+
+  if (pin !== null) {
+    const conflict = await prisma.member.findFirst({ where: { pin, NOT: { id: memberId } }, select: { memberId: true } });
+    if (conflict) throw new Error(`PIN already in use by member ${conflict.memberId}`);
+  }
+
+  await prisma.member.update({
+    where: { id: memberId },
+    data: { pin: pin ?? null },
+  });
+
+  revalidatePath(`/members/${memberId}`);
+  return { success: true };
+}
