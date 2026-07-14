@@ -205,6 +205,14 @@ export async function renewMembership(input: {
   commissionPct?: number;
   memberName?: string;
   packageName?: string;
+  billDate?: string;
+  pendingAmount?: number;
+  splitPaymentMode?: PaymentMode;
+  splitAmount?: number;
+  cardCharge?: number;
+  soldById?: string;
+  soldById2?: string;
+  soldByPct?: number;
 }) {
   const session = await auth();
   if (!session?.user) throw new Error("Unauthorized");
@@ -226,6 +234,14 @@ export async function renewMembership(input: {
         company: input.company,
         collectedById: session.user.id,
         notes: input.notes ?? "Renewal",
+        date: input.billDate ? new Date(input.billDate) : new Date(),
+        pendingAmount: input.pendingAmount ?? 0,
+        splitPaymentMode: input.splitPaymentMode ?? null,
+        splitAmount: input.splitAmount ?? null,
+        cardCharge: input.cardCharge && input.cardCharge > 0 ? input.cardCharge : null,
+        soldById: input.soldById ?? null,
+        soldById2: input.soldById2 ?? null,
+        soldByPct: input.soldById2 ? (input.soldByPct ?? 100) : 100,
       },
     });
 
