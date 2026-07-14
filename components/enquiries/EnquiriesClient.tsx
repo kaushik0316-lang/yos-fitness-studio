@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef, useEffect } from "react";
-import { Plus, Phone, MessageCircle, Search, X, ChevronDown, UserCircle, Calendar, StickyNote, Trash2 } from "lucide-react";
+import { Plus, Phone, MessageCircle, Search, X, ChevronDown, UserCircle, Calendar, StickyNote, Trash2, ChevronRight } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { createEnquiry, updateEnquiry, deleteEnquiry } from "@/lib/actions/enquiries";
@@ -58,6 +58,7 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [showAdd, setShowAdd]     = useState(false);
   const [editing, setEditing]     = useState<Enquiry | null>(null);
+  const [selected, setSelected]   = useState<Enquiry | null>(null);
   const [openStatusId, setOpenStatusId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -95,6 +96,7 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
     startTransition(async () => {
       await updateEnquiry(id, { status: status as any });
       setEnquiries((prev) => prev.map((e) => e.id === id ? { ...e, status } : e));
+      setSelected((prev) => prev?.id === id ? { ...prev, status } : prev);
     });
   }
 
@@ -199,8 +201,10 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
               const followUpToday   = followUpDays === 0;
 
               return (
-                <div key={e.id} className="px-5 py-4 hover:bg-white/[0.02] transition-colors"
-                  style={{ background: idx % 2 === 0 ? "#161616" : "#181818" }}>
+                <div key={e.id}
+                  className="px-5 py-4 hover:bg-white/[0.04] transition-colors cursor-pointer"
+                  style={{ background: selected?.id === e.id ? "rgba(249,115,22,0.05)" : idx % 2 === 0 ? "#161616" : "#181818" }}
+                  onClick={() => setSelected(selected?.id === e.id ? null : e)}>
                   <div className="flex items-start gap-4">
 
                     {/* Avatar */}
@@ -257,7 +261,7 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
                       )}
 
                       {/* Row 3: actions */}
-                      <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                      <div className="flex items-center gap-2 mt-2.5 flex-wrap" onClick={(ev) => ev.stopPropagation()}>
                         <a href={`tel:${e.phone}`}
                           className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white transition-colors px-2.5 py-1.5 rounded-lg"
                           style={{ background: "rgba(255,255,255,0.06)" }}>
@@ -280,13 +284,13 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
                           onChange={(s) => { handleStatusChange(e.id, s); setOpenStatusId(null); }}
                         />
 
-                        <button onClick={() => setEditing(e)}
+                        <button onClick={(ev) => { ev.stopPropagation(); setEditing(e); }}
                           className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors text-gray-400 hover:text-white ml-auto"
                           style={{ background: "rgba(255,255,255,0.06)" }}>
                           Edit
                         </button>
                         {isAdmin && (
-                          <button onClick={() => handleDelete(e.id)}
+                          <button onClick={(ev) => { ev.stopPropagation(); handleDelete(e.id); }}
                             className="p-1.5 rounded-lg text-gray-700 hover:text-red-400 transition-colors"
                             style={{ background: "rgba(255,255,255,0.04)" }}>
                             <Trash2 className="h-3.5 w-3.5" />
@@ -320,6 +324,17 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
           initial={editing}
           onClose={() => setEditing(null)}
           onSubmit={handleUpdate}
+        />
+      )}
+
+      {/* ── Detail drawer ── */}
+      {selected && (
+        <DetailDrawer
+          enquiry={selected}
+          onClose={() => setSelected(null)}
+          onEdit={() => { setEditing(selected); setSelected(null); }}
+          onDelete={isAdmin ? () => { handleDelete(selected.id); setSelected(null); } : undefined}
+          onStatusChange={(s) => handleStatusChange(selected.id, s)}
         />
       )}
     </div>
@@ -367,6 +382,144 @@ function StatusDropdown({ enquiryId, status, cfg, open, onToggle, onClose, onCha
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function DetailDrawer({ enquiry, onClose, onEdit, onDelete, onStatusChange }: {
+  enquiry: Enquiry;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete?: () => void;
+  onStatusChange: (s: string) => void;
+}) {
+  const cfg = STATUS_CONFIG[enquiry.status] ?? STATUS_CONFIG.NEW;
+  const followUpDays = enquiry.followUpDate ? daysUntil(enquiry.followUpDate) : null;
+  const followUpOverdue = followUpDays !== null && followUpDays < 0;
+  const followUpToday   = followUpDays === 0;
+
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const row = (label: string, value: React.ReactNode) => (
+    <div className="flex items-start gap-3 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <span className="text-xs text-gray-600 w-24 flex-shrink-0 pt-0.5 uppercase tracking-wider font-semibold">{label}</span>
+      <span className="text-sm text-gray-200 flex-1">{value ?? <span className="text-gray-700">—</span>}</span>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-40 flex justify-end" style={{ pointerEvents: "none" }}>
+      {/* Backdrop */}
+      <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.5)", pointerEvents: "auto" }} onClick={onClose} />
+
+      {/* Panel */}
+      <div ref={ref} className="relative w-full max-w-sm h-full flex flex-col overflow-hidden"
+        style={{
+          background: "#141414",
+          borderLeft: "1px solid rgba(255,255,255,0.08)",
+          pointerEvents: "auto",
+          animation: "slideIn 0.2s ease-out",
+        }}>
+        <style>{`@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 flex-shrink-0"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-extrabold flex-shrink-0"
+              style={{ background: cfg.bg, color: cfg.color }}>
+              {enquiry.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <p className="font-bold text-white text-sm leading-tight">{toTitleCase(enquiry.name)}</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">{enquiry.phone}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-gray-600 hover:text-white transition-colors p-1">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-5 py-2">
+
+          {/* Status selector */}
+          <div className="py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <p className="text-xs text-gray-600 uppercase tracking-wider font-semibold mb-2">Status</p>
+            <div className="flex flex-wrap gap-1.5">
+              {STATUSES.map((s) => {
+                const sc = STATUS_CONFIG[s];
+                return (
+                  <button key={s} onClick={() => onStatusChange(s)}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all border"
+                    style={{
+                      background: enquiry.status === s ? sc.bg : "transparent",
+                      color: enquiry.status === s ? sc.color : "#4b5563",
+                      borderColor: enquiry.status === s ? sc.dot + "60" : "rgba(255,255,255,0.07)",
+                    }}>
+                    {sc.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Details */}
+          {row("Interest", enquiry.interest)}
+          {row("Source", SOURCE_LABELS[enquiry.source] ?? enquiry.source)}
+          {row("Assigned to", enquiry.assignedTo ? toTitleCase(enquiry.assignedTo.fullName) : null)}
+          {row("Follow-up", enquiry.followUpDate ? (
+            <span style={{ color: followUpOverdue ? "#f87171" : followUpToday ? "#fb923c" : "#a78bfa" }}>
+              {followUpOverdue
+                ? `${Math.abs(followUpDays!)}d overdue — ${formatDate(enquiry.followUpDate)}`
+                : followUpToday
+                ? `Today — ${formatDate(enquiry.followUpDate)}`
+                : formatDate(enquiry.followUpDate)}
+            </span>
+          ) : null)}
+          {row("Added", <span>{formatDate(enquiry.createdAt)} by {toTitleCase(enquiry.createdBy.name)}</span>)}
+          {enquiry.notes && (
+            <div className="py-3">
+              <p className="text-xs text-gray-600 uppercase tracking-wider font-semibold mb-2">Notes</p>
+              <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{enquiry.notes}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center gap-2 px-5 py-4 flex-shrink-0"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+          <a href={`tel:${enquiry.phone}`}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white transition-colors"
+            style={{ background: "rgba(255,255,255,0.06)" }}>
+            <Phone className="h-3.5 w-3.5" /> Call
+          </a>
+          <a href={waLink(enquiry.phone)} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold"
+            style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}>
+            <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+          </a>
+          <button onClick={onEdit}
+            className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white transition-all"
+            style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}>
+            Edit
+          </button>
+          {onDelete && (
+            <button onClick={onDelete}
+              className="p-2 rounded-xl text-gray-700 hover:text-red-400 transition-colors"
+              style={{ background: "rgba(255,255,255,0.04)" }}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
