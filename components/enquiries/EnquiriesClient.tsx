@@ -30,7 +30,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; 
   NEW:        { label: "New",        bg: "rgba(59,130,246,0.12)",  color: "#60a5fa", dot: "#3b82f6" },
   CONTACTED:  { label: "Contacted",  bg: "rgba(245,158,11,0.12)",  color: "#fbbf24", dot: "#f59e0b" },
   FOLLOW_UP:  { label: "Follow Up",  bg: "rgba(139,92,246,0.12)",  color: "#a78bfa", dot: "#8b5cf6" },
-  CONVERTED:  { label: "Converted",  bg: "rgba(16,185,129,0.12)",  color: "#34d399", dot: "#10b981" },
+  CONVERTED:  { label: "Joined",     bg: "rgba(16,185,129,0.12)",  color: "#34d399", dot: "#10b981" },
   LOST:       { label: "Lost",       bg: "rgba(107,114,128,0.12)", color: "#9ca3af", dot: "#6b7280" },
 };
 
