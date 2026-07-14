@@ -1,12 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { Users, Loader2, Check, X, Shield, Eye, EyeOff, Wrench, Hash, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Users, Loader2, Check, X, Shield, Eye, EyeOff, Wrench, Hash, Trash2, Smartphone, Search, ToggleLeft, ToggleRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@prisma/client";
 
 type User = { id: string; name: string; email: string; role: UserRole; isActive: boolean };
+
+type KioskMember = {
+  id: string; memberId: string; fullName: string; status: string;
+  phone: string; pin: string | null; allowKioskCheckin: boolean;
+  currentPackage: { name: string } | null; expiryDate: string | null;
+};
 
 type Props = { users: User[] };
 
@@ -18,7 +24,66 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export function SettingsClient({ users }: Props) {
-  const [activeTab, setActiveTab] = useState<"users" | "security" | "data">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "security" | "data" | "kiosk">("users");
+
+  // ── Kiosk state ─────────────────────────────────────────────────────────────
+  const [kioskMembers, setKioskMembers] = useState<KioskMember[] | null>(null);
+  const [kioskSearch, setKioskSearch] = useState("");
+  const [kioskLoading, setKioskLoading] = useState(false);
+  const [kioskActions, setKioskActions] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (activeTab === "kiosk" && kioskMembers === null) loadKioskMembers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  async function loadKioskMembers() {
+    setKioskLoading(true);
+    try {
+      const res = await fetch("/api/admin/kiosk-members");
+      const data = await res.json();
+      if (res.ok) setKioskMembers(data.members);
+    } finally {
+      setKioskLoading(false);
+    }
+  }
+
+  async function clearPin(memberId: string, name: string) {
+    if (!confirm(`Clear PIN for ${name}? They won't be able to use the kiosk until they set a new one.`)) return;
+    setKioskActions((p) => ({ ...p, [memberId]: true }));
+    try {
+      const res = await fetch(`/api/members/${memberId}/pin`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setKioskMembers((prev) => prev?.filter((m) => m.id !== memberId) ?? null);
+        toast({ title: `PIN cleared for ${name}` });
+      } else {
+        const d = await res.json();
+        toast({ title: "Error", description: d.error, variant: "destructive" });
+      }
+    } finally {
+      setKioskActions((p) => ({ ...p, [memberId]: false }));
+    }
+  }
+
+  async function toggleKiosk(memberId: string, current: boolean) {
+    setKioskActions((p) => ({ ...p, [`kiosk_${memberId}`]: true }));
+    try {
+      const res = await fetch(`/api/members/${memberId}/kiosk-access`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ allowKioskCheckin: !current }),
+      });
+      if (res.ok) {
+        setKioskMembers((prev) =>
+          prev?.map((m) => m.id === memberId ? { ...m, allowKioskCheckin: !current } : m) ?? null
+        );
+      }
+    } finally {
+      setKioskActions((p) => ({ ...p, [`kiosk_${memberId}`]: false }));
+    }
+  }
   const [backfilling, setBackfilling] = useState(false);
   const [backfillResult, setBackfillResult] = useState<{ fixed: number; results: string[] } | null>(null);
   const [purgingShifts, setPurgingShifts] = useState(false);
@@ -97,11 +162,12 @@ export function SettingsClient({ users }: Props) {
   return (
     <div className="space-y-4">
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit flex-wrap">
         {[
-          { key: "users",    label: `Users (${users.length})`, icon: Users  },
-          { key: "security", label: "Security",                 icon: Shield },
-          { key: "data",     label: "Data Tools",               icon: Wrench },
+          { key: "users",    label: `Users (${users.length})`, icon: Users      },
+          { key: "kiosk",    label: "Kiosk / Check-in",        icon: Smartphone },
+          { key: "security", label: "Security",                 icon: Shield     },
+          { key: "data",     label: "Data Tools",               icon: Wrench     },
         ].map((t) => (
           <button
             key={t.key}
@@ -267,6 +333,142 @@ export function SettingsClient({ users }: Props) {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Kiosk tab */}
+      {activeTab === "kiosk" && (
+        <div className="space-y-4 max-w-2xl">
+          {/* Header */}
+          <div className="rounded-xl overflow-hidden" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="px-5 py-4 flex items-center gap-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="rounded-xl p-2" style={{ background: "rgba(34,197,94,0.12)" }}>
+                <Smartphone className="h-4 w-4 text-green-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-white text-sm">Member PIN / Check-in Tracker</h3>
+                <p className="text-xs text-gray-500">
+                  {kioskMembers === null ? "Loading…" : `${kioskMembers.length} member${kioskMembers.length !== 1 ? "s" : ""} have set up a PIN`}
+                </p>
+              </div>
+              <button onClick={loadKioskMembers} disabled={kioskLoading}
+                className="text-xs text-gray-500 hover:text-gray-300 px-3 py-1.5 rounded-lg transition-colors"
+                style={{ background: "rgba(255,255,255,0.05)" }}>
+                {kioskLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Refresh"}
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="px-5 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-600" />
+                <input
+                  value={kioskSearch}
+                  onChange={(e) => setKioskSearch(e.target.value)}
+                  placeholder="Search members…"
+                  className="w-full pl-9 pr-4 py-2 text-sm text-white placeholder:text-gray-600 rounded-lg outline-none"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
+                />
+              </div>
+            </div>
+
+            {/* List */}
+            {kioskLoading && (
+              <div className="flex items-center justify-center py-12 gap-2 text-gray-500 text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+              </div>
+            )}
+            {!kioskLoading && kioskMembers?.length === 0 && (
+              <div className="text-center py-12 text-gray-600 text-sm">No members have set up a PIN yet.</div>
+            )}
+            {!kioskLoading && kioskMembers && kioskMembers.length > 0 && (() => {
+              const filtered = kioskMembers.filter((m) =>
+                !kioskSearch || m.fullName.toLowerCase().includes(kioskSearch.toLowerCase()) || m.memberId.toLowerCase().includes(kioskSearch.toLowerCase())
+              );
+              return (
+                <div className="divide-y divide-white/[0.04]">
+                  {filtered.length === 0 && (
+                    <div className="text-center py-8 text-gray-600 text-sm">No results for &ldquo;{kioskSearch}&rdquo;</div>
+                  )}
+                  {filtered.map((m) => {
+                    const isActive = m.status === "ACTIVE";
+                    const expired = m.expiryDate ? new Date(m.expiryDate) < new Date() : true;
+                    return (
+                      <div key={m.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-white/[0.02] transition-colors">
+                        {/* Avatar */}
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-xs font-bold"
+                          style={{ background: isActive ? "rgba(34,197,94,0.12)" : "rgba(255,255,255,0.05)", color: isActive ? "#4ade80" : "#6b7280" }}>
+                          {m.fullName.charAt(0)}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-white truncate">{m.fullName}</p>
+                            <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0",
+                              isActive ? "text-green-400 bg-green-400/10" : "text-gray-500 bg-white/5")}>
+                              {m.status}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[11px] text-gray-600">{m.memberId}</span>
+                            {m.currentPackage && (
+                              <>
+                                <span className="text-gray-700">·</span>
+                                <span className="text-[11px] text-gray-600 truncate">{m.currentPackage.name}</span>
+                              </>
+                            )}
+                            {m.expiryDate && (
+                              <>
+                                <span className="text-gray-700">·</span>
+                                <span className={cn("text-[11px]", expired ? "text-red-400/70" : "text-gray-600")}>
+                                  {expired ? "Exp " : "Until "}
+                                  {new Date(m.expiryDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* PIN badge */}
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg flex-shrink-0"
+                          style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.15)" }}>
+                          <span className="text-[10px] font-bold text-green-500 tracking-widest">PIN</span>
+                          <span className="text-[10px] font-mono text-green-400">••••</span>
+                        </div>
+
+                        {/* Kiosk toggle */}
+                        <button
+                          onClick={() => toggleKiosk(m.id, m.allowKioskCheckin)}
+                          disabled={!!kioskActions[`kiosk_${m.id}`]}
+                          title={m.allowKioskCheckin ? "Kiosk access enabled" : "Kiosk access disabled (expired members only)"}
+                          className="flex-shrink-0 transition-colors disabled:opacity-50">
+                          {kioskActions[`kiosk_${m.id}`]
+                            ? <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
+                            : m.allowKioskCheckin
+                              ? <ToggleRight className="h-5 w-5 text-green-400" />
+                              : <ToggleLeft className="h-5 w-5 text-gray-600" />
+                          }
+                        </button>
+
+                        {/* Clear PIN */}
+                        <button
+                          onClick={() => clearPin(m.id, m.fullName)}
+                          disabled={!!kioskActions[m.id]}
+                          title="Clear PIN"
+                          className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:bg-red-400/10 disabled:opacity-50">
+                          {kioskActions[m.id]
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-500" />
+                            : <X className="h-3.5 w-3.5 text-gray-600 hover:text-red-400 transition-colors" />
+                          }
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
