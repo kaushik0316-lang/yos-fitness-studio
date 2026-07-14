@@ -24,7 +24,9 @@ const PUBLIC_PAGES = new Set([
   "/member-checkin/poster",
   "/my-membership",
   "/checkin-qr",
+  "/checkin-poster",
   "/terms-accept",
+  "/my-payments",
 ]);
 
 // CRM routes that require a verified session (path-prefix match)
