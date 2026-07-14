@@ -10,9 +10,24 @@ import { useRouter } from "next/navigation";
 type Payment = {
   id: string; date: string;
   amount: string | number; discount: string | number;
+  soldByPct: number | null;
   categoryLabel: string | null;
   member: { fullName: string; memberId: string };
-  soldBy: { id: string; fullName: string } | null;
+  soldBy:  { id: string; fullName: string } | null;
+  soldBy2: { id: string; fullName: string } | null;
+};
+
+// One entry per seller per payment
+type SaleEntry = {
+  paymentId: string;
+  date: string;
+  fullNet: number;
+  creditedAmount: number;
+  categoryLabel: string | null;
+  member: { fullName: string; memberId: string };
+  seller: { id: string; fullName: string };
+  isSplit: boolean;
+  splitRole: "primary" | "secondary";
 };
 
 type Employee = { id: string; fullName: string };
@@ -110,24 +125,55 @@ export function SalesTab({ allEmployees, initMonth, initYear }: {
     }
   }
 
-  // Group by soldBy employee
-  const grouped = new Map<string, { emp: Employee | null; payments: Payment[]; idx: number }>();
-  let empIdx = 0;
+  // Expand payments into per-seller entries
+  const allEntries: SaleEntry[] = [];
   for (const p of payments) {
-    const key = p.soldBy?.id ?? "__none__";
-    if (!grouped.has(key)) {
-      grouped.set(key, { emp: p.soldBy, payments: [], idx: empIdx++ });
+    const net = Number(p.amount) - Number(p.discount);
+    const pct = p.soldByPct ?? 100;
+    const isSplit = !!p.soldBy2;
+    if (p.soldBy) {
+      allEntries.push({
+        paymentId: p.id, date: p.date, fullNet: net,
+        creditedAmount: isSplit ? Math.round(net * pct / 100) : net,
+        categoryLabel: p.categoryLabel,
+        member: p.member, seller: p.soldBy,
+        isSplit, splitRole: "primary",
+      });
     }
-    grouped.get(key)!.payments.push(p);
+    if (p.soldBy2) {
+      allEntries.push({
+        paymentId: p.id, date: p.date, fullNet: net,
+        creditedAmount: Math.round(net * (100 - pct) / 100),
+        categoryLabel: p.categoryLabel,
+        member: p.member, seller: p.soldBy2,
+        isSplit, splitRole: "secondary",
+      });
+    }
+  }
+
+  // Group entries by seller
+  const grouped = new Map<string, { emp: Employee; entries: SaleEntry[]; idx: number }>();
+  let empIdx = 0;
+  for (const e of allEntries) {
+    const key = e.seller.id;
+    if (!grouped.has(key)) {
+      grouped.set(key, { emp: e.seller, entries: [], idx: empIdx++ });
+    }
+    grouped.get(key)!.entries.push(e);
   }
   const groups = Array.from(grouped.entries()).sort(([, a], [, b]) => {
-    const tA = a.payments.reduce((s, p) => s + Number(p.amount) - Number(p.discount), 0);
-    const tB = b.payments.reduce((s, p) => s + Number(p.amount) - Number(p.discount), 0);
+    const tA = a.entries.reduce((s, e) => s + e.creditedAmount, 0);
+    const tB = b.entries.reduce((s, e) => s + e.creditedAmount, 0);
     return tB - tA;
   });
 
-  const grandTotal = payments.reduce((s, p) => s + Number(p.amount) - Number(p.discount), 0);
+  // Grand total = sum of credited amounts (each rupee counted once across all sellers)
+  // To avoid double-counting, sum unique payment nets + split secondary credits
+  const grandTotal = allEntries
+    .filter((e) => e.splitRole === "primary")
+    .reduce((s, e) => s + e.fullNet, 0);
   const visibleGroups = filterEmp === "all" ? groups : groups.filter(([key]) => key === filterEmp);
+
 
   const navBtn = "p-2 rounded-xl transition-colors hover:bg-white/10";
 
@@ -164,8 +210,8 @@ export function SalesTab({ allEmployees, initMonth, initYear }: {
           <div className="grid grid-cols-3 gap-3">
             {[
               { icon: IndianRupee, label: "Revenue", value: formatCurrency(grandTotal), color: "#f97316" },
-              { icon: ShoppingBag,  label: "Sales",   value: String(payments.length),   color: "#a78bfa" },
-              { icon: Users,        label: "Trainers", value: String(groups.length),    color: "#2dd4bf" },
+              { icon: ShoppingBag,  label: "Sales",  value: String(new Set(allEntries.map(e => e.paymentId)).size), color: "#a78bfa" },
+              { icon: Users,        label: "Sellers", value: String(groups.length),    color: "#2dd4bf" },
             ].map(({ icon: Icon, label, value, color }) => (
               <div key={label} className="rounded-2xl px-4 py-3 flex flex-col gap-1"
                 style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
@@ -192,7 +238,7 @@ export function SalesTab({ allEmployees, initMonth, initYear }: {
             >
               All
             </button>
-            {groups.map(([key, { emp, payments: gp, idx }]) => {
+            {groups.map(([key, { emp, entries: ge, idx }]) => {
               const ac = avatarColor(idx);
               const active = filterEmp === key;
               return (
@@ -203,8 +249,8 @@ export function SalesTab({ allEmployees, initMonth, initYear }: {
                     ? { background: ac.bg, color: ac.color, border: `1px solid ${ac.color}44` }
                     : { background: "rgba(255,255,255,0.05)", color: "#6b7280", border: "1px solid transparent" }}
                 >
-                  {emp ? toTitleCase(emp.fullName.split(" ")[0]) : "Unassigned"}
-                  <span className="opacity-60">{gp.length}</span>
+                  {toTitleCase(emp.fullName.split(" ")[0])}
+                  <span className="opacity-60">{ge.length}</span>
                 </button>
               );
             })}
@@ -212,8 +258,8 @@ export function SalesTab({ allEmployees, initMonth, initYear }: {
 
           {/* Groups */}
           <div className="space-y-3">
-            {visibleGroups.map(([key, { emp, payments: grpPayments, idx }]) => {
-              const groupTotal = grpPayments.reduce((s, p) => s + Number(p.amount) - Number(p.discount), 0);
+            {visibleGroups.map(([key, { emp, entries: grpEntries, idx }]) => {
+              const groupTotal = grpEntries.reduce((s, e) => s + e.creditedAmount, 0);
               const isOpen = expanded.has(key);
               const others = allEmployees.filter((e) => e.id !== emp?.id);
               const ac = avatarColor(idx);
@@ -234,11 +280,11 @@ export function SalesTab({ allEmployees, initMonth, initYear }: {
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                         style={{ background: ac.bg, color: ac.color }}>
-                        {emp ? emp.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() : "?"}
+                        {emp.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                       </div>
                       <div className="text-left">
-                        <p className="text-sm font-bold text-white">{emp ? toTitleCase(emp.fullName) : "Unassigned"}</p>
-                        <p className="text-xs text-gray-500">{grpPayments.length} sale{grpPayments.length !== 1 ? "s" : ""}</p>
+                        <p className="text-sm font-bold text-white">{toTitleCase(emp.fullName)}</p>
+                        <p className="text-xs text-gray-500">{grpEntries.length} sale{grpEntries.length !== 1 ? "s" : ""}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -247,56 +293,65 @@ export function SalesTab({ allEmployees, initMonth, initYear }: {
                     </div>
                   </button>
 
-                  {/* Payments */}
+                  {/* Entries */}
                   {isOpen && (
                     <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                      {grpPayments.map((p) => {
-                        const net = Number(p.amount) - Number(p.discount);
-                        const isMoving = moving === p.id;
-                        const rowOpen = expandedRow.has(p.id);
-                        const selected = targetEmp[p.id] ?? "";
+                      {grpEntries.map((entry) => {
+                        const entryKey = `${entry.paymentId}-${entry.splitRole}`;
+                        const isMoving = moving === entry.paymentId;
+                        const rowOpen = expandedRow.has(entryKey);
+                        const selected = targetEmp[entry.paymentId] ?? "";
 
                         return (
-                          <div key={p.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                            {/* Main row — click to expand move controls */}
+                          <div key={entryKey} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
                             <button
                               className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-white/[0.015] transition-colors"
                               onClick={() => setExpandedRow((prev) => {
                                 const n = new Set(prev);
-                                n.has(p.id) ? n.delete(p.id) : n.add(p.id);
+                                n.has(entryKey) ? n.delete(entryKey) : n.add(entryKey);
                                 return n;
                               })}
                             >
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-white truncate">{toTitleCase(p.member.fullName)}</p>
-                                <p className="text-xs text-gray-500">
-                                  {p.member.memberId} · {fmt(p.date)}{p.categoryLabel ? ` · ${p.categoryLabel}` : ""}
+                                <p className="text-sm font-semibold text-white truncate">{toTitleCase(entry.member.fullName)}</p>
+                                <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                                  {entry.member.memberId} · {fmt(entry.date)}{entry.categoryLabel ? ` · ${entry.categoryLabel}` : ""}
+                                  {entry.isSplit && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                                      style={{ background: "rgba(249,115,22,0.15)", color: "#fb923c" }}>
+                                      {entry.splitRole === "primary" ? "split" : "split"}
+                                    </span>
+                                  )}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className="font-bold text-sm text-white">{formatCurrency(net)}</span>
+                                <div className="text-right">
+                                  <p className="font-bold text-sm text-white">{formatCurrency(entry.creditedAmount)}</p>
+                                  {entry.isSplit && (
+                                    <p className="text-[10px] text-gray-600">of {formatCurrency(entry.fullNet)}</p>
+                                  )}
+                                </div>
                                 <ArrowRightLeft className={`h-3.5 w-3.5 transition-colors ${rowOpen ? "text-orange-400" : "text-gray-700"}`} />
                               </div>
                             </button>
 
-                            {/* Move controls — only visible when row is expanded */}
                             {rowOpen && (
                               <div className="flex items-center gap-2 px-4 pb-3">
                                 <select
                                   value={selected}
-                                  onChange={(e) => setTargetEmp((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                                  onChange={(e) => setTargetEmp((prev) => ({ ...prev, [entry.paymentId]: e.target.value }))}
                                   className="flex-1 text-xs rounded-lg px-2.5 py-1.5 outline-none"
                                   style={{ background: "#222", border: "1px solid rgba(255,255,255,0.1)", color: selected ? "#f9fafb" : "#6b7280" }}
                                   disabled={isMoving}
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  <option value="">Move to…</option>
+                                  <option value="">Move primary seller to…</option>
                                   {others.map((e) => (
                                     <option key={e.id} value={e.id}>{toTitleCase(e.fullName)}</option>
                                   ))}
                                 </select>
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); move(p.id); }}
+                                  onClick={(e) => { e.stopPropagation(); move(entry.paymentId); }}
                                   disabled={!selected || isMoving}
                                   className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-40 transition-all flex-shrink-0"
                                   style={{

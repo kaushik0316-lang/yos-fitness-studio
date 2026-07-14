@@ -24,18 +24,22 @@ export async function GET(req: NextRequest) {
 
   const payments = await prisma.payment.findMany({
     where: {
-      ...(employeeId ? { soldById: employeeId } : { soldById: { not: null } }),
       isVoided: false,
       date: { gte: start, lte: end },
+      ...(employeeId
+        ? { OR: [{ soldById: employeeId }, { soldById2: employeeId }] }
+        : { OR: [{ soldById: { not: null } }, { soldById2: { not: null } }] }),
     },
     select: {
       id: true,
       date: true,
       amount: true,
       discount: true,
+      soldByPct: true,
       categoryLabel: true,
-      member: { select: { fullName: true, memberId: true } },
-      soldBy: { select: { id: true, fullName: true } },
+      member:  { select: { fullName: true, memberId: true } },
+      soldBy:  { select: { id: true, fullName: true } },
+      soldBy2: { select: { id: true, fullName: true } },
     },
     orderBy: { date: "desc" },
   });
