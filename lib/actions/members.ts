@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { addDays } from "date-fns";
 import { Company, MemberStatus, PaymentMode } from "@prisma/client";
 import { generateMemberId, ucaseReq, ucase } from "@/lib/utils";
-import { normalizeName } from "@/lib/utils/titleCase";
+import { normalizeName, toTitleCase } from "@/lib/utils/titleCase";
 import { z } from "zod";
 
 const createMemberSchema = z.object({
@@ -59,7 +59,7 @@ export async function createMember(input: z.infer<typeof createMemberSchema>) {
     const newMember = await tx.member.create({
       data: {
         memberId,
-        fullName: ucaseReq(normalizeName(data.fullName)),
+        fullName: toTitleCase(normalizeName(data.fullName)),
         phone: data.phone,
         whatsapp: data.whatsapp || data.phone,
         email: data.email?.trim().toLowerCase() || null,
@@ -162,7 +162,7 @@ export async function updateMember(id: string, input: Partial<z.infer<typeof cre
   const updated = await prisma.member.update({
     where: { id },
     data: {
-      fullName: input.fullName ? ucaseReq(normalizeName(input.fullName)) : undefined,
+      fullName: input.fullName ? toTitleCase(normalizeName(input.fullName)) : undefined,
       phone: input.phone,
       whatsapp: input.whatsapp,
       gender: input.gender as any,
