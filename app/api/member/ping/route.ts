@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       where: { pin: String(pin) },
       select: {
         id: true, memberId: true, fullName: true,
-        status: true, expiryDate: true, lastAttendanceDate: true,
+        status: true, expiryDate: true, startDate: true, lastAttendanceDate: true,
         currentPackage: { select: { name: true } },
       },
     });
@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
         fullName:         member.fullName,
         status:           member.status,
         expiryDate:       resolveExpiryDate(memberships, member.expiryDate),
+        startDate:        member.startDate?.toISOString() ?? null,
         packageName:      member.currentPackage?.name ?? null,
         lastAttendanceDate: member.lastAttendanceDate?.toISOString() ?? null,
       },

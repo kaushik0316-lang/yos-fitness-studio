@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import {
   Dumbbell, LogOut, ChevronRight, CalendarCheck,
-  CheckCircle2, Clock, Delete, AlertCircle, Phone, TrendingUp,
+  CheckCircle2, Clock, Delete, AlertCircle, Phone, TrendingUp, Receipt,
 } from "lucide-react";
 
 type Phase = "input" | "loading" | "dashboard" | "setup" | "error";
@@ -12,8 +12,8 @@ type SetupStep = "memberId" | "phone" | "choosePin" | "confirmPin" | "done";
 
 interface MemberData {
   id: string; memberId: string; fullName: string;
-  status: string; expiryDate: string | null; packageName: string | null;
-  lastAttendanceDate: string | null;
+  status: string; expiryDate: string | null; startDate: string | null;
+  packageName: string | null; lastAttendanceDate: string | null;
 }
 
 const TOTAL_DIGITS   = 4;
@@ -29,6 +29,20 @@ function fmtExpiry(iso: string | null) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
+function membershipProgress(startIso: string | null, expiryIso: string | null) {
+  if (!startIso || !expiryIso) return null;
+  const now   = Date.now();
+  const start = new Date(startIso).getTime();
+  const end   = new Date(expiryIso).getTime();
+  if (end <= start) return null;
+  const total   = end - start;
+  const elapsed = Math.max(0, now - start);
+  const pct     = Math.min(100, Math.round((elapsed / total) * 100));
+  const daysLeft = Math.max(0, Math.ceil((end - now) / (1000 * 60 * 60 * 24)));
+  const daysTotal = Math.round(total / (1000 * 60 * 60 * 24));
+  return { pct, daysLeft, daysTotal };
+}
+
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString("en-IN", {
     timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
@@ -575,6 +589,32 @@ export default function MemberPortalPage() {
               {isExpired ? "Expired" : "Valid until"}: {fmtExpiry(member.expiryDate)}
             </p>
           )}
+          {/* Membership progress bar */}
+          {isActive && (() => {
+            const prog = membershipProgress(member?.startDate ?? null, member?.expiryDate ?? null);
+            if (!prog) return null;
+            const barColor = prog.pct >= 85 ? "#f87171" : prog.pct >= 60 ? "#fb923c" : "#4ade80";
+            return (
+              <div className="mt-3">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.25)" }}>
+                    Membership Usage
+                  </span>
+                  <span className="text-[10px] font-bold" style={{ color: barColor }}>
+                    {prog.daysLeft}d left
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.1)" }}>
+                  <div className="h-full rounded-full transition-all"
+                    style={{ width: `${prog.pct}%`, background: barColor, boxShadow: `0 0 8px ${barColor}60` }} />
+                </div>
+                <div className="flex justify-between mt-0.5">
+                  <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.15)" }}>Day 1</span>
+                  <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.15)" }}>{prog.daysTotal}d total</span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Stats strip */}
@@ -657,7 +697,7 @@ export default function MemberPortalPage() {
         )}
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 grid-rows-2">
           {isExpired ? (
             <div className="flex flex-col gap-3 rounded-3xl p-5 opacity-30 cursor-not-allowed"
               style={{ background: "#1c1c1c" }}>
@@ -699,6 +739,22 @@ export default function MemberPortalPage() {
               <p className="text-xs mt-0.5" style={{ color: "#6b7280" }}>View visit history</p>
             </div>
             <ChevronRight className="h-4 w-4 self-end" style={{ color: "#374151" }} />
+          </Link>
+
+          <Link href="/my-payments"
+            className="flex flex-col gap-3 rounded-3xl p-5 transition-opacity active:opacity-70 col-span-2"
+            style={{ background: "#1c1c1c" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(234,179,8,0.12)" }}>
+                <Receipt className="h-6 w-6 text-yellow-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-white font-bold text-sm">My Payments</p>
+                <p className="text-xs mt-0.5" style={{ color: "#6b7280" }}>View payment & renewal history</p>
+              </div>
+              <ChevronRight className="h-4 w-4" style={{ color: "#374151" }} />
+            </div>
           </Link>
         </div>
 
