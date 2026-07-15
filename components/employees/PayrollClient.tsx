@@ -142,11 +142,7 @@ export function PayrollClient({ records, month, year, userRole, commissionsTab, 
         ))}
       </div>
 
-      {activeTab === "commissions" && commissionsTab}
-      {activeTab === "pt-allotment" && ptAllotmentTab}
-
-      {activeTab === "payroll" && <>
-      {/* Header controls */}
+      {/* Month navigator — always visible */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <button onClick={prevMonth} className="p-1.5 rounded-lg text-gray-400 hover:text-white transition-colors" style={CARD_INNER}>
@@ -157,6 +153,7 @@ export function PayrollClient({ records, month, year, userRole, commissionsTab, 
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
+        {activeTab === "payroll" && (
         <div className="flex items-center gap-2">
           <button
             onClick={exportCSV}
@@ -195,8 +192,13 @@ export function PayrollClient({ records, month, year, userRole, commissionsTab, 
             </>
           )}
         </div>
+        )}
       </div>
 
+      {activeTab === "commissions" && commissionsTab}
+      {activeTab === "pt-allotment" && ptAllotmentTab}
+
+      {activeTab === "payroll" && <>
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[

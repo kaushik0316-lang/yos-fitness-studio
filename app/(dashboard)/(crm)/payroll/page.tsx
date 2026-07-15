@@ -38,7 +38,8 @@ export default async function PayrollPage({ searchParams }: { searchParams: Sear
       orderBy: { createdAt: "asc" },
     }),
     prisma.trainerCommission.findMany({
-      orderBy: [{ year: "desc" }, { month: "desc" }],
+      where: { month, year },
+      orderBy: { clientName: "asc" },
       include: {
         trainer: { select: { fullName: true } },
       },
