@@ -3,7 +3,6 @@ import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { PayrollClient } from "@/components/employees/PayrollClient";
 import { CommissionsTab } from "@/components/employees/CommissionsTab";
-import { PTAllotmentTab } from "@/components/employees/PTAllotmentTab";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Payroll" };
@@ -16,7 +15,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: Sear
   const month = searchParams.month ? parseInt(searchParams.month) : today.getMonth() + 1;
   const year  = searchParams.year  ? parseInt(searchParams.year)  : today.getFullYear();
 
-  const [records, trainers, commissions, ptAllotments] = await Promise.all([
+  const [records, trainers, ptAllotments] = await Promise.all([
     prisma.payrollRecord.findMany({
       where: { month, year },
       include: { employee: { select: { fullName: true, role: true, salaryType: true, employeeId: true } } },
@@ -35,14 +34,8 @@ export default async function PayrollPage({ searchParams }: { searchParams: Sear
     }),
     prisma.trainerCommission.findMany({
       where: { month, year },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.trainerCommission.findMany({
-      where: { month, year },
       orderBy: { clientName: "asc" },
-      include: {
-        trainer: { select: { fullName: true } },
-      },
+      include: { trainer: { select: { fullName: true } } },
     }),
   ]);
 
@@ -51,7 +44,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: Sear
     salesTotal: t.salesMade.reduce((s, p) => s + Number(p.amount), 0),
   }));
 
-  // Fetch memberships linked to these payments (paymentId is a plain field, no Prisma relation)
+  // Fetch memberships for entries that have a linked payment
   const ptPaymentIds = ptAllotments.map((c: any) => c.paymentId).filter(Boolean) as string[];
   const ptMemberships = ptPaymentIds.length > 0
     ? await prisma.membership.findMany({
@@ -59,19 +52,19 @@ export default async function PayrollPage({ searchParams }: { searchParams: Sear
         select: { paymentId: true, startDate: true, expiryDate: true },
       })
     : [];
-  const membershipByPaymentId = Object.fromEntries(ptMemberships.map((m) => [m.paymentId!, m]));
+  const membershipByPaymentId = Object.fromEntries(ptMemberships.map(m => [m.paymentId!, m]));
 
-  const ptAllotmentEntries = ptAllotments.map((c: any) => ({
+  const commissions = ptAllotments.map((c: any) => ({
     id: c.id,
     trainerId: c.trainerId,
-    trainerName: c.trainer?.fullName ?? "Unknown",
     clientName: c.clientName,
     packageType: c.packageType,
-    totalAmount: Number(c.totalAmount),
-    commissionPct: Number(c.commissionPct),
-    commissionAmount: Number(c.commissionAmount),
+    totalAmount: c.totalAmount,
+    commissionPct: c.commissionPct,
+    commissionAmount: c.commissionAmount,
     month: c.month,
     year: c.year,
+    notes: c.notes,
     startDate: membershipByPaymentId[c.paymentId]?.startDate?.toISOString() ?? null,
     expiryDate: membershipByPaymentId[c.paymentId]?.expiryDate?.toISOString() ?? null,
   }));
@@ -95,14 +88,11 @@ export default async function PayrollPage({ searchParams }: { searchParams: Sear
           commissionsTab={
             <CommissionsTab
               trainers={trainersForTab}
-              commissions={commissions as any}
+              commissions={commissions}
               salesEntries={salesEntries}
               month={month}
               year={year}
             />
-          }
-          ptAllotmentTab={
-            <PTAllotmentTab entries={ptAllotmentEntries} />
           }
         />
       </div>

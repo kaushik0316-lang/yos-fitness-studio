@@ -27,12 +27,23 @@ type Commission = {
   id: string; trainerId: string; clientName: string; packageType: string;
   totalAmount: any; commissionPct: any; commissionAmount: any;
   month: number; year: number; notes: string | null;
+  startDate?: string | null; expiryDate?: string | null;
 };
 
 type SalesEntry = { trainerId: string; salesTotal: number };
 
 const inputCls = "w-full rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500 text-white";
 const labelCls = "block text-xs font-medium text-gray-500 mb-1";
+
+function isActive(expiryDate?: string | null) {
+  if (!expiryDate) return null;
+  return new Date(expiryDate) >= new Date();
+}
+
+function fmtDate(iso?: string | null) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
+}
 
 export function CommissionsTab({
   trainers, commissions, salesEntries, month, year,
@@ -292,9 +303,21 @@ export function CommissionsTab({
                               {PACKAGE_TYPES.find(p => p.value === entry.packageType)?.label ?? entry.packageType}
                             </span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold text-white truncate">{entry.clientName}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs font-semibold text-white truncate">{entry.clientName}</p>
+                                {(() => {
+                                  const active = isActive(entry.expiryDate);
+                                  if (active === null) return null;
+                                  return (
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                                      active ? "bg-emerald-500/15 text-emerald-400" : "bg-gray-500/15 text-gray-500"
+                                    }`}>{active ? "Active" : "Expired"}</span>
+                                  );
+                                })()}
+                              </div>
                               <p className="text-[10px] text-gray-600">
                                 {formatCurrency(Number(entry.totalAmount))} × {Number(entry.commissionPct)}%
+                                {entry.startDate && <> · {fmtDate(entry.startDate)} → {fmtDate(entry.expiryDate)}</>}
                                 {entry.notes && <> · {entry.notes}</>}
                               </p>
                             </div>

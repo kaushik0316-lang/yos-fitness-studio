@@ -28,11 +28,11 @@ type PayrollRecord = {
   employee: { fullName: string; role: string; salaryType: string; employeeId: string };
 };
 
-type Props = { records: PayrollRecord[]; month: number; year: number; userRole: UserRole; commissionsTab?: React.ReactNode; ptAllotmentTab?: React.ReactNode };
+type Props = { records: PayrollRecord[]; month: number; year: number; userRole: UserRole; commissionsTab?: React.ReactNode };
 
-export function PayrollClient({ records, month, year, userRole, commissionsTab, ptAllotmentTab }: Props) {
+export function PayrollClient({ records, month, year, userRole, commissionsTab }: Props) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"payroll" | "commissions" | "pt-allotment">("payroll");
+  const [activeTab, setActiveTab] = useState<"payroll" | "commissions">("payroll");
   const [generating, setGenerating] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -131,9 +131,8 @@ export function PayrollClient({ records, month, year, userRole, commissionsTab, 
       {/* Tabs */}
       <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: "rgba(255,255,255,0.05)" }}>
         {([
-          { key: "payroll",       label: "Payroll" },
-          { key: "commissions",   label: "Sales & PT Commissions" },
-          { key: "pt-allotment",  label: "PT Allotment" },
+          { key: "payroll",     label: "Payroll" },
+          { key: "commissions", label: "PT & Sales Commissions" },
         ] as const).map(({ key, label }) => (
           <button key={key} onClick={() => setActiveTab(key)}
             className={cn("px-4 py-2 rounded-lg text-sm font-semibold transition-all",
@@ -196,7 +195,6 @@ export function PayrollClient({ records, month, year, userRole, commissionsTab, 
       </div>
 
       {activeTab === "commissions" && commissionsTab}
-      {activeTab === "pt-allotment" && ptAllotmentTab}
 
       {activeTab === "payroll" && <>
       {/* Summary cards */}
