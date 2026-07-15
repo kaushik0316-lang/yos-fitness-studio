@@ -76,8 +76,10 @@ class WhatsAppProvider implements MessageProvider {
       });
 
       if (!res.ok) {
-        const err = await res.text();
-        return { success: false, error: err };
+        const raw = await res.text();
+        let error = raw;
+        try { error = JSON.parse(raw)?.error?.message ?? raw; } catch {}
+        return { success: false, error };
       }
 
       const data = await res.json();
