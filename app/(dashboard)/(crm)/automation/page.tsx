@@ -11,7 +11,9 @@ export default async function AutomationPage() {
   const session = await auth();
   if (session?.user.role !== "ADMIN") redirect("/");
 
-  const [logs, inactiveCount, expiringCount, messageStats] = await Promise.all([
+  const since30d = new Date(Date.now() - 30 * 86400000);
+
+  const [logs, inactiveCount, expiringCount, messageStats, failureReasons] = await Promise.all([
     prisma.automationLog.findMany({ orderBy: { createdAt: "desc" }, take: 30 }),
     prisma.member.count({
       where: { status: "ACTIVE", lastAttendanceDate: { lt: new Date(Date.now() - 4 * 86400000) } },
@@ -22,7 +24,14 @@ export default async function AutomationPage() {
     prisma.messageLog.groupBy({
       by: ["status"],
       _count: true,
-      where: { createdAt: { gte: new Date(Date.now() - 30 * 86400000) } },
+      where: { createdAt: { gte: since30d } },
+    }),
+    prisma.messageLog.groupBy({
+      by: ["failureReason"],
+      _count: true,
+      where: { status: "FAILED", createdAt: { gte: since30d }, failureReason: { not: null } },
+      orderBy: { _count: { failureReason: "desc" } },
+      take: 5,
     }),
   ]);
 
@@ -35,6 +44,7 @@ export default async function AutomationPage() {
           inactiveCount={inactiveCount}
           expiringCount={expiringCount}
           messageStats={messageStats}
+          failureReasons={failureReasons as any}
         />
       </div>
     </>

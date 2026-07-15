@@ -15,11 +15,14 @@ type AutomationLog = {
 
 type MessageStat = { status: string; _count: number };
 
+type FailureReason = { failureReason: string | null; _count: number };
+
 type Props = {
   logs: AutomationLog[];
   inactiveCount: number;
   expiringCount: number;
   messageStats: MessageStat[];
+  failureReasons: FailureReason[];
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -28,7 +31,7 @@ const STATUS_COLORS: Record<string, string> = {
   PARTIAL: "bg-yellow-100 text-yellow-700",
 };
 
-export function AutomationClient({ logs, inactiveCount, expiringCount, messageStats }: Props) {
+export function AutomationClient({ logs, inactiveCount, expiringCount, messageStats, failureReasons }: Props) {
   const [running, setRunning] = useState(false);
 
   async function triggerCron() {
@@ -93,6 +96,26 @@ export function AutomationClient({ logs, inactiveCount, expiringCount, messageSt
           <p className="text-3xl font-bold text-red-700">{failedCount}</p>
         </div>
       </div>
+
+      {/* Failure reason diagnostic */}
+      {failedCount > 0 && failureReasons.length > 0 && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <XCircle className="h-4 w-4 text-red-500 shrink-0" />
+            <p className="text-sm font-semibold text-red-700">Why messages are failing</p>
+          </div>
+          <div className="space-y-1.5">
+            {failureReasons.map((r, i) => (
+              <div key={i} className="flex items-start gap-2 text-xs text-red-600">
+                <span className="shrink-0 font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 tabular-nums">
+                  ×{r._count.toLocaleString()}
+                </span>
+                <span className="font-mono break-all">{r.failureReason ?? "unknown"}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Cron setup info */}
       <div className="bg-white rounded-xl border p-5">
