@@ -53,6 +53,7 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId, u
 
   const selectedPackageId = useWatch({ control, name: "packageId" });
   const selectedPackage = packages.find((p) => p.id === selectedPackageId);
+  const isPTPackage = !!selectedPackage && /pt|personal\s*train|semi\s*private/i.test(selectedPackage.name);
 
   function handleClose() {
     reset();
@@ -235,8 +236,17 @@ export function RecordPaymentDialog({ open, onClose, member, packages, userId, u
 
             {/* Trainer commission — admin only */}
             {userRole === "ADMIN" && trainers.length > 0 && (
-              <div className="rounded-lg p-3 space-y-3" style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.15)" }}>
-                <p className="text-xs font-bold text-orange-400">Trainer Commission <span className="font-normal text-gray-500">(optional)</span></p>
+              <div className="rounded-lg p-3 space-y-3" style={isPTPackage
+                ? { background: "rgba(249,115,22,0.12)", border: "2px solid rgba(249,115,22,0.5)" }
+                : { background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.15)" }
+              }>
+                <p className="text-xs font-bold text-orange-400">
+                  PT Allotment
+                  {isPTPackage
+                    ? <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-300">Assign Trainer</span>
+                    : <span className="font-normal text-gray-500"> (optional)</span>
+                  }
+                </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Assign to Trainer</label>
