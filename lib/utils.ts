@@ -126,8 +126,13 @@ export async function generateMemberId(company: Company, prisma: any): Promise<s
 }
 
 export async function generateEmployeeId(prisma: any): Promise<string> {
-  const count = await prisma.employee.count();
-  const num = String(count + 1).padStart(3, "0");
+  const last = await prisma.employee.findFirst({
+    where: { employeeId: { startsWith: "EMP-" } },
+    orderBy: { employeeId: "desc" },
+    select: { employeeId: true },
+  });
+  const lastNum = last ? parseInt(last.employeeId.replace("EMP-", ""), 10) : 0;
+  const num = String(lastNum + 1).padStart(3, "0");
   return `EMP-${num}`;
 }
 
