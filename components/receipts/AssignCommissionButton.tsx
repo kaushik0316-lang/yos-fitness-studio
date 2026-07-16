@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Percent, Loader2, Trash2, Plus, X } from "lucide-react";
 import { setPaymentCommissions, removeCommissionFromPayment } from "@/lib/actions/commissions";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import { toast } from "@/hooks/use-toast";
 
 type Trainer = { id: string; fullName: string };
@@ -161,11 +162,11 @@ export function AssignCommissionButton({ paymentId, paymentAmount, memberName, p
                       <select
                         value={row.trainerId}
                         onChange={(e) => updateRow(i, "trainerId", e.target.value)}
-                        className="col-span-1 border rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                        className="col-span-1 border rounded-lg px-2.5 py-1.5 text-sm text-gray-900 focus:ring-2 focus:ring-orange-500 outline-none bg-white"
                       >
                         <option value="">— Trainer —</option>
                         {trainers.map((t) => (
-                          <option key={t.id} value={t.id}>{t.fullName}</option>
+                          <option key={t.id} value={t.id}>{toTitleCase(t.fullName.toLowerCase())}</option>
                         ))}
                       </select>
                       <div className="relative">
@@ -174,7 +175,7 @@ export function AssignCommissionButton({ paymentId, paymentAmount, memberName, p
                           value={row.pct}
                           onChange={(e) => updateRow(i, "pct", e.target.value)}
                           placeholder="% e.g. 80"
-                          className="w-full border rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-orange-500 outline-none bg-white pr-6"
+                          className="w-full border rounded-lg px-2.5 py-1.5 text-sm text-gray-900 focus:ring-2 focus:ring-orange-500 outline-none bg-white pr-6"
                         />
                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">%</span>
                       </div>
