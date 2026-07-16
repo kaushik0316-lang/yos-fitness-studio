@@ -56,3 +56,5 @@ yarn-error.log*
 
 # Snapshot backup files — local only, never commit
 scripts/snapshot-backup-*.json
+
+.env*.local
