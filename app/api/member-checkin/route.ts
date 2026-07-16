@@ -78,9 +78,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Kiosk self check-in — no session, markedById stays null
+    // Resolve markedById — use system user (first ADMIN) since this is a kiosk (no session)
     const session = await auth().catch(() => null);
-    const markedById = session?.user?.id ?? null;
+    let markedById = session?.user?.id ?? null;
+
+    if (!markedById) {
+      const admin = await prisma.user.findFirst({
+        where: { role: "ADMIN" },
+        select: { id: true },
+      });
+      markedById = admin?.id ?? null;
+    }
+
+    if (!markedById) {
+      return NextResponse.json({ error: "System configuration error. Contact admin." }, { status: 500 });
+    }
 
     // Mark attendance + update lastAttendanceDate
     await prisma.$transaction([
