@@ -11,7 +11,7 @@ import type { UserRole } from "@prisma/client";
 type AttendanceRecord = {
   id: string; checkInTime: Date; checkOutTime: Date | null; autoCheckedOut: boolean; remarks: string | null;
   member: { id: string; memberId: string; fullName: string; phone: string; currentPackage: { name: string } | null; memberships?: { package: { name: string } | null; expiryDate?: Date | string | null }[] };
-  markedBy: { name: string };
+  markedBy: { name: string } | null;
 };
 
 type Member = {
@@ -167,7 +167,7 @@ export function AttendanceClient({ todayAttendance, notCheckedIn, totalActive, u
                   </div>
                   <div className="text-right flex-shrink-0 ml-4">
                     <p className="text-base font-extrabold text-emerald-400">{formatTime(a.checkInTime)}</p>
-                    <p className="text-xs text-gray-600">by {a.markedBy.name}</p>
+                    <p className="text-xs text-gray-600">{a.markedBy ? `by ${a.markedBy.name}` : "Kiosk"}</p>
                   </div>
                 </div>
               ))
