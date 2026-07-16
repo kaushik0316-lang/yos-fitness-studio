@@ -32,24 +32,24 @@ export default async function StaffToolsPage() {
   ] = await Promise.all([
     // Today's collections
     prisma.payment.aggregate({
-      where: { date: { gte: startOfDay(today), lte: endOfDay(today) } },
+      where: { isVoided: false, date: { gte: startOfDay(today), lte: endOfDay(today) } },
       _sum: { amount: true },
       _count: true,
     }),
     // This month's collections
     prisma.payment.aggregate({
-      where: { date: { gte: monthStart, lte: endOfDay(today) } },
+      where: { isVoided: false, date: { gte: monthStart, lte: endOfDay(today) } },
       _sum: { amount: true },
       _count: true,
     }),
     // YF monthly
     prisma.payment.aggregate({
-      where: { company: Company.YOS_FITNESS, date: { gte: monthStart, lte: endOfDay(today) } },
+      where: { isVoided: false, company: Company.YOS_FITNESS, date: { gte: monthStart, lte: endOfDay(today) } },
       _sum: { amount: true },
     }),
     // YFS monthly
     prisma.payment.aggregate({
-      where: { company: Company.YOS_FITNESS_STUDIO, date: { gte: monthStart, lte: endOfDay(today) } },
+      where: { isVoided: false, company: Company.YOS_FITNESS_STUDIO, date: { gte: monthStart, lte: endOfDay(today) } },
       _sum: { amount: true },
     }),
     // Expiring in next 7 days (still active)
