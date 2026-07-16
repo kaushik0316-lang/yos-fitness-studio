@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { EmployeeRole, SalaryType } from "@prisma/client";
 import { generateEmployeeId, ucaseReq, ucase } from "@/lib/utils";
+import { normalizeName, toTitleCase } from "@/lib/utils/titleCase";
 import { z } from "zod";
 
 const shiftSchema = z.object({
@@ -43,7 +44,7 @@ export async function createEmployee(input: z.infer<typeof employeeSchema>) {
   const employee = await prisma.employee.create({
     data: {
       employeeId,
-      fullName:      ucaseReq(data.fullName),
+      fullName:      toTitleCase(normalizeName(data.fullName)),
       role:          data.role,
       phone:         data.phone,
       joinDate:      new Date(data.joinDate),
@@ -93,7 +94,7 @@ export async function updateEmployee(input: z.infer<typeof updateSchema>) {
   await prisma.employee.update({
     where: { id: data.id },
     data: {
-      fullName:      ucaseReq(data.fullName),
+      fullName:      toTitleCase(normalizeName(data.fullName)),
       role:          data.role,
       phone:         data.phone,
       salaryType:    data.salaryType,
