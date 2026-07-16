@@ -224,6 +224,9 @@ export async function renewMembership(input: {
   const startDate = new Date(input.startDate);
   const expiryDate = addDays(startDate, pkg.durationDays);
 
+  // PT packages never update the member's expiry — only General membership does
+  const isPT = /pt|personal\s*train|semi\s*private/i.test(pkg.name);
+
   const { paymentId } = await prisma.$transaction(async (tx) => {
     const payment = await tx.payment.create({
       data: {
@@ -264,11 +267,14 @@ export async function renewMembership(input: {
       where: { id: input.memberId },
       data: {
         status: MemberStatus.ACTIVE,
-        currentPackageId: input.packageId,
-        startDate,
-        expiryDate,
-        renewalDueDate: expiryDate,
         lastPaymentDate: new Date(),
+        // PT packages don't own the member's expiry — only General membership does
+        ...(!isPT && {
+          currentPackageId: input.packageId,
+          startDate,
+          expiryDate,
+          renewalDueDate: expiryDate,
+        }),
       },
     });
 
