@@ -405,7 +405,7 @@ export function SettingsClient({ users }: Props) {
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-white truncate">{m.fullName}</p>
+                            <p className="text-sm font-semibold text-white truncate" style={{ textTransform: "capitalize" }}>{m.fullName.toLowerCase()}</p>
                             <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0",
                               isActive ? "text-green-400 bg-green-400/10" : "text-gray-500 bg-white/5")}>
                               {m.status.charAt(0) + m.status.slice(1).toLowerCase()}
