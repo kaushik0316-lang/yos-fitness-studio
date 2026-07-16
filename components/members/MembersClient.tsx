@@ -5,7 +5,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Plus, Search, Eye, CheckCircle, Clock, Snowflake,
-  UserMinus, UserPlus, Users, ArrowUpDown, RefreshCw, MessageCircle, MessageSquare, X,
+  UserMinus, UserPlus, Users, ArrowUpDown, RefreshCw, MessageCircle, MessageSquare, X, Trash2, Loader2,
 } from "lucide-react";
 import { AddMemberDialog } from "@/components/members/AddMemberDialog";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
@@ -105,7 +105,10 @@ export function MembersClient({
   const [markFor, setMarkFor]         = useState<Member | null>(null);
   const [search, setSearch]           = useState(searchParams.get("search") ?? "");
   const [selected, setSelected]       = useState<Set<string>>(new Set());
-  const [showWelcome, setShowWelcome] = useState(false);
+  const [showWelcome, setShowWelcome]       = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting]             = useState(false);
+  const [deleteResults, setDeleteResults]   = useState<{ ok: string[]; failed: string[] } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Instant search — debounced 400 ms
@@ -163,6 +166,22 @@ export function MembersClient({
       href: url,
       download: `members-selected-${new Date().toISOString().split("T")[0]}.csv`,
     }).click();
+  }
+
+  async function bulkDelete() {
+    setDeleting(true);
+    const ids = Array.from(selected);
+    const ok: string[] = [];
+    const failed: string[] = [];
+    for (const id of ids) {
+      const res = await fetch(`/api/members/${id}/delete`, { method: "DELETE" });
+      if (res.ok) ok.push(id);
+      else failed.push(id);
+    }
+    setDeleting(false);
+    setDeleteResults({ ok, failed });
+    setSelected(new Set(failed)); // keep only failed ones selected
+    if (ok.length > 0) router.refresh();
   }
 
   const totalPages = Math.ceil(total / pageSize);
@@ -282,9 +301,70 @@ export function MembersClient({
           >
             Export Selected
           </button>
+          {userRole === "ADMIN" && (
+            <button
+              onClick={() => { setDeleteResults(null); setShowDeleteConfirm(true); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all"
+              style={{ background: "rgba(220,38,38,0.8)" }}
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Delete ({selected.size})
+            </button>
+          )}
           <button onClick={() => setSelected(new Set())} className="text-xs text-gray-500 hover:text-gray-300 ml-auto">
             Clear selection
           </button>
+        </div>
+      )}
+
+      {/* ── Delete confirm modal ── */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
+          <div className="w-full max-w-md rounded-2xl overflow-hidden bg-white text-gray-900">
+            <div className="px-6 py-4 border-b flex items-center gap-2">
+              <Trash2 className="h-4 w-4 text-red-600" />
+              <h3 className="font-bold text-red-600">Delete {deleteResults ? "— Results" : `${selected.size} Member${selected.size !== 1 ? "s" : ""}`}</h3>
+            </div>
+            <div className="px-6 py-5 space-y-3">
+              {!deleteResults ? (
+                <>
+                  <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                    <p className="font-bold mb-1">⚠ This cannot be undone.</p>
+                    <p>Permanently deletes selected members and all their attendance, memberships, and notes.</p>
+                    <p className="mt-1 font-medium">Members with payment records will be skipped.</p>
+                  </div>
+                  <p className="text-sm text-gray-600">{selected.size} member{selected.size !== 1 ? "s" : ""} selected for deletion.</p>
+                </>
+              ) : (
+                <>
+                  {deleteResults.ok.length > 0 && (
+                    <p className="text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2 font-medium">
+                      ✓ {deleteResults.ok.length} member{deleteResults.ok.length !== 1 ? "s" : ""} deleted.
+                    </p>
+                  )}
+                  {deleteResults.failed.length > 0 && (
+                    <p className="text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 font-medium">
+                      ✗ {deleteResults.failed.length} skipped — have payment records.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t flex gap-3 justify-end">
+              <button onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200">
+                {deleteResults ? "Close" : "Cancel"}
+              </button>
+              {!deleteResults && (
+                <button
+                  onClick={bulkDelete}
+                  disabled={deleting}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-60"
+                >
+                  {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  {deleting ? "Deleting…" : "Confirm Delete"}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
