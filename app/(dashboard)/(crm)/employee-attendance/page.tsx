@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { EmployeeAttendanceClient } from "@/components/employees/EmployeeAttendanceClient";
 import { startOfMonth, endOfMonth, format } from "date-fns";
@@ -11,6 +12,7 @@ type SearchParams = { month?: string; year?: string };
 
 export default async function EmployeeAttendancePage({ searchParams }: { searchParams: SearchParams }) {
   const session = await auth();
+  if (!session?.user) redirect("/login");
   const today = new Date();
   const month = searchParams.month ? parseInt(searchParams.month) : today.getMonth() + 1;
   const year  = searchParams.year  ? parseInt(searchParams.year)  : today.getFullYear();
@@ -21,7 +23,7 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
   const thisMonthStart = startOfMonth(today);
   const thisMonthEnd   = endOfMonth(today);
 
-  const [activeEmployees, allEmployees, attendances, salesByEmployee] = await Promise.all([
+  const [activeEmployeesRaw, allEmployeesRaw, attendances, salesByEmployee] = await Promise.all([
     prisma.employee.findMany({ where: { isActive: true }, orderBy: { fullName: "asc" } }),
     prisma.employee.findMany({ orderBy: [{ isActive: "desc" }, { fullName: "asc" }] }),
     prisma.employeeAttendance.findMany({
@@ -36,6 +38,16 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
       _sum: { amount: true },
     }),
   ]);
+
+  // Serialize Date fields so they can be passed to Client Components
+  const serializeEmp = (e: (typeof activeEmployeesRaw)[0]) => ({
+    ...e,
+    joinDate:  e.joinDate  ? e.joinDate.toISOString()  : null,
+    createdAt: e.createdAt ? e.createdAt.toISOString() : null,
+    updatedAt: e.updatedAt ? e.updatedAt.toISOString() : null,
+  });
+  const activeEmployees = activeEmployeesRaw.map(serializeEmp);
+  const allEmployees    = allEmployeesRaw.map(serializeEmp);
 
   // Map employeeId → total sales amount this month
   const salesMap: Record<string, number> = {};
