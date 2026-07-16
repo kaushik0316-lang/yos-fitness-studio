@@ -29,8 +29,10 @@ function parseDateParam(dateStr: string): Date | null {
 
 function isAuthorized(req: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET;
-  const secret = req.headers.get("x-cron-secret");
-  return !!(cronSecret && secret && secret === cronSecret);
+  if (!cronSecret) return false;
+  const manual = req.headers.get("x-cron-secret");
+  const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  return manual === cronSecret || bearer === cronSecret;
 }
 
 /**

@@ -18,10 +18,16 @@ async function expireOverdueMembers() {
 
 // Call this endpoint daily via a cron job (Vercel Cron, GitHub Actions, etc.)
 // Header: x-cron-secret: <your CRON_SECRET>
-export async function POST(req: NextRequest) {
+function isAuthorized(req: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET;
-  const secret = req.headers.get("x-cron-secret");
-  if (!cronSecret || !secret || secret !== cronSecret) {
+  if (!cronSecret) return false;
+  const manual = req.headers.get("x-cron-secret");
+  const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  return manual === cronSecret || bearer === cronSecret;
+}
+
+export async function POST(req: NextRequest) {
+  if (!isAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -79,9 +85,7 @@ export async function POST(req: NextRequest) {
 
 // GET — called by Vercel cron scheduler daily at 03:30 UTC (09:00 IST)
 export async function GET(req: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  const secret = req.headers.get("x-cron-secret");
-  if (!cronSecret || !secret || secret !== cronSecret) {
+  if (!isAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
