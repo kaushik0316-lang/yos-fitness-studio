@@ -162,7 +162,8 @@ export function AssignCommissionButton({ paymentId, paymentAmount, memberName, p
                       <select
                         value={row.trainerId}
                         onChange={(e) => updateRow(i, "trainerId", e.target.value)}
-                        className="col-span-1 border rounded-lg px-2.5 py-1.5 text-sm text-gray-900 focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                        className="col-span-1 border rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                        style={{ color: "#111827" }}
                       >
                         <option value="">— Trainer —</option>
                         {trainers.map((t) => (
@@ -175,7 +176,8 @@ export function AssignCommissionButton({ paymentId, paymentAmount, memberName, p
                           value={row.pct}
                           onChange={(e) => updateRow(i, "pct", e.target.value)}
                           placeholder="% e.g. 80"
-                          className="w-full border rounded-lg px-2.5 py-1.5 text-sm text-gray-900 focus:ring-2 focus:ring-orange-500 outline-none bg-white pr-6"
+                          className="w-full border rounded-lg px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-orange-500 outline-none bg-white pr-6"
+                          style={{ color: "#111827" }}
                         />
                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400">%</span>
                       </div>
