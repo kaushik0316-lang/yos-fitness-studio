@@ -23,13 +23,13 @@ export default function CheckinQRPage() {
         <div>
           <p className="text-gray-500 text-sm font-semibold uppercase tracking-widest mb-2">Daily Attendance</p>
           <h1 className="text-white text-4xl font-black leading-tight">
-            Scan to<br />Check In
+            Scan to Check In<br />or Check Out
           </h1>
         </div>
 
         <div className="p-5 rounded-3xl" style={{ background: "#fff" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={QR_IMG} alt="Check-in QR code" width={220} height={220} />
+          <img src={QR_IMG} alt="Check-in / Check-out QR code" width={220} height={220} />
         </div>
 
         <div className="space-y-1">
@@ -38,7 +38,7 @@ export default function CheckinQRPage() {
         </div>
 
         <div className="w-full space-y-2">
-          {["Scan the QR code", "Enter your 4-digit PIN", "You're checked in! 💪"].map((step, i) => (
+          {["Scan the QR code", "Enter your 4-digit PIN", "Check in or out automatically 💪"].map((step, i) => (
             <div key={i} className="flex items-center gap-3 text-left">
               <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-black"
                 style={{ background: "rgba(249,115,22,0.15)", color: "#f97316" }}>
