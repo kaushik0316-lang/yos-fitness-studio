@@ -275,21 +275,20 @@ export default function MemberCheckinPage() {
 
   return (
     <Screen>
-      {/* Hidden input so mobile soft keyboard can be triggered */}
+      {/* Hidden input — receives native keyboard input on mobile */}
       <input
         ref={hiddenInputRef}
         type="tel"
         inputMode="numeric"
         pattern="\d*"
-        value=""
         onChange={(e) => {
-          const last = e.target.value.slice(-1);
-          if (last >= "0" && last <= "9") pressKey(last);
+          const digits = e.target.value.replace(/\D/g, "");
+          digits.split("").forEach((d) => pressKey(d));
+          e.target.value = "";
         }}
         onKeyDown={(e) => { if (e.key === "Backspace") pressKey("⌫"); }}
-        style={{ position: "absolute", opacity: 0, width: 1, height: 1, pointerEvents: "none" }}
+        style={{ position: "fixed", left: "-9999px", top: "50%", width: "48px", height: "48px", opacity: 0 }}
         autoComplete="off"
-        readOnly={false}
       />
       <LogoBar />
       <div
