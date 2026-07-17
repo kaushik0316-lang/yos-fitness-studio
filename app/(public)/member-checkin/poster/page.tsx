@@ -43,13 +43,18 @@ export default function MemberCheckinPosterPage() {
           <div>
             <p className="text-green-400 text-xs font-bold uppercase tracking-[0.3em] mb-3">Member Attendance</p>
             <h1 className="text-white font-black text-3xl uppercase tracking-tight leading-tight">
-              Scan to<br />Check In
+              Scan to Check In<br />or Check Out
             </h1>
-            <div className="flex items-center justify-center gap-3 mt-4">
+            <div className="flex items-center justify-center gap-2 mt-4">
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
                 style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.2)" }}>
                 <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
                 <span className="text-green-400 text-[11px] font-bold uppercase tracking-wider">Check In</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                style={{ background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.2)" }}>
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                <span className="text-blue-400 text-[11px] font-bold uppercase tracking-wider">Check Out</span>
               </div>
             </div>
           </div>
@@ -63,6 +68,7 @@ export default function MemberCheckinPosterPage() {
           <div>
             <p className="text-gray-500 text-xs mb-1">or visit</p>
             <p className="text-green-400 text-sm font-bold tracking-wide">yosfitnessstudio.in/member-checkin</p>
+            <p className="text-gray-600 text-[11px] mt-1">Same QR handles both check-in & check-out</p>
           </div>
 
           <div className="w-full h-px" style={{ background: "rgba(34,197,94,0.10)" }} />
