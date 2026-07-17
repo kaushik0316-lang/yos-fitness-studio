@@ -22,6 +22,8 @@ const PUBLIC_PAGES = new Set([
   "/member-portal",
   "/member-checkin",
   "/member-checkin/poster",
+  "/member-checkout",
+  "/member-checkout-qr",
   "/my-membership",
   "/checkin-qr",
   "/checkin-poster",
