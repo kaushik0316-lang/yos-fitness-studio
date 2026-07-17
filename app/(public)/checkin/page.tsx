@@ -88,12 +88,7 @@ export default function CheckInPage() {
     deviceId.current = id;
   }, []);
 
-  // Auto-focus hidden input so mobile keyboard is available
-  useEffect(() => {
-    if (phase === "input" || phase === "error") {
-      hiddenInputRef.current?.focus();
-    }
-  }, [phase]);
+  // No auto-focus — opening native keyboard covers the on-screen numpad
 
   // Auto-reset after success
   useEffect(() => {
@@ -277,8 +272,7 @@ export default function CheckInPage() {
         autoComplete="off"
       />
       <LogoBar />
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-6"
-        onClick={() => hiddenInputRef.current?.focus()}>
+      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-6">
         <div className="w-full max-w-[300px]">
 
           <div className="text-center mb-8">
