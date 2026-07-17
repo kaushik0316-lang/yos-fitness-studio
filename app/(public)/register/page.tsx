@@ -163,13 +163,13 @@ export default function RegisterPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={lbl}>Weight (kg) {req}</label>
-              <input className={inp} type="number" min="20" max="300" placeholder="e.g. 70"
-                value={form.weight} onChange={(e) => set("weight", e.target.value)} required />
+              <input className={inp} type="text" inputMode="decimal" placeholder="e.g. 70"
+                value={form.weight} onChange={(e) => set("weight", e.target.value.replace(/[^\d.]/g, ""))} required />
             </div>
             <div>
               <label className={lbl}>Height (cm) {req}</label>
-              <input className={inp} type="number" min="100" max="250" placeholder="e.g. 170"
-                value={form.height} onChange={(e) => set("height", e.target.value)} required />
+              <input className={inp} type="text" inputMode="decimal" placeholder="e.g. 170"
+                value={form.height} onChange={(e) => set("height", e.target.value.replace(/[^\d.]/g, ""))} required />
             </div>
           </div>
 
