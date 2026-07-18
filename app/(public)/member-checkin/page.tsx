@@ -77,6 +77,8 @@ export default function MemberCheckinPage() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (phase !== "input" && phase !== "error") return;
+      // Skip if the hidden input is focused — onChange already handles it, avoid double-fire
+      if (e.target === hiddenInputRef.current) return;
       if (e.key >= "0" && e.key <= "9") pressKey(e.key);
       if (e.key === "Backspace") pressKey("⌫");
     }
@@ -282,7 +284,7 @@ export default function MemberCheckinPage() {
           e.target.value = "";
         }}
         onKeyDown={(e) => { if (e.key === "Backspace") pressKey("⌫"); }}
-        style={{ position: "fixed", left: "-9999px", top: "50%", width: "48px", height: "48px", opacity: 0 }}
+        style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "1px", height: "1px", opacity: 0, border: "none", outline: "none" }}
         autoComplete="off"
       />
       <LogoBar />
