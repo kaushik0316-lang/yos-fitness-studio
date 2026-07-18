@@ -85,9 +85,13 @@ export async function setPaymentCommissions(input: {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") throw new Error("Unauthorized");
 
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year  = now.getFullYear();
+  const payment = await prisma.payment.findUnique({
+    where: { id: input.paymentId },
+    select: { createdAt: true },
+  });
+  const paymentDate = payment?.createdAt ?? new Date();
+  const month = paymentDate.getMonth() + 1;
+  const year  = paymentDate.getFullYear();
 
   await prisma.$transaction([
     prisma.trainerCommission.deleteMany({ where: { paymentId: input.paymentId } }),

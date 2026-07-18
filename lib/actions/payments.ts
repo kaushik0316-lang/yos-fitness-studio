@@ -113,8 +113,8 @@ export async function recordPayment(input: z.infer<typeof paymentSchema>) {
 
     // Trainer commission linked to this bill
     if (data.commissionTrainerId && data.commissionPct) {
-      const now = new Date();
       const commissionAmount = Math.round(data.amount * data.commissionPct) / 100;
+      const paymentDate = payment.createdAt ?? new Date();
       await tx.trainerCommission.create({
         data: {
           trainerId:       data.commissionTrainerId,
@@ -124,8 +124,8 @@ export async function recordPayment(input: z.infer<typeof paymentSchema>) {
           totalAmount:     data.amount,
           commissionPct:   data.commissionPct,
           commissionAmount,
-          month:           now.getMonth() + 1,
-          year:            now.getFullYear(),
+          month:           paymentDate.getMonth() + 1,
+          year:            paymentDate.getFullYear(),
         },
       });
     }
