@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 
 type Phase = "form" | "submitting" | "success" | "error";
@@ -85,6 +86,20 @@ export default function RegisterPage() {
             <p className="text-xs text-gray-400 mt-3 leading-relaxed">
               Share this with the front desk to complete your membership and payment.
             </p>
+          </div>
+
+          {/* PIN setup prompt */}
+          <div className="mt-4 bg-orange-50 border border-orange-100 rounded-2xl p-5 text-left">
+            <p className="text-sm font-bold text-orange-700 mb-1">Next: Set up your check-in PIN</p>
+            <p className="text-xs text-orange-600 leading-relaxed mb-3">
+              After paying at the front desk, set a 4-digit PIN to check in and out at the gym every day.
+            </p>
+            <Link
+              href="/member-portal?setup=1"
+              className="inline-block w-full text-center py-3 rounded-xl text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 transition-colors"
+            >
+              Set Up My PIN →
+            </Link>
           </div>
         </div>
       </div>

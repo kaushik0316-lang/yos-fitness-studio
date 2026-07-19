@@ -216,6 +216,9 @@ export default function MemberCheckoutPage() {
               Member Check Out
             </h1>
             <p className="text-gray-500 text-sm mt-1.5">Enter your 4-digit PIN</p>
+            <p className="text-gray-600 text-[11px] mt-2 flex items-center justify-center gap-1">
+              <span>📍</span> Allow location when prompted — you must be at the gym
+            </p>
           </div>
 
           {/* PIN dots */}
