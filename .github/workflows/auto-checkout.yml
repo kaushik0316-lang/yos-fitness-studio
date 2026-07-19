@@ -2,7 +2,8 @@ name: Auto Checkout
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # Every 30 minutes, 24/7
+    - cron: "30 8 * * *"    # 2:00 PM IST (08:30 UTC)
+    - cron: "30 17 * * *"   # 11:00 PM IST (17:30 UTC)
   workflow_dispatch:          # Allow manual trigger from GitHub UI
 
 jobs:
