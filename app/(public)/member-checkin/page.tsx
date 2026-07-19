@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 import { Dumbbell, Delete, ArrowLeft, CheckCircle2, LogOut } from "lucide-react";
 
-type Phase = "input" | "loading" | "success" | "checkout" | "checkoutSuccess" | "error";
+type Phase = "input" | "locating" | "loading" | "success" | "checkout" | "checkoutSuccess" | "error";
 
 interface SuccessData { fullName: string; time: string; }
 interface CheckoutPending { fullName: string; checkedInAt: string; attendanceId: string; }
@@ -93,7 +93,7 @@ export default function MemberCheckinPage() {
   }
 
   function pressKey(key: string) {
-    if (phase === "loading") return;
+    if (phase === "locating" || phase === "loading") return;
     if (key === "⌫") {
       setPin((p) => p.slice(0, -1));
       if (phase === "error") { setPhase("input"); setErrorMsg(""); }
@@ -111,12 +111,32 @@ export default function MemberCheckinPage() {
   async function submit(enteredPin: string) {
     if (submittingRef.current) return;
     submittingRef.current = true;
+    setPhase("locating");
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        await doSubmit(enteredPin, pos.coords.latitude, pos.coords.longitude);
+      },
+      (err) => {
+        submittingRef.current = false;
+        const msg = err.code === 1
+          ? "Location permission denied. Please allow location access and try again."
+          : "Could not get your location. Please enable GPS and try again.";
+        setErrorMsg(msg);
+        setPin("");
+        setPhase("error");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
+
+  async function doSubmit(enteredPin: string, lat: number, lng: number) {
     setPhase("loading");
     try {
       const res = await fetch("/api/member-checkin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: enteredPin }),
+        body: JSON.stringify({ pin: enteredPin, lat, lng }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -268,7 +288,7 @@ export default function MemberCheckinPage() {
   }
 
   // ── INPUT / LOADING / ERROR ───────────────────────────────────────────────────
-  const isProcessing = phase === "loading";
+  const isProcessing = phase === "locating" || phase === "loading";
 
   return (
     <Screen>
@@ -324,6 +344,12 @@ export default function MemberCheckinPage() {
           <div className="h-10 flex items-center justify-center mb-3">
             {phase === "error" && (
               <p className="text-red-400 text-sm font-medium text-center">{errorMsg}</p>
+            )}
+            {phase === "locating" && (
+              <div className="flex items-center gap-2">
+                <Spinner />
+                <span className="text-gray-500 text-sm">Getting location…</span>
+              </div>
             )}
             {phase === "loading" && (
               <div className="flex items-center gap-2">

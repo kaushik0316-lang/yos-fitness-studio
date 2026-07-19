@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 import { Dumbbell, Delete, ArrowLeft, LogOut } from "lucide-react";
 
-type Phase = "input" | "loading" | "success" | "error";
+type Phase = "input" | "locating" | "loading" | "success" | "error";
 interface SuccessData { fullName: string; checkInTime: string; checkOutTime: string; }
 
 const TOTAL_DIGITS  = 4;
@@ -91,7 +91,7 @@ export default function MemberCheckoutPage() {
   }
 
   function pressKey(key: string) {
-    if (phase === "loading") return;
+    if (phase === "locating" || phase === "loading") return;
     if (key === "⌫") {
       setPin((p) => p.slice(0, -1));
       if (phase === "error") { setPhase("input"); setErrorMsg(""); }
@@ -109,30 +109,46 @@ export default function MemberCheckoutPage() {
   async function submit(enteredPin: string) {
     if (submittingRef.current) return;
     submittingRef.current = true;
-    setPhase("loading");
-    try {
-      const res = await fetch("/api/member-checkout-by-pin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: enteredPin }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setErrorMsg(data.error ?? "Something went wrong.");
+    setPhase("locating");
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        setPhase("loading");
+        try {
+          const res = await fetch("/api/member-checkout-by-pin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pin: enteredPin, lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            setErrorMsg(data.error ?? "Something went wrong.");
+            setPin("");
+            setShaking(true);
+            setTimeout(() => setShaking(false), 500);
+            setPhase("error");
+          } else {
+            setSuccess({ fullName: data.fullName, checkInTime: data.checkInTime, checkOutTime: data.checkOutTime });
+            setPhase("success");
+          }
+        } catch {
+          setErrorMsg("Network error. Check your connection and try again.");
+          setPin(""); setPhase("error");
+        } finally {
+          submittingRef.current = false;
+        }
+      },
+      (err) => {
+        submittingRef.current = false;
+        const msg = err.code === 1
+          ? "Location permission denied. Please allow location access and try again."
+          : "Could not get your location. Please enable GPS and try again.";
+        setErrorMsg(msg);
         setPin("");
-        setShaking(true);
-        setTimeout(() => setShaking(false), 500);
         setPhase("error");
-      } else {
-        setSuccess({ fullName: data.fullName, checkInTime: data.checkInTime, checkOutTime: data.checkOutTime });
-        setPhase("success");
-      }
-    } catch {
-      setErrorMsg("Network error. Check your connection and try again.");
-      setPin(""); setPhase("error");
-    } finally {
-      submittingRef.current = false;
-    }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   }
 
   // ── SUCCESS ──────────────────────────────────────────────────────────────────
@@ -170,7 +186,7 @@ export default function MemberCheckoutPage() {
   }
 
   // ── INPUT / LOADING / ERROR ───────────────────────────────────────────────────
-  const isProcessing = phase === "loading";
+  const isProcessing = phase === "locating" || phase === "loading";
 
   return (
     <Screen>
@@ -226,6 +242,12 @@ export default function MemberCheckoutPage() {
           <div className="h-10 flex items-center justify-center mb-3">
             {phase === "error" && (
               <p className="text-red-400 text-sm font-medium text-center">{errorMsg}</p>
+            )}
+            {phase === "locating" && (
+              <div className="flex items-center gap-2">
+                <Spinner />
+                <span className="text-gray-500 text-sm">Getting location…</span>
+              </div>
             )}
             {phase === "loading" && (
               <div className="flex items-center gap-2">
