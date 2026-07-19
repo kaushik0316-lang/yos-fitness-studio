@@ -112,9 +112,10 @@ function resolveCheckoutTime(
  * GET/POST /api/cron/auto-checkout
  *
  * Closes any open shift whose auto-checkout time has passed.
- * Runs twice daily via GitHub Actions:
+ * Runs three times daily via GitHub Actions:
  *   08:30 UTC (2:00 PM IST)  — catches morning-shift checkouts
  *   17:30 UTC (11:00 PM IST) — catches evening-shift checkouts
+ *   22:30 UTC (4:00 AM IST)  — catches late-night stragglers
  */
 async function runAutoCheckout() {
   const now = new Date();

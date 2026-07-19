@@ -4,6 +4,7 @@ on:
   schedule:
     - cron: "30 8 * * *"    # 2:00 PM IST (08:30 UTC)
     - cron: "30 17 * * *"   # 11:00 PM IST (17:30 UTC)
+    - cron: "30 22 * * *"   # 4:00 AM IST (22:30 UTC)
   workflow_dispatch:          # Allow manual trigger from GitHub UI
 
 jobs:
