@@ -90,10 +90,27 @@ export default function RegisterPage() {
 
           {/* PIN setup prompt */}
           <div className="mt-4 bg-orange-50 border border-orange-100 rounded-2xl p-5 text-left">
-            <p className="text-sm font-bold text-orange-700 mb-1">Next: Set up your check-in PIN</p>
-            <p className="text-xs text-orange-600 leading-relaxed mb-3">
-              After paying at the front desk, set a 4-digit PIN to check in and out at the gym every day.
-            </p>
+            <p className="text-sm font-bold text-orange-700 mb-3">Next: Set up your 4-digit PIN</p>
+            <div className="space-y-2.5 mb-4">
+              <div className="flex items-start gap-2.5">
+                <span className="text-base leading-none mt-0.5">📲</span>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Every time you visit the gym, you'll <strong>scan a QR code</strong> at the entrance and enter your PIN to mark your attendance.
+                </p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="text-base leading-none mt-0.5">🔢</span>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Your PIN is a <strong>secret 4-digit number</strong> that you choose — it's yours and only yours.
+                </p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="text-base leading-none mt-0.5">✅</span>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Set it up now so you're <strong>ready to check in from your very first session</strong>.
+                </p>
+              </div>
+            </div>
             <Link
               href="/member-portal?setup=1"
               className="inline-block w-full text-center py-3 rounded-xl text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 transition-colors"
