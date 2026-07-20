@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { normalizeName } from "@/lib/utils/titleCase";
+import { getActiveProvider } from "@/lib/messaging/provider";
 
 export async function POST(req: NextRequest) {
   // Rate limit: 5 registrations per hour per IP
@@ -65,6 +66,19 @@ export async function POST(req: NextRequest) {
       select: { memberId: true, fullName: true },
     });
   });
+
+  // Notify admin on WhatsApp so they can add the new member to the group
+  const adminPhone = process.env.ADMIN_NOTIFY_PHONE ?? "919840690418";
+  const notifyTo   = adminPhone.startsWith("+") ? adminPhone : `+${adminPhone}`;
+  const msg =
+    `🆕 *New Member Registration*\n` +
+    `*Name:* ${member.fullName}\n` +
+    `*Phone:* ${phone.trim()}\n` +
+    `*Member ID:* ${member.memberId}\n\n` +
+    `Add to WhatsApp group 📱`;
+
+  getActiveProvider().send({ to: notifyTo, message: msg, channel: "WHATSAPP" })
+    .catch((e) => console.error("[register-member] admin notify failed:", e));
 
   return NextResponse.json({ ok: true, memberId: member.memberId, fullName: member.fullName });
 }
