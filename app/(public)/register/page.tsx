@@ -25,11 +25,19 @@ export default function RegisterPage() {
     address: "", weight: "", height: "", healthConditions: "",
     // optional
     email: "", bloodGroup: "", customBloodGroup: "", emergencyContact: "", emergencyPhone: "",
-    intentionOfJoining: "",
   });
+  const [goals, setGoals] = useState<string[]>([]);
 
   function set(key: keyof typeof form, val: string) {
     setForm((f) => ({ ...f, [key]: val }));
+  }
+
+  function toggleGoal(g: string) {
+    setGoals((prev) => {
+      if (prev.includes(g)) return prev.filter((x) => x !== g);
+      if (prev.length >= 2) return prev; // max 2
+      return [...prev, g];
+    });
   }
 
   const requiredFilled =
@@ -53,6 +61,7 @@ export default function RegisterPage() {
           bloodGroup: form.bloodGroup === "Other" ? form.customBloodGroup.trim() : form.bloodGroup,
           whatsapp: form.phone,
           primaryCompany: "YOS_FITNESS",
+          intentionOfJoining: goals.join(", "),
         }),
       });
       const data = await res.json();
@@ -242,12 +251,33 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className={lbl}>What is your fitness goal?</label>
-            <select className={inp} value={form.intentionOfJoining}
-              onChange={(e) => set("intentionOfJoining", e.target.value)}>
-              <option value="">Select a goal</option>
-              {GOALS.map((g) => <option key={g} value={g}>{g}</option>)}
-            </select>
+            <label className={lbl}>
+              What is your fitness goal?
+              <span className="ml-1.5 font-normal text-gray-400">(pick up to 2)</span>
+            </label>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {GOALS.map((g) => {
+                const selected = goals.includes(g);
+                const disabled = !selected && goals.length >= 2;
+                return (
+                  <button key={g} type="button"
+                    onClick={() => toggleGoal(g)}
+                    disabled={disabled}
+                    className="px-3 py-2 rounded-xl text-xs font-semibold border transition-all"
+                    style={{
+                      background: selected ? "#f97316" : "white",
+                      color: selected ? "white" : disabled ? "#d1d5db" : "#374151",
+                      borderColor: selected ? "#f97316" : disabled ? "#e5e7eb" : "#d1d5db",
+                      opacity: disabled ? 0.5 : 1,
+                    }}>
+                    {g}
+                  </button>
+                );
+              })}
+            </div>
+            {goals.length === 2 && (
+              <p className="text-[11px] text-orange-500 mt-1.5">Maximum 2 goals selected</p>
+            )}
           </div>
 
           <div>
