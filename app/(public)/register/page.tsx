@@ -133,26 +133,33 @@ export default function RegisterPage() {
   }
 
   // ── Form ───────────────────────────────────────────────────────────────────
-  const inp = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-orange-400 transition-colors bg-white";
-  const lbl = "block text-xs font-semibold text-gray-600 mb-1.5";
+  const inp = "w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all bg-white";
+  const lbl = "block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide";
   const req = <span className="text-orange-500 ml-0.5">*</span>;
 
   return (
     <div className="min-h-screen bg-gray-50">
 
       {/* Header */}
-      <div className="bg-gray-950 px-6 pt-10 pb-8 text-center">
-        <div className="flex justify-center mb-5">
-          <Image src="/Logo.png" alt="Yos Fitness Studio" width={120} height={32}
-            className="h-8 w-auto object-contain" priority />
+      <div className="relative px-6 pt-10 pb-10 text-center overflow-hidden"
+        style={{ background: "linear-gradient(160deg, #1a0a00 0%, #0f0f0f 60%, #1a0800 100%)" }}>
+        <div className="absolute inset-0 pointer-events-none opacity-[0.06]"
+          style={{ backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.9) 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
+        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%)" }} />
+        <div className="relative flex justify-center mb-5">
+          <div className="rounded-2xl p-1 shadow-2xl" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
+            <Image src="/Logo.png" alt="Yos Fitness Studio" width={72} height={72}
+              className="w-[72px] h-[72px] object-contain rounded-xl" priority />
+          </div>
         </div>
-        <h1 className="text-2xl font-extrabold text-white">Member Registration</h1>
-        <p className="text-gray-400 text-sm mt-1.5 leading-relaxed">
+        <h1 className="text-2xl font-extrabold text-white relative">Member Registration</h1>
+        <p className="text-gray-400 text-sm mt-1.5 leading-relaxed relative">
           Fill in your details below to get started
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="px-5 py-6 space-y-4 max-w-lg mx-auto pb-12">
+      <form onSubmit={handleSubmit} className="px-4 py-6 space-y-4 max-w-lg mx-auto pb-12">
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
@@ -161,8 +168,11 @@ export default function RegisterPage() {
         )}
 
         {/* ── Required ── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Required Information</p>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100" style={{ background: "linear-gradient(90deg, #fff7ed, #fff)" }}>
+            <p className="text-xs font-bold text-orange-500 uppercase tracking-widest">Required Information</p>
+          </div>
+          <div className="p-5 space-y-4">
 
           <div>
             <label className={lbl}>Full Name {req}</label>
@@ -221,10 +231,16 @@ export default function RegisterPage() {
               value={form.healthConditions}
               onChange={(e) => set("healthConditions", e.target.value)} required />
           </div>
+          </div>
         </div>
 
         {/* ── Additional Info ── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100" style={{ background: "linear-gradient(90deg, #f9fafb, #fff)" }}>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Additional Information</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">Optional — helps us personalise your experience</p>
+          </div>
+          <div className="p-5 space-y-4">
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -290,6 +306,7 @@ export default function RegisterPage() {
             <label className={lbl}>Emergency Contact Phone</label>
             <input className={inp} type="tel" inputMode="numeric" placeholder="10-digit number"
               value={form.emergencyPhone} onChange={(e) => set("emergencyPhone", e.target.value)} />
+          </div>
           </div>
         </div>
 
@@ -360,12 +377,13 @@ export default function RegisterPage() {
         {/* Submit */}
         <button type="submit"
           disabled={!requiredFilled || phase === "submitting"}
-          className="w-full py-4 rounded-2xl font-bold text-white text-base disabled:opacity-40 transition-opacity flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-700">
+          className="w-full py-4 rounded-2xl font-bold text-white text-base disabled:opacity-40 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+          style={{ background: "linear-gradient(135deg, #f97316, #ea580c)", boxShadow: "0 4px 20px -4px rgba(249,115,22,0.5)" }}>
           {phase === "submitting" ? <><Spinner /> Submitting...</> : "Submit Registration →"}
         </button>
 
-        <p className="text-center text-xs text-gray-400 pb-2">
-          Your information is private and only shared with Yos Fitness Studio staff
+        <p className="text-center text-xs text-gray-400 pb-2 flex items-center justify-center gap-1.5">
+          <span>🔒</span> Your information is private and only shared with Yos Fitness Studio staff
         </p>
 
       </form>
