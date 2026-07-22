@@ -46,6 +46,7 @@ type Props = {
   selectedDate: string;
   isToday: boolean;
   weekVisitsMap: Record<string, number>;
+  streakMap: Record<string, number>;
 };
 
 function pkgName(m: { currentPackage: { name: string } | null; memberships: { package: { name: string } | null }[] }): string | null {
@@ -86,7 +87,7 @@ function Initials({ name, size = 10 }: { name: string; size?: number }) {
 
 export function AttendanceClient({
   todayAttendance, notCheckedIn, totalActive, userId, userRole,
-  selectedDate, isToday, weekVisitsMap,
+  selectedDate, isToday, weekVisitsMap, streakMap,
 }: Props) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"inGym" | "visited" | "pending">("inGym");
@@ -277,6 +278,33 @@ export function AttendanceClient({
         </div>
       )}
 
+      {/* ── Top Streaks ── */}
+      {(() => {
+        const topStreaks = todayAttendance
+          .map((a) => ({ name: a.member.fullName, memberId: a.member.id, streak: streakMap[a.member.id] ?? 0 }))
+          .filter((s) => s.streak >= 3)
+          .sort((a, b) => b.streak - a.streak)
+          .slice(0, 5);
+        if (topStreaks.length === 0) return null;
+        return (
+          <div className="rounded-2xl px-4 py-4" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-3">🔥 Active Streaks</p>
+            <div className="flex flex-wrap gap-2">
+              {topStreaks.map((s) => (
+                <div key={s.memberId} className="flex items-center gap-2 px-3 py-2 rounded-xl"
+                  style={{ background: s.streak >= 14 ? "rgba(234,179,8,0.1)" : s.streak >= 7 ? "rgba(249,115,22,0.1)" : "rgba(255,255,255,0.04)", border: s.streak >= 14 ? "1px solid rgba(234,179,8,0.25)" : s.streak >= 7 ? "1px solid rgba(249,115,22,0.2)" : "1px solid rgba(255,255,255,0.06)" }}>
+                  <span className="text-base leading-none">{s.streak >= 14 ? "🏆" : s.streak >= 7 ? "🔥" : "⚡"}</span>
+                  <div>
+                    <p className="text-white text-xs font-bold leading-none">{toTitleCase(s.name)}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: s.streak >= 14 ? "#fbbf24" : s.streak >= 7 ? "#fb923c" : "#6b7280" }}>{s.streak} day streak</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── List panel ── */}
       <div className="rounded-2xl overflow-hidden" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
         {/* Search + tabs */}
@@ -322,6 +350,7 @@ export function AttendanceClient({
               const minsLabel = mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
               const pkg = pkgName(a.member);
               const expDays = expiryWarning(a.member.expiryDate);
+              const streak = streakMap[a.member.id] ?? 0;
               return (
                 <div key={a.id} className={rowBase}>
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -333,6 +362,12 @@ export function AttendanceClient({
                       <Link href={`/members/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors text-sm">
                         {toTitleCase(a.member.fullName)}
                       </Link>
+                      {streak >= 3 && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                          style={{ background: streak >= 14 ? "rgba(234,179,8,0.15)" : "rgba(249,115,22,0.12)", color: streak >= 14 ? "#fbbf24" : "#fb923c" }}>
+                          {streak >= 14 ? "🏆" : "🔥"} {streak}d
+                        </span>
+                      )}
                       {expDays !== null && expDays <= 7 && expDays > 0 && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: "rgba(249,115,22,0.12)", color: "#fb923c" }}>
                           exp {expDays}d
@@ -371,6 +406,7 @@ export function AttendanceClient({
               const pkg = pkgName(a.member);
               const expDays = expiryWarning(a.member.expiryDate);
               const weekCount = weekVisitsMap[a.member.id] ?? 0;
+              const streak = streakMap[a.member.id] ?? 0;
               return (
                 <div key={a.id} className={rowBase}>
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -384,6 +420,12 @@ export function AttendanceClient({
                       <Link href={`/members/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors text-sm">
                         {toTitleCase(a.member.fullName)}
                       </Link>
+                      {streak >= 3 && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                          style={{ background: streak >= 14 ? "rgba(234,179,8,0.15)" : "rgba(249,115,22,0.12)", color: streak >= 14 ? "#fbbf24" : "#fb923c" }}>
+                          {streak >= 14 ? "🏆" : "🔥"} {streak}d
+                        </span>
+                      )}
                       {dur && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: "rgba(59,130,246,0.12)", color: "#93c5fd" }}>
                           {dur}

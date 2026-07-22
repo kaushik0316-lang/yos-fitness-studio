@@ -6,7 +6,7 @@ import { Dumbbell, Delete, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 type Phase = "input" | "locating" | "loading" | "success" | "checkoutSuccess" | "error";
 
-interface SuccessData { fullName: string; time: string; }
+interface SuccessData { fullName: string; time: string; streak?: number; }
 
 const TOTAL_DIGITS  = 4;
 const NUMPAD_KEYS   = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
@@ -160,7 +160,7 @@ export default function MemberCheckinPage() {
         setPin("");
         await performCheckout(data.attendanceId, data.fullName);
       } else {
-        setSuccess({ fullName: data.fullName, time: data.time });
+        setSuccess({ fullName: data.fullName, time: data.time, streak: data.streak });
         setPhase("success");
       }
     } catch {
@@ -208,7 +208,22 @@ export default function MemberCheckinPage() {
             <h2 className="text-3xl font-extrabold text-white uppercase tracking-wide mb-1">
               {successData.fullName}
             </h2>
-            <p className="text-gray-400 text-xl mb-10">{successData.time}</p>
+            <p className="text-gray-400 text-xl mb-4">{successData.time}</p>
+            {successData.streak && successData.streak >= 2 && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl mb-6"
+                style={{ background: successData.streak >= 14 ? "rgba(234,179,8,0.12)" : "rgba(249,115,22,0.12)", border: successData.streak >= 14 ? "1px solid rgba(234,179,8,0.3)" : "1px solid rgba(249,115,22,0.25)" }}>
+                <span className="text-2xl">{successData.streak >= 14 ? "🏆" : "🔥"}</span>
+                <div className="text-left">
+                  <p className="font-extrabold text-sm" style={{ color: successData.streak >= 14 ? "#fbbf24" : "#fb923c" }}>
+                    {successData.streak} Day Streak!
+                  </p>
+                  <p className="text-[11px]" style={{ color: successData.streak >= 14 ? "#92400e" : "#7c2d12" }}>
+                    {successData.streak >= 30 ? "Unstoppable! 💪" : successData.streak >= 14 ? "Two weeks strong!" : successData.streak >= 7 ? "One week in, keep it up!" : "Keep the momentum!"}
+                  </p>
+                </div>
+              </div>
+            )}
+            {(!successData.streak || successData.streak < 2) && <div className="mb-6" />}
             <Link href="/my-membership"
               className="block w-full py-3.5 rounded-2xl font-semibold text-sm mb-3 uppercase tracking-wide"
               style={{ background: "#1e1e1e", color: "#6b7280", border: "1px solid #2a2a2a" }}>

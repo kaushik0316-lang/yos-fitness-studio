@@ -172,6 +172,21 @@ export async function POST(req: NextRequest) {
       }),
     ]);
 
+    // Calculate streak (last 60 days)
+    const recentDates = await prisma.memberAttendance.findMany({
+      where: { memberId: member.id, date: { lte: todayIST } },
+      select: { date: true },
+      orderBy: { date: "desc" },
+      take: 60,
+    });
+    const dateSet = new Set(recentDates.map((r) => r.date.toISOString().slice(0, 10)));
+    let streak = 0;
+    let cursor = todayIST;
+    while (dateSet.has(cursor.toISOString().slice(0, 10))) {
+      streak++;
+      cursor = new Date(cursor.getTime() - 24 * 60 * 60 * 1000);
+    }
+
     const timeStr = now.toLocaleTimeString("en-IN", {
       timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
     });
@@ -181,6 +196,7 @@ export async function POST(req: NextRequest) {
       fullName: member.fullName,
       memberId: member.memberId,
       time:     timeStr,
+      streak,
       message:  `Welcome, ${member.fullName}! Checked in at ${timeStr}.`,
     });
   } catch (err) {

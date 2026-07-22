@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { AttendanceClient } from "@/components/attendance/AttendanceClient";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, format } from "date-fns";
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, subDays, format } from "date-fns";
 import { MemberStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,8 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
   const dayEnd    = endOfDay(selectedDate);
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekEnd   = endOfWeek(selectedDate, { weekStartsOn: 1 });
+
+  const sixtyDaysAgo = subDays(selectedDate, 60);
 
   const [dayAttendance, activeMembers, weekAttendance] = await Promise.all([
     prisma.memberAttendance.findMany({
@@ -70,6 +72,34 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
     weekVisitsMap[r.memberId] = (weekVisitsMap[r.memberId] ?? 0) + 1;
   }
 
+  // Streak calculation — only for members who checked in on selectedDate
+  const checkedInMemberIds = dayAttendance.map((a) => a.member.id);
+  const streakMap: Record<string, number> = {};
+  if (checkedInMemberIds.length > 0) {
+    const recentAttendance = await prisma.memberAttendance.findMany({
+      where: {
+        memberId: { in: checkedInMemberIds },
+        date: { gte: startOfDay(sixtyDaysAgo), lte: dayEnd },
+      },
+      select: { memberId: true, date: true },
+      orderBy: { date: "desc" },
+    });
+    const byMember: Record<string, Set<string>> = {};
+    for (const r of recentAttendance) {
+      if (!byMember[r.memberId]) byMember[r.memberId] = new Set();
+      byMember[r.memberId].add(format(r.date, "yyyy-MM-dd"));
+    }
+    for (const [memberId, dateSet] of Object.entries(byMember)) {
+      let streak = 0;
+      let cursor = selectedDate;
+      while (dateSet.has(format(cursor, "yyyy-MM-dd"))) {
+        streak++;
+        cursor = subDays(cursor, 1);
+      }
+      streakMap[memberId] = streak;
+    }
+  }
+
   // Serialize dates
   function serializeAttendance(a: (typeof dayAttendance)[0]) {
     return {
@@ -117,6 +147,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
           selectedDate={format(selectedDate, "yyyy-MM-dd")}
           isToday={isToday}
           weekVisitsMap={weekVisitsMap}
+          streakMap={streakMap}
         />
       </div>
     </>
