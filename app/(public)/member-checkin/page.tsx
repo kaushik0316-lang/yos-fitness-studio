@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
-import { Dumbbell, Delete, ArrowLeft, CheckCircle2, LogOut } from "lucide-react";
+import { Dumbbell, Delete, ArrowLeft, CheckCircle2 } from "lucide-react";
 
-type Phase = "input" | "locating" | "loading" | "success" | "checkout" | "checkoutSuccess" | "error";
+type Phase = "input" | "locating" | "loading" | "success" | "checkoutSuccess" | "error";
 
 interface SuccessData { fullName: string; time: string; }
-interface CheckoutPending { fullName: string; checkedInAt: string; attendanceId: string; }
 
 const TOTAL_DIGITS  = 4;
 const NUMPAD_KEYS   = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
@@ -60,7 +59,6 @@ export default function MemberCheckinPage() {
   const [pin, setPin]                       = useState("");
   const [phase, setPhase]                   = useState<Phase>("input");
   const [successData, setSuccess]           = useState<SuccessData | null>(null);
-  const [checkoutPending, setCheckoutPending] = useState<CheckoutPending | null>(null);
   const [errorMsg, setErrorMsg]             = useState("");
   const [shaking, setShaking]               = useState(false);
   const submittingRef                       = useRef(false);
@@ -68,7 +66,7 @@ export default function MemberCheckinPage() {
 
   useEffect(() => {
     if (phase !== "success" && phase !== "checkoutSuccess") return;
-    const t = setTimeout(() => resetForm(), AUTO_RESET_MS);
+    const t = setTimeout(resetForm, AUTO_RESET_MS);
     return () => clearTimeout(t);
   }, [phase]);
 
@@ -89,7 +87,7 @@ export default function MemberCheckinPage() {
 
   function resetForm() {
     setPin(""); setPhase("input"); setSuccess(null);
-    setCheckoutPending(null); setErrorMsg(""); submittingRef.current = false;
+    setErrorMsg(""); submittingRef.current = false;
   }
 
   function pressKey(key: string) {
@@ -146,9 +144,9 @@ export default function MemberCheckinPage() {
         setTimeout(() => setShaking(false), 500);
         setPhase("error");
       } else if (data.checkoutPending) {
-        setCheckoutPending({ fullName: data.fullName, checkedInAt: data.checkedInAt, attendanceId: data.attendanceId });
+        // Already checked in — check out immediately, no extra tap needed
         setPin("");
-        setPhase("checkout");
+        await performCheckout(data.attendanceId, data.fullName);
       } else {
         setSuccess({ fullName: data.fullName, time: data.time });
         setPhase("success");
@@ -161,20 +159,22 @@ export default function MemberCheckinPage() {
     }
   }
 
-  async function performCheckout() {
+  async function performCheckout(attendanceId: string, fullName: string) {
+    setPhase("loading");
     try {
       const res = await fetch("/api/member-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attendanceId: checkoutPending!.attendanceId }),
+        body: JSON.stringify({ attendanceId }),
       });
       const data = await res.json();
       if (!res.ok) { setErrorMsg(data.error ?? "Checkout failed."); setPhase("error"); return; }
-      setSuccess({ fullName: data.fullName, time: data.time });
-      setCheckoutPending(null);
+      setSuccess({ fullName, time: data.time });
       setPhase("checkoutSuccess");
     } catch {
       setErrorMsg("Network error. Please try again."); setPhase("error");
+    } finally {
+      submittingRef.current = false;
     }
   }
 
@@ -206,44 +206,6 @@ export default function MemberCheckinPage() {
               className="w-full py-4 rounded-2xl font-bold text-white text-sm uppercase tracking-widest"
               style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)", boxShadow: "0 8px 24px -4px rgba(34,197,94,0.4)" }}>
               Done
-            </button>
-            <p className="text-gray-700 text-xs mt-4 uppercase tracking-widest">
-              Resets automatically in 5 seconds
-            </p>
-          </div>
-        </div>
-      </Screen>
-    );
-  }
-
-  // ── CHECKOUT PROMPT ──────────────────────────────────────────────────────────
-  if (phase === "checkout" && checkoutPending) {
-    return (
-      <Screen>
-        <LogoBar />
-        <div className="flex-1 flex flex-col items-center justify-center px-6 pb-10">
-          <div className="w-full max-w-sm text-center">
-            <div className="w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl"
-              style={{ background: "linear-gradient(135deg, #1d4ed8, #1e40af)", boxShadow: "0 8px 32px -4px rgba(29,78,216,0.5)" }}>
-              <LogOut className="h-12 w-12 text-white" />
-            </div>
-            <span className="inline-block px-4 py-1 rounded-full text-xs font-extrabold uppercase tracking-widest mb-4"
-              style={{ background: "rgba(29,78,216,0.15)", color: "#93c5fd", border: "1px solid rgba(29,78,216,0.3)" }}>
-              Already Checked In
-            </span>
-            <h2 className="text-2xl font-extrabold text-white uppercase tracking-wide mb-1">
-              {checkoutPending.fullName}
-            </h2>
-            <p className="text-gray-400 mb-8">Checked in at {checkoutPending.checkedInAt}</p>
-            <button onClick={performCheckout}
-              className="w-full py-4 rounded-2xl font-bold text-white text-sm uppercase tracking-widest mb-3"
-              style={{ background: "linear-gradient(135deg, #1d4ed8, #1e40af)", boxShadow: "0 8px 24px -4px rgba(29,78,216,0.4)" }}>
-              Check Out Now
-            </button>
-            <button onClick={resetForm}
-              className="w-full py-3.5 rounded-2xl font-semibold text-sm uppercase tracking-wide"
-              style={{ background: "#1e1e1e", color: "#6b7280", border: "1px solid #2a2a2a" }}>
-              Cancel
             </button>
             <p className="text-gray-700 text-xs mt-4 uppercase tracking-widest">
               Resets automatically in 5 seconds
