@@ -178,9 +178,10 @@ export function AttendanceClient({
               {format(dateObj, "yyyy")} · tap to jump
             </p>
             <input
+              key={selectedDate}
               type="date"
               max={format(new Date(), "yyyy-MM-dd")}
-              value={selectedDate}
+              defaultValue={selectedDate}
               onChange={(e) => { if (e.target.value) goDate(parseISO(e.target.value)); }}
               className="absolute inset-0 opacity-0 cursor-pointer w-full"
             />
