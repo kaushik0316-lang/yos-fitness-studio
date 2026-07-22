@@ -282,9 +282,14 @@ model MemberAttendance {
   memberId    String
   member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
   date        DateTime @db.Date
-  checkInTime  DateTime
-  checkOutTime DateTime?
+  checkInTime   DateTime
+  checkOutTime  DateTime?
   autoCheckedOut Boolean @default(false)
+
+  // Second session (evening workout same day)
+  session2CheckInTime  DateTime?
+  session2CheckOutTime DateTime?
+  session2AutoCheckedOut Boolean @default(false)
   markedById   String
   markedBy     User     @relation(fields: [markedById], references: [id])
   remarks      String?

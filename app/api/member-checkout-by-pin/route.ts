@@ -64,39 +64,61 @@ export async function POST(req: NextRequest) {
     const todayIST = getISTDate();
     const record   = await prisma.memberAttendance.findUnique({
       where: { memberId_date: { memberId: member.id, date: todayIST } },
-      select: { id: true, checkInTime: true, checkOutTime: true },
+      select: { id: true, checkInTime: true, checkOutTime: true, session2CheckInTime: true, session2CheckOutTime: true },
     });
 
     if (!record) {
       return NextResponse.json({ error: "You haven't checked in today." }, { status: 404 });
     }
 
-    if (record.checkOutTime) {
-      const outStr = record.checkOutTime.toLocaleTimeString("en-IN", {
+    const now = new Date();
+
+    // Session 2 is open — check that out first
+    if (record.session2CheckInTime && !record.session2CheckOutTime) {
+      await prisma.memberAttendance.update({
+        where: { id: record.id },
+        data: { session2CheckOutTime: now },
+      });
+
+      const s2InStr  = record.session2CheckInTime.toLocaleTimeString("en-IN", {
         timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
       });
-      return NextResponse.json({ error: `Already checked out at ${outStr}.` }, { status: 409 });
+      const s2OutStr = now.toLocaleTimeString("en-IN", {
+        timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
+      });
+      return NextResponse.json({
+        ok: true,
+        fullName: member.fullName,
+        checkInTime: s2InStr,
+        checkOutTime: s2OutStr,
+        session: 2,
+      });
     }
 
-    const now = new Date();
-    await prisma.memberAttendance.update({
-      where: { id: record.id },
-      data: { checkOutTime: now },
-    });
+    // Session 1 open — check that out
+    if (!record.checkOutTime) {
+      await prisma.memberAttendance.update({
+        where: { id: record.id },
+        data: { checkOutTime: now },
+      });
 
-    const checkInStr = record.checkInTime.toLocaleTimeString("en-IN", {
-      timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
-    });
-    const checkOutStr = now.toLocaleTimeString("en-IN", {
-      timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
-    });
+      const checkInStr  = record.checkInTime.toLocaleTimeString("en-IN", {
+        timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
+      });
+      const checkOutStr = now.toLocaleTimeString("en-IN", {
+        timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
+      });
+      return NextResponse.json({
+        ok: true,
+        fullName: member.fullName,
+        checkInTime: checkInStr,
+        checkOutTime: checkOutStr,
+        session: 1,
+      });
+    }
 
-    return NextResponse.json({
-      ok: true,
-      fullName: member.fullName,
-      checkInTime: checkInStr,
-      checkOutTime: checkOutStr,
-    });
+    // Both sessions checked out
+    return NextResponse.json({ error: "You've already checked out for today." }, { status: 409 });
   } catch (err) {
     console.error("[member-checkout-by-pin]", err);
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });

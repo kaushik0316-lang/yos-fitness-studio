@@ -194,8 +194,17 @@ async function runAutoCheckout() {
   const cutoff = new Date(now.getTime() - THIRTY_MIN_MS);
 
   const openMemberCheckIns = await prisma.memberAttendance.findMany({
-    where: { checkOutTime: null, checkInTime: { lte: cutoff } },
-    select: { id: true, checkInTime: true, member: { select: { fullName: true, memberId: true } } },
+    where: {
+      OR: [
+        { checkOutTime: null, checkInTime: { lte: cutoff } },
+        { session2CheckInTime: { lte: cutoff }, session2CheckOutTime: null },
+      ],
+    },
+    select: {
+      id: true, checkInTime: true, checkOutTime: true,
+      session2CheckInTime: true, session2CheckOutTime: true,
+      member: { select: { fullName: true, memberId: true } },
+    },
   });
 
   const membersClosed: string[] = [];
@@ -203,12 +212,21 @@ async function runAutoCheckout() {
 
   for (const record of openMemberCheckIns) {
     try {
-      const checkOutTime = new Date(record.checkInTime.getTime() + THIRTY_MIN_MS);
-      await prisma.memberAttendance.update({
-        where: { id: record.id },
-        data: { checkOutTime, autoCheckedOut: true },
-      });
-      membersClosed.push(`${record.member.fullName} (${record.member.memberId})`);
+      const updates: Record<string, unknown> = {};
+
+      if (!record.checkOutTime && record.checkInTime <= cutoff) {
+        updates.checkOutTime    = new Date(record.checkInTime.getTime() + THIRTY_MIN_MS);
+        updates.autoCheckedOut  = true;
+      }
+      if (record.session2CheckInTime && !record.session2CheckOutTime && record.session2CheckInTime <= cutoff) {
+        updates.session2CheckOutTime     = new Date(record.session2CheckInTime.getTime() + THIRTY_MIN_MS);
+        updates.session2AutoCheckedOut   = true;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await prisma.memberAttendance.update({ where: { id: record.id }, data: updates });
+        membersClosed.push(`${record.member.fullName} (${record.member.memberId})`);
+      }
     } catch (err: any) {
       memberErrors.push(`attendance ${record.id}: ${err?.message ?? String(err)}`);
     }

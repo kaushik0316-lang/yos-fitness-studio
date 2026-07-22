@@ -87,20 +87,57 @@ export async function POST(req: NextRequest) {
       const timeStr = existing.checkInTime.toLocaleTimeString("en-IN", {
         timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
       });
-      // If they haven't checked out yet, offer checkout
+
+      // Session 1 still open — offer checkout
       if (!existing.checkOutTime) {
         return NextResponse.json(
           { checkoutPending: true, attendanceId: existing.id, checkedInAt: timeStr, fullName: member.fullName },
           { status: 200 }
         );
       }
-      const outStr = existing.checkOutTime.toLocaleTimeString("en-IN", {
+
+      // Session 2 already open — offer checkout
+      if (existing.session2CheckInTime && !existing.session2CheckOutTime) {
+        const s2Str = existing.session2CheckInTime.toLocaleTimeString("en-IN", {
+          timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
+        });
+        return NextResponse.json(
+          { checkoutPending: true, attendanceId: existing.id, checkedInAt: s2Str, fullName: member.fullName, session: 2 },
+          { status: 200 }
+        );
+      }
+
+      // Both sessions completed — no more check-ins today
+      if (existing.session2CheckInTime && existing.session2CheckOutTime) {
+        const s2InStr  = existing.session2CheckInTime.toLocaleTimeString("en-IN", {
+          timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
+        });
+        const s2OutStr = existing.session2CheckOutTime.toLocaleTimeString("en-IN", {
+          timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
+        });
+        return NextResponse.json(
+          { error: `You've already completed two sessions today (last: ${s2InStr}–${s2OutStr}). See you tomorrow!` },
+          { status: 409 }
+        );
+      }
+
+      // Session 1 done, session 2 not started — begin second session
+      await prisma.memberAttendance.update({
+        where: { id: existing.id },
+        data: { session2CheckInTime: now },
+      });
+
+      const s2TimeStr = now.toLocaleTimeString("en-IN", {
         timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
       });
-      return NextResponse.json(
-        { error: `Already checked in at ${timeStr} and checked out at ${outStr}.` },
-        { status: 409 }
-      );
+      return NextResponse.json({
+        ok:       true,
+        fullName: member.fullName,
+        memberId: member.memberId,
+        time:     s2TimeStr,
+        session:  2,
+        message:  `Welcome back, ${member.fullName}! Session 2 started at ${s2TimeStr}.`,
+      });
     }
 
     // Resolve markedById — use system user (first ADMIN) since this is a kiosk (no session)
