@@ -277,7 +277,7 @@ export default function MemberCheckinPage() {
               {todayLabel()}
             </p>
             <h1 className="text-2xl font-extrabold text-white uppercase tracking-wide">
-              Member Check In
+              Member Check In / Out
             </h1>
             <p className="text-gray-500 text-sm mt-1.5">Enter your 4-digit PIN</p>
             <p className="text-gray-600 text-[11px] mt-2 flex items-center justify-center gap-1">
