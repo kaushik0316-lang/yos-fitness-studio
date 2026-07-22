@@ -18,6 +18,12 @@ function todayLabel() {
   });
 }
 
+function currentTimeIST() {
+  return new Date().toLocaleTimeString("en-IN", {
+    hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata",
+  });
+}
+
 function Screen({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden"
@@ -61,8 +67,14 @@ export default function MemberCheckinPage() {
   const [successData, setSuccess]           = useState<SuccessData | null>(null);
   const [errorMsg, setErrorMsg]             = useState("");
   const [shaking, setShaking]               = useState(false);
+  const [liveTime, setLiveTime]             = useState(currentTimeIST);
   const submittingRef                       = useRef(false);
   const hiddenInputRef                      = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const t = setInterval(() => setLiveTime(currentTimeIST()), 10000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     if (phase !== "success" && phase !== "checkoutSuccess") return;
@@ -273,33 +285,42 @@ export default function MemberCheckinPage() {
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-6">
         <div className="w-full max-w-[300px]">
           <div className="text-center mb-8">
-            <p className="text-green-400/70 text-[11px] font-bold uppercase tracking-[0.2em] mb-2">
-              {todayLabel()}
-            </p>
+            <div className="flex items-center justify-center gap-3 mb-1">
+              <p className="text-green-400/70 text-[11px] font-bold uppercase tracking-[0.2em]">
+                {todayLabel()}
+              </p>
+              <span className="text-green-400/40 text-[11px]">·</span>
+              <p className="text-green-400/70 text-[11px] font-bold uppercase tracking-[0.2em]">
+                {liveTime}
+              </p>
+            </div>
             <h1 className="text-2xl font-extrabold text-white uppercase tracking-wide">
-              Member Check In / Out
+              Check In / Check Out
             </h1>
             <p className="text-gray-500 text-sm mt-1.5">Enter your 4-digit PIN</p>
-            <p className="text-gray-600 text-[11px] mt-2 flex items-center justify-center gap-1">
-              <span>📍</span> Allow location when prompted — you must be at the gym
-            </p>
+            <div className="mt-2.5 mx-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+              style={{ background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.25)" }}>
+              <span className="text-base leading-none">📍</span>
+              <p className="text-yellow-400/80 text-[11px] font-medium">Allow location — you must be at the gym</p>
+            </div>
           </div>
 
           {/* PIN dots */}
-          <div className="flex gap-3.5 justify-center mb-2"
+          <div className="flex gap-4 justify-center mb-2"
             style={{ animation: shaking ? "shake 0.45s ease-in-out" : "none" }}>
             {Array.from({ length: TOTAL_DIGITS }).map((_, i) => {
               const filled = i < pin.length;
+              const isNext = i === pin.length;
               return (
                 <div key={i}
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all duration-150"
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center border-2 transition-all duration-150"
                   style={{
-                    background: filled ? "rgba(34,197,94,0.12)" : "#161616",
-                    borderColor: filled ? "#22c55e" : i === pin.length ? "#3a3a3a" : "#222222",
-                    boxShadow: filled ? "0 0 20px rgba(34,197,94,0.2)" : "none",
+                    background: filled ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.03)",
+                    borderColor: filled ? "#22c55e" : isNext ? "#4b5563" : "#2a2a2a",
+                    boxShadow: filled ? "0 0 24px rgba(34,197,94,0.25)" : isNext ? "0 0 0 1px rgba(75,85,99,0.3)" : "none",
                   }}>
-                  {filled && <div className="w-3.5 h-3.5 rounded-full"
-                    style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)" }} />}
+                  {filled && <div className="w-4 h-4 rounded-full"
+                    style={{ background: "linear-gradient(135deg, #4ade80, #22c55e)", boxShadow: "0 0 10px rgba(34,197,94,0.6)" }} />}
                 </div>
               );
             })}
