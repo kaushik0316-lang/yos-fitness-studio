@@ -168,11 +168,22 @@ export function AttendanceClient({
           className="p-2 rounded-xl transition-colors hover:bg-white/[0.06]">
           <ChevronLeft className="h-4 w-4 text-gray-400" />
         </button>
-        <div className="text-center">
-          <p className="text-white font-bold text-sm">
-            {isToday ? "Today" : format(dateObj, "EEEE, d MMMM")}
-          </p>
-          <p className="text-gray-600 text-[11px] mt-0.5">{format(dateObj, "yyyy")}</p>
+        <div className="relative text-center">
+          <label className="cursor-pointer group">
+            <p className="text-white font-bold text-sm group-hover:text-orange-400 transition-colors">
+              {isToday ? "Today" : format(dateObj, "EEEE, d MMMM")}
+            </p>
+            <p className="text-gray-600 text-[11px] mt-0.5 group-hover:text-gray-500 transition-colors">
+              {format(dateObj, "yyyy")} · tap to jump
+            </p>
+            <input
+              type="date"
+              max={format(new Date(), "yyyy-MM-dd")}
+              value={selectedDate}
+              onChange={(e) => { if (e.target.value) goDate(parseISO(e.target.value)); }}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full"
+            />
+          </label>
         </div>
         <button onClick={() => goDate(addDays(dateObj, 1))} disabled={isFuture}
           className="p-2 rounded-xl transition-colors hover:bg-white/[0.06] disabled:opacity-30">
