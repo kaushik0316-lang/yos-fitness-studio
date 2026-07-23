@@ -37,9 +37,13 @@ const CATEGORIES = [
   "HIIT Classes",
 ];
 
-const PERIOD_PRESETS = ["1 Month", "3 Months", "6 Months", "12 Months"];
+const PERIOD_PRESETS = ["2 Weeks", "1 Month", "3 Months", "6 Months", "12 Months"];
 const PERIOD_PRESET_MONTHS: Record<string, number> = {
   "1 Month": 1, "3 Months": 3, "6 Months": 6, "12 Months": 12,
+};
+// Week-based presets: value = number of days
+const PERIOD_PRESET_DAYS: Record<string, number> = {
+  "2 Weeks": 14,
 };
 
 /** Parse "4 Months", "4 months", "4", "4M" → 4. Returns 0 if unrecognisable. */
@@ -54,6 +58,12 @@ function addMonthsToDate(dateStr: string, months: number): string {
   const d = new Date(dateStr);
   d.setMonth(d.getMonth() + months);
   d.setDate(d.getDate() - 1); // expiry = last day of period (e.g. 20 May + 1M = 19 Jun)
+  return d.toISOString().split("T")[0];
+}
+
+function addDaysToDate(dateStr: string, days: number): string {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days - 1); // expiry = last day of period
   return d.toISOString().split("T")[0];
 }
 
@@ -233,23 +243,31 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
     setMemberSearch("");
   }
 
+  function calcExpiry(period: string, start: string): string | null {
+    const days = PERIOD_PRESET_DAYS[period];
+    if (days) return addDaysToDate(start, days);
+    const months = PERIOD_PRESET_MONTHS[period] ?? parseMonths(period);
+    if (months > 0) return addMonthsToDate(start, months);
+    return null;
+  }
+
   function handlePeriodSelect(p: string) {
     setPeriodInput(p);
     setShowPeriodDropdown(false);
-    const months = PERIOD_PRESET_MONTHS[p] ?? parseMonths(p);
-    if (months > 0) setExpiryDate(addMonthsToDate(startDate, months));
+    const exp = calcExpiry(p, startDate);
+    if (exp) setExpiryDate(exp);
   }
 
   function handlePeriodInputChange(val: string) {
     setPeriodInput(val);
-    const months = PERIOD_PRESET_MONTHS[val] ?? parseMonths(val);
-    if (months > 0) setExpiryDate(addMonthsToDate(startDate, months));
+    const exp = calcExpiry(val, startDate);
+    if (exp) setExpiryDate(exp);
   }
 
   function handleStartDateChange(val: string) {
     setStartDate(val);
-    const months = PERIOD_PRESET_MONTHS[periodInput] ?? parseMonths(periodInput);
-    if (months > 0) setExpiryDate(addMonthsToDate(val, months));
+    const exp = calcExpiry(periodInput, val);
+    if (exp) setExpiryDate(exp);
   }
 
   async function handleSubmit(e: React.FormEvent) {

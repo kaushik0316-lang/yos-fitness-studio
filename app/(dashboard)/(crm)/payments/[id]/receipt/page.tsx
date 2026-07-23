@@ -54,6 +54,8 @@ function derivePeriod(
         )
       : null);
   if (days === null) return null;
+  if (days <= 10) return "1 Week";
+  if (days <= 20) return "2 Weeks";
   if (days <= 35) return "1 Month";
   if (days <= 65) return "2 Months";
   if (days <= 95) return "3 Months";
