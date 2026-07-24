@@ -434,8 +434,8 @@ export default function MyMembershipPage() {
 
                     {/* Day number below floor */}
                     <text x={x + SKY_BAR_W / 2} y={SKY_H - 5} textAnchor="middle"
-                      fontSize="7" fontWeight={isToday ? "800" : "400"}
-                      fill={isToday ? "#f97316" : attended ? "#525252" : isFuture ? "#111" : "#1c1c1c"}>
+                      fontSize="7.5" fontWeight={isToday ? "800" : "500"}
+                      fill={isToday ? "#f97316" : attended ? "#9ca3af" : isFuture ? "#2a2a2a" : "#4b5563"}>
                       {day}
                     </text>
                   </g>
