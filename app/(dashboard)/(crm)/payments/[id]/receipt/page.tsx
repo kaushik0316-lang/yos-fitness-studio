@@ -29,6 +29,7 @@ const PAYMENT_TYPE_LABELS: Record<string, string> = {
   ADMISSION: "Admission",
   RENEWAL: "Renewal",
   BALANCE: "Balance",
+  UPGRADE: "Upgrade",
 };
 
 function formatIndian(n: number) {

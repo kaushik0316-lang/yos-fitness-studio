@@ -25,7 +25,7 @@ type Props = {
   employees: Employee[];
   userId: string;
   initialMemberId?: string;
-  initialPaymentType?: "ADMISSION" | "RENEWAL" | "BALANCE";
+  initialPaymentType?: "ADMISSION" | "RENEWAL" | "BALANCE" | "UPGRADE";
 };
 
 const CATEGORIES = [
@@ -81,7 +81,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   const [memberSearch, setMemberSearch] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
-  const [paymentType, setPaymentType] = useState<"ADMISSION" | "RENEWAL" | "BALANCE">(initialPaymentType ?? "ADMISSION");
+  const [paymentType, setPaymentType] = useState<"ADMISSION" | "RENEWAL" | "BALANCE" | "UPGRADE">(initialPaymentType ?? "ADMISSION");
 
   // Pre-fill member if initialMemberId was passed via URL
   useEffect(() => {
@@ -114,6 +114,13 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
             setAmount(String(Math.round(Number(p.pendingAmount))));
           if (p.startDate) setStartDate(p.startDate.slice(0, 10));
           if (p.expiryDate) setExpiryDate(p.expiryDate.slice(0, 10));
+        }
+        // For UPGRADE: keep original start date, user selects new period + enters difference
+        if (paymentType === "UPGRADE") {
+          if (p.startDate) setStartDate(p.startDate.slice(0, 10));
+          // Recalculate expiry from original start with the currently selected period
+          const exp = calcExpiry(periodInput, p.startDate.slice(0, 10));
+          if (exp) setExpiryDate(exp);
         }
         // For RENEWAL: start from day after expiry
         if (paymentType === "RENEWAL") {
@@ -495,15 +502,17 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
       {/* ── Row 3: Payment Type ── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Payment Type</p>
-        <div className="grid grid-cols-3 gap-3">
-          {(["ADMISSION", "RENEWAL", "BALANCE"] as const).map((t) => (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {(["ADMISSION", "RENEWAL", "BALANCE", "UPGRADE"] as const).map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => setPaymentType(t)}
               className={`py-2.5 px-3 rounded-xl text-sm font-bold transition-all border-2 ${
                 paymentType === t
-                  ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-200"
+                  ? t === "UPGRADE"
+                    ? "bg-violet-600 border-violet-600 text-white shadow-md shadow-violet-200"
+                    : "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-200"
                   : "bg-white border-gray-200 text-gray-500 hover:border-orange-300"
               }`}
             >
@@ -512,7 +521,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
           ))}
         </div>
 
-        {paymentType === "BALANCE" && (
+        {(paymentType === "BALANCE" || paymentType === "UPGRADE") && (
           <div className="grid grid-cols-2 gap-3 mt-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">Previous Receipt No</label>
@@ -536,6 +545,13 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
                 className={inputClass}
               />
             </div>
+          </div>
+        )}
+
+        {paymentType === "UPGRADE" && (
+          <div className="mt-3 p-3 rounded-xl border border-violet-100 bg-violet-50 text-xs text-violet-700 leading-relaxed">
+            <p className="font-bold mb-0.5">Package Upgrade</p>
+            <p>Start date stays the same as the original. Enter the <strong>top-up amount</strong> (difference). Select the <strong>new package period</strong> to auto-calculate the new expiry.</p>
           </div>
         )}
       </div>
