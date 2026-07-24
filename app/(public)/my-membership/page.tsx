@@ -560,41 +560,6 @@ export default function MyMembershipPage() {
           </div>
         </div>
 
-        {/* ── Weekly pattern ── */}
-        <div className="mx-4 mb-3 px-4 py-3 rounded-2xl" style={{ background: "#111", border: "1px solid #1e1e1e" }}>
-          <p className="text-xs font-bold text-gray-400 mb-1">Visits by Weekday</p>
-          <svg viewBox="0 0 280 72" style={{ width: "100%", height: "72px", overflow: "visible" }}>
-            <defs>
-              <linearGradient id="dowOrange" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#fb923c" />
-                <stop offset="100%" stopColor="#c2410c" />
-              </linearGradient>
-            </defs>
-            {DOW_LABELS.map((label, i) => {
-              const count = dowCounts[i];
-              const barH  = count > 0 ? Math.max(6, Math.round((count / maxDow) * 40)) : 4;
-              const isSun = i === 0;
-              const slotW = 280 / 7;
-              const barW  = 22;
-              const x     = i * slotW + slotW / 2 - barW / 2;
-              const y     = 50 - barH;
-              return (
-                <g key={i}>
-                  <rect x={x} y={50 - 40} width={barW} height={40} rx={4} fill="#161616" />
-                  <rect x={x} y={y} width={barW} height={barH} rx={4}
-                    fill={count > 0 ? (isSun ? "rgba(249,115,22,0.35)" : "url(#dowOrange)") : "transparent"} />
-                  {count > 0 && (
-                    <text x={x + barW / 2} y={y - 3} textAnchor="middle" fontSize="8" fontWeight="700"
-                      fill={isSun ? "#f97316" : "#fb923c"} opacity={0.9}>{count}</text>
-                  )}
-                  <text x={x + barW / 2} y={64} textAnchor="middle" fontSize="9" fontWeight="700"
-                    fill={count > 0 ? (isSun ? "#6b7280" : "#9ca3af") : "#2a2a2a"}>{label}</text>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-
         {/* ── Motivational banner ── */}
         <div className="mx-4 mb-3 px-4 py-3 rounded-xl flex items-center gap-3"
           style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
