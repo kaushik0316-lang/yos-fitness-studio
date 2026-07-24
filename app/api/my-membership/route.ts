@@ -38,11 +38,40 @@ export async function POST(req: NextRequest) {
     const monthStart = startOfMonth(new Date(y, m - 1, 1));
     const monthEnd   = endOfMonth(monthStart);
 
+    // Current month records
     const records = await prisma.memberAttendance.findMany({
       where: { memberId: member.id, date: { gte: monthStart, lte: monthEnd } },
       orderBy: { date: "asc" },
       select: { date: true, checkInTime: true },
     });
+
+    // Streak: look back 60 days to span month boundaries
+    const today = new Date();
+    const lookback = new Date(today);
+    lookback.setDate(today.getDate() - 60);
+
+    const recentRecords = await prisma.memberAttendance.findMany({
+      where: { memberId: member.id, date: { gte: lookback } },
+      select: { date: true },
+      orderBy: { date: "desc" },
+    });
+
+    const recentDates = new Set(recentRecords.map((r) => r.date.toISOString().split("T")[0]));
+    let streak = 0;
+    const cursor = new Date(today);
+    // If not checked in today yet, start counting from yesterday
+    if (!recentDates.has(cursor.toISOString().split("T")[0])) {
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    for (let i = 0; i < 60; i++) {
+      if (!recentDates.has(cursor.toISOString().split("T")[0])) break;
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
+    const lastVisitDate = recentRecords.length > 0
+      ? recentRecords[0].date.toISOString().split("T")[0]
+      : null;
 
     return NextResponse.json({
       member: {
@@ -55,6 +84,8 @@ export async function POST(req: NextRequest) {
       month: m,
       year:  y,
       daysAttended: records.length,
+      streak,
+      lastVisitDate,
       records: records.map((r) => ({
         date:        r.date.toISOString().split("T")[0],
         checkInTime: r.checkInTime.toISOString(),
