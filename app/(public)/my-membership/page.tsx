@@ -252,9 +252,11 @@ export default function MyMembershipPage() {
 
           <div className="flex flex-col items-center py-4 rounded-2xl"
             style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)" }}>
-            <span className="text-2xl font-extrabold leading-none" style={{ color: "#f59e0b" }}>
-              {streak > 0 ? `🔥${streak}` : "—"}
-            </span>
+            {streak > 0 ? (
+              <span className="text-2xl font-extrabold leading-none" style={{ color: "#f59e0b" }}>🔥{streak}</span>
+            ) : (
+              <span className="text-sm font-bold leading-none text-center px-1" style={{ color: "#78716c" }}>Start{"\n"}today!</span>
+            )}
             <span className="text-[10px] mt-1.5 font-semibold text-gray-500">Day Streak</span>
           </div>
 
@@ -319,7 +321,7 @@ export default function MyMembershipPage() {
         {/* ── Weekly pattern — SVG bar chart ── */}
         <div className="mx-4 mb-3 px-4 py-3 rounded-xl" style={{ background: "#141414", border: "1px solid #1e1e1e" }}>
           <p className="text-xs font-bold text-gray-400 mb-1">Your Weekly Pattern</p>
-          <svg viewBox="0 0 280 72" className="w-full" style={{ overflow: "visible" }}>
+          <svg viewBox="0 0 280 72" style={{ width: "100%", height: "80px", overflow: "visible" }}>
             <defs>
               <linearGradient id="dowGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#22c55e" />
