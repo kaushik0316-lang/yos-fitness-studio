@@ -562,7 +562,7 @@ export default function MyMembershipPage() {
 
         {/* ── Weekly pattern ── */}
         <div className="mx-4 mb-3 px-4 py-3 rounded-2xl" style={{ background: "#111", border: "1px solid #1e1e1e" }}>
-          <p className="text-xs font-bold text-gray-400 mb-1">Your Best Days</p>
+          <p className="text-xs font-bold text-gray-400 mb-1">Visits by Weekday</p>
           <svg viewBox="0 0 280 72" style={{ width: "100%", height: "72px", overflow: "visible" }}>
             <defs>
               <linearGradient id="dowOrange" x1="0" y1="0" x2="0" y2="1">
