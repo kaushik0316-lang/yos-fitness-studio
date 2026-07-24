@@ -6,7 +6,15 @@ import { useState, useEffect, useRef, ChangeEvent, KeyboardEvent } from "react";
 
 type Phase = "input" | "loading" | "view" | "error";
 
-type AttendanceRecord = { date: string; checkInTime: string; };
+type AttendanceRecord = {
+  date: string;
+  checkInTime: string;
+  checkOutTime: string | null;
+  autoCheckedOut: boolean;
+  session2CheckInTime: string | null;
+  session2CheckOutTime: string | null;
+  session2AutoCheckedOut: boolean;
+};
 
 type MemberData = {
   member: { memberId: string; fullName: string; status: string; expiryDate: string | null; packageName: string | null };
@@ -30,6 +38,27 @@ function fmt(iso: string) {
   return new Date(iso).toLocaleTimeString("en-IN", {
     timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
   });
+}
+
+/** Duration in minutes between two ISO timestamps, or null if either is missing */
+function durationMins(inIso: string, outIso: string | null): number | null {
+  if (!outIso) return null;
+  return Math.round((new Date(outIso).getTime() - new Date(inIso).getTime()) / 60000);
+}
+
+/** Total gym time for a record (session1 + session2), null if no checkout at all */
+function totalMins(r: AttendanceRecord): number | null {
+  const s1 = durationMins(r.checkInTime, r.checkOutTime);
+  const s2 = r.session2CheckInTime ? durationMins(r.session2CheckInTime, r.session2CheckOutTime) : null;
+  if (s1 === null && s2 === null) return null;
+  return (s1 ?? 0) + (s2 ?? 0);
+}
+
+function fmtDuration(mins: number): string {
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
 function getMotivation(rate: number, streak: number): { msg: string; emoji: string; color: string } {
@@ -150,6 +179,10 @@ export default function MyMembershipPage() {
     const streak = data.streak ?? 0;
     const { msg: motivMsg, emoji: motivEmoji, color: motivColor } = getMotivation(rate, streak);
 
+    // Time spent calculations
+    const durations = data.records.map(totalMins).filter((d): d is number => d !== null && d > 0);
+    const avgMins   = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+
     const rateColor = rate >= 60 ? "#22c55e" : rate >= 30 ? "#f97316" : "#ef4444";
     const rateBg    = rate >= 60 ? "rgba(34,197,94,0.1)"  : rate >= 30 ? "rgba(249,115,22,0.1)"  : "rgba(239,68,68,0.1)";
     const rateBdr   = rate >= 60 ? "rgba(34,197,94,0.2)"  : rate >= 30 ? "rgba(249,115,22,0.2)"  : "rgba(239,68,68,0.2)";
@@ -207,16 +240,14 @@ export default function MyMembershipPage() {
           </button>
         </div>
 
-        {/* ── Stats row: Attended | Streak | Rate ── */}
-        <div className="px-4 pt-2 pb-3 grid grid-cols-3 gap-2">
+        {/* ── Stats grid: Attended | Streak | Rate | Avg Time ── */}
+        <div className="px-4 pt-2 pb-3 grid grid-cols-2 gap-2">
           <div className="flex flex-col items-center py-4 rounded-2xl"
             style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}>
             <span className="text-2xl font-extrabold leading-none" style={{ color: "#22c55e" }}>
               {data.daysAttended}
             </span>
-            <span className="text-[10px] mt-1.5 font-semibold text-gray-500 text-center leading-tight">
-              Days{"\n"}In
-            </span>
+            <span className="text-[10px] mt-1.5 font-semibold text-gray-500">Days Attended</span>
           </div>
 
           <div className="flex flex-col items-center py-4 rounded-2xl"
@@ -224,7 +255,7 @@ export default function MyMembershipPage() {
             <span className="text-2xl font-extrabold leading-none" style={{ color: "#f59e0b" }}>
               {streak > 0 ? `🔥${streak}` : "—"}
             </span>
-            <span className="text-[10px] mt-1.5 font-semibold text-gray-500">Streak</span>
+            <span className="text-[10px] mt-1.5 font-semibold text-gray-500">Day Streak</span>
           </div>
 
           <div className="flex flex-col items-center py-4 rounded-2xl"
@@ -232,7 +263,15 @@ export default function MyMembershipPage() {
             <span className="text-2xl font-extrabold leading-none" style={{ color: rateColor }}>
               {rate}%
             </span>
-            <span className="text-[10px] mt-1.5 font-semibold text-gray-500">Rate</span>
+            <span className="text-[10px] mt-1.5 font-semibold text-gray-500">Attendance Rate</span>
+          </div>
+
+          <div className="flex flex-col items-center py-4 rounded-2xl"
+            style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.2)" }}>
+            <span className="text-2xl font-extrabold leading-none" style={{ color: "#a78bfa" }}>
+              {avgMins !== null ? fmtDuration(avgMins) : "—"}
+            </span>
+            <span className="text-[10px] mt-1.5 font-semibold text-gray-500">Avg Time/Day</span>
           </div>
         </div>
 
@@ -414,13 +453,35 @@ export default function MyMembershipPage() {
               {[...data.records].reverse().map((r) => {
                 const d = new Date(r.date + "T00:00:00");
                 const dayLabel = d.toLocaleDateString("en-IN", { day: "numeric", month: "short", weekday: "short" });
+                const mins = totalMins(r);
+                const hasS2 = !!r.session2CheckInTime;
                 return (
-                  <div key={r.date} className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-300">{dayLabel}</span>
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-md"
-                      style={{ background: "rgba(34,197,94,0.1)", color: "#22c55e" }}>
-                      ✓ {fmt(r.checkInTime)}
-                    </span>
+                  <div key={r.date} className="py-2" style={{ borderBottom: "1px solid #1e1e1e" }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-200">{dayLabel}</span>
+                      {mins !== null && (
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-md"
+                          style={{ background: "rgba(139,92,246,0.15)", color: "#a78bfa" }}>
+                          ⏱ {fmtDuration(mins)}{hasS2 ? " (2 sessions)" : ""}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-md"
+                        style={{ background: "rgba(34,197,94,0.1)", color: "#22c55e" }}>
+                        In {fmt(r.checkInTime)}
+                        {r.checkOutTime ? ` · Out ${fmt(r.checkOutTime)}` : " · —"}
+                        {r.autoCheckedOut && <span style={{ color: "#6b7280" }}> (auto)</span>}
+                      </span>
+                      {hasS2 && (
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-md"
+                          style={{ background: "rgba(34,197,94,0.07)", color: "#4ade80" }}>
+                          S2 In {fmt(r.session2CheckInTime!)}
+                          {r.session2CheckOutTime ? ` · Out ${fmt(r.session2CheckOutTime)}` : " · —"}
+                          {r.session2AutoCheckedOut && <span style={{ color: "#6b7280" }}> (auto)</span>}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}

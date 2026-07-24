@@ -42,7 +42,15 @@ export async function POST(req: NextRequest) {
     const records = await prisma.memberAttendance.findMany({
       where: { memberId: member.id, date: { gte: monthStart, lte: monthEnd } },
       orderBy: { date: "asc" },
-      select: { date: true, checkInTime: true },
+      select: {
+        date: true,
+        checkInTime: true,
+        checkOutTime: true,
+        autoCheckedOut: true,
+        session2CheckInTime: true,
+        session2CheckOutTime: true,
+        session2AutoCheckedOut: true,
+      },
     });
 
     // Streak: look back 60 days to span month boundaries
@@ -87,8 +95,13 @@ export async function POST(req: NextRequest) {
       streak,
       lastVisitDate,
       records: records.map((r) => ({
-        date:        r.date.toISOString().split("T")[0],
-        checkInTime: r.checkInTime.toISOString(),
+        date:                  r.date.toISOString().split("T")[0],
+        checkInTime:           r.checkInTime.toISOString(),
+        checkOutTime:          r.checkOutTime?.toISOString() ?? null,
+        autoCheckedOut:        r.autoCheckedOut,
+        session2CheckInTime:   r.session2CheckInTime?.toISOString() ?? null,
+        session2CheckOutTime:  r.session2CheckOutTime?.toISOString() ?? null,
+        session2AutoCheckedOut: r.session2AutoCheckedOut,
       })),
     });
   } catch (err) {
