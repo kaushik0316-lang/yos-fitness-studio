@@ -291,84 +291,151 @@ export default function MyMembershipPage() {
           </p>
         </div>
 
-        {/* ── All-days bar chart ── */}
-        <div className="mx-4 mb-3 rounded-2xl overflow-hidden" style={{ background: "#111", border: "1px solid #1e1e1e" }}>
-          <div className="px-4 pt-3 pb-1 flex items-center justify-between">
-            <p className="text-xs font-bold text-gray-400">Daily Gym Time</p>
+        {/* ── Skyscraper bar chart ── */}
+        {(() => {
+          const SKY_H     = 200;
+          const SKY_BAR_H = 130;
+          const SKY_BAR_W = 14;
+          const SKY_GAP   = 9;
+          const FLOOR_Y   = SKY_H - 22;
+          const skyW      = totalDays * (SKY_BAR_W + SKY_GAP) + 16;
+          return (
+        <div className="mx-4 mb-3 rounded-2xl overflow-hidden" style={{ background: "#080808", border: "1px solid #1a1a1a" }}>
+          {/* Header */}
+          <div className="px-4 pt-4 pb-0 flex items-end justify-between">
+            <div>
+              <p className="text-base font-black text-white tracking-tight">Daily Gym Time</p>
+              <p className="text-[10px] font-semibold mt-0.5" style={{ color: "#3a3a3a" }}>{MONTH_NAMES[data.month - 1]} {data.year}</p>
+            </div>
             {avgMins && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(139,92,246,0.15)", color: "#a78bfa" }}>
-                avg {fmtDuration(avgMins)}
-              </span>
+              <div className="text-right pb-1">
+                <p className="text-xl font-black" style={{ color: "#a78bfa" }}>{fmtDuration(avgMins)}</p>
+                <p className="text-[9px] font-semibold" style={{ color: "#3a3a3a" }}>avg / visit</p>
+              </div>
             )}
           </div>
-          <div className="overflow-x-auto pb-3 px-2" style={{ WebkitOverflowScrolling: "touch" }}>
-            <svg width={svgW} height={CHART_H} style={{ display: "block" }}>
+
+          {/* Chart */}
+          <div className="overflow-x-auto pt-2 pb-1" style={{ WebkitOverflowScrolling: "touch" }}>
+            <svg width={skyW} height={SKY_H} style={{ display: "block" }}>
               <defs>
-                <linearGradient id="barOrange" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#fb923c" />
-                  <stop offset="100%" stopColor="#c2410c" />
+                {/* Skyscraper gradient — bright amber top, deep red base */}
+                <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stopColor="#fde68a" />
+                  <stop offset="25%"  stopColor="#f97316" />
+                  <stop offset="75%"  stopColor="#c2410c" />
+                  <stop offset="100%" stopColor="#431407" />
                 </linearGradient>
-                <linearGradient id="barOrangeDim" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#fb923c" stopOpacity="0.5" />
-                  <stop offset="100%" stopColor="#c2410c" stopOpacity="0.3" />
+                {/* Today — even brighter, white top */}
+                <linearGradient id="skyGradToday" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stopColor="#ffffff" />
+                  <stop offset="15%"  stopColor="#fde68a" />
+                  <stop offset="50%"  stopColor="#f97316" />
+                  <stop offset="100%" stopColor="#9a3412" />
                 </linearGradient>
+                {/* Glow filter */}
+                <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+                  <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+                  <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+                {/* Strong glow for today */}
+                <filter id="glowStrong" x="-80%" y="-80%" width="260%" height="260%">
+                  <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
+                  <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
               </defs>
 
-              {/* Avg dashed line */}
+              {/* Subtle grid lines */}
+              {[0.25, 0.5, 0.75, 1].map((pct) => {
+                const gy = FLOOR_Y - Math.round(pct * SKY_BAR_H);
+                return <line key={pct} x1={0} y1={gy} x2={skyW} y2={gy} stroke="#111" strokeWidth="1" />;
+              })}
+
+              {/* Avg line */}
               {avgMins !== null && maxDur > 0 && (() => {
-                const avgY = CHART_H - 16 - Math.round((avgMins / maxDur) * BAR_MAX_H);
-                return <line x1={0} y1={avgY} x2={svgW} y2={avgY} stroke="#a78bfa" strokeWidth="1" strokeDasharray="3 3" opacity={0.4} />;
+                const avgY = FLOOR_Y - Math.round((avgMins / maxDur) * SKY_BAR_H);
+                return (
+                  <g>
+                    <line x1={0} y1={avgY} x2={skyW} y2={avgY} stroke="#a78bfa" strokeWidth="1.5" strokeDasharray="5 4" opacity={0.55} />
+                    <rect x={4} y={avgY - 9} width={32} height={12} rx={3} fill="#16103a" />
+                    <text x={20} y={avgY + 1} textAnchor="middle" fontSize="7.5" fontWeight="800" fill="#a78bfa">{fmtDuration(avgMins)}</text>
+                  </g>
+                );
               })()}
 
+              {/* Floor line */}
+              <line x1={0} y1={FLOOR_Y} x2={skyW} y2={FLOOR_Y} stroke="#1e1e1e" strokeWidth="1.5" />
+
               {Array.from({ length: totalDays }, (_, i) => {
-                const day  = i + 1;
-                const ds   = `${data.year}-${String(data.month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-                const x    = 6 + i * (BAR_W + BAR_GAP);
+                const day      = i + 1;
+                const ds       = `${data.year}-${String(data.month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+                const x        = 8 + i * (SKY_BAR_W + SKY_GAP);
                 const isToday  = ds === todayStr;
                 const isFuture = isCurrentMonth && day > today.getDate();
                 const attended = attendedSet.has(ds);
                 const mins     = durMap[ds] ?? null;
 
-                let barH = 4;
+                let barH = 0;
                 if (attended) {
-                  barH = mins && maxDur > 0
-                    ? Math.max(10, Math.round((mins / maxDur) * BAR_MAX_H))
-                    : 20; // check-in only, no duration
+                  barH = (mins !== null && mins > 0 && maxDur > 0)
+                    ? Math.max(14, Math.round((mins / maxDur) * SKY_BAR_H))
+                    : 18;
                 }
-
-                const y = CHART_H - 16 - barH;
+                const y = FLOOR_Y - barH;
 
                 return (
                   <g key={ds}>
-                    {/* Track */}
-                    <rect x={x} y={CHART_H - 16 - BAR_MAX_H} width={BAR_W} height={BAR_MAX_H} rx={4}
-                      fill={isToday ? "rgba(249,115,22,0.08)" : "#161616"} />
-                    {/* Bar */}
-                    {!isFuture && (
-                      <rect x={x} y={y} width={BAR_W} height={barH} rx={4}
-                        fill={attended
-                          ? (isToday ? "url(#barOrange)" : "url(#barOrangeDim)")
-                          : "transparent"
-                        }
-                        opacity={attended ? 1 : 0}
+                    {/* Subtle spine line for empty days */}
+                    {!attended && !isFuture && (
+                      <line x1={x + SKY_BAR_W / 2} y1={FLOOR_Y - SKY_BAR_H} x2={x + SKY_BAR_W / 2} y2={FLOOR_Y}
+                        stroke="#161616" strokeWidth="1.5" />
+                    )}
+
+                    {/* Glow halo behind bar */}
+                    {attended && barH > 0 && (
+                      <rect x={x} y={y} width={SKY_BAR_W} height={barH} rx={4}
+                        fill={isToday ? "url(#skyGradToday)" : "url(#skyGrad)"}
+                        filter={isToday ? "url(#glowStrong)" : "url(#glow)"}
+                        opacity={isToday ? 0.7 : 0.55}
                       />
                     )}
-                    {/* Today ring */}
-                    {isToday && (
-                      <rect x={x} y={CHART_H - 16 - BAR_MAX_H} width={BAR_W} height={BAR_MAX_H} rx={4}
-                        fill="none" stroke="#f97316" strokeWidth="1.5" opacity={0.6} />
+
+                    {/* Solid skyscraper bar */}
+                    {attended && barH > 0 && (
+                      <rect x={x} y={y} width={SKY_BAR_W} height={barH} rx={4}
+                        fill={isToday ? "url(#skyGradToday)" : "url(#skyGrad)"}
+                      />
                     )}
-                    {/* Duration label */}
-                    {attended && mins !== null && mins > 0 && (
-                      <text x={x + BAR_W / 2} y={y - 3} textAnchor="middle"
-                        fontSize="6" fontWeight="800" fill="#fb923c" opacity={0.9}>
+
+                    {/* Roof cap — bright horizontal line at top */}
+                    {attended && barH > 0 && (
+                      <rect x={x} y={y} width={SKY_BAR_W} height={2.5} rx={1.5}
+                        fill={isToday ? "#ffffff" : "#fde68a"} opacity={isToday ? 1 : 0.85}
+                      />
+                    )}
+
+                    {/* Today: pulse ring around the bar */}
+                    {isToday && (
+                      <rect x={x - 2} y={attended ? y - 2 : FLOOR_Y - SKY_BAR_H}
+                        width={SKY_BAR_W + 4} height={attended ? barH + 4 : SKY_BAR_H}
+                        rx={6} fill="none" stroke="#f97316" strokeWidth="1.5" opacity={0.5}
+                        strokeDasharray="4 3"
+                      />
+                    )}
+
+                    {/* Duration label — above roof, only if bar tall enough */}
+                    {attended && mins !== null && mins >= 20 && barH >= 28 && (
+                      <text x={x + SKY_BAR_W / 2} y={y - 6} textAnchor="middle"
+                        fontSize="7" fontWeight="900"
+                        fill={isToday ? "#fff" : "#fde68a"}>
                         {fmtDuration(mins)}
                       </text>
                     )}
-                    {/* Day number */}
-                    <text x={x + BAR_W / 2} y={CHART_H - 3} textAnchor="middle"
-                      fontSize="7" fontWeight={isToday ? "800" : "500"}
-                      fill={isToday ? "#f97316" : attended ? "#6b7280" : isFuture ? "#1e1e1e" : "#2a2a2a"}>
+
+                    {/* Day number below floor */}
+                    <text x={x + SKY_BAR_W / 2} y={SKY_H - 5} textAnchor="middle"
+                      fontSize="7" fontWeight={isToday ? "800" : "400"}
+                      fill={isToday ? "#f97316" : attended ? "#525252" : isFuture ? "#111" : "#1c1c1c"}>
                       {day}
                     </text>
                   </g>
@@ -376,7 +443,10 @@ export default function MyMembershipPage() {
               })}
             </svg>
           </div>
+          <p className="text-center text-[9px] pb-2.5" style={{ color: "#222" }}>← scroll to see all days →</p>
         </div>
+          );
+        })()}
 
         {/* ── Tappable calendar ── */}
         <div className="mx-4 mb-3 px-4 py-3.5 rounded-2xl" style={{ background: "#111", border: "1px solid #1e1e1e" }}>
