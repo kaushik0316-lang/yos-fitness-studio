@@ -242,7 +242,7 @@ export default function MyMembershipPage() {
         <div className="px-4 pb-3 grid grid-cols-4 gap-2">
           {[
             { val: String(data.daysAttended), label: "Days In",  bg: "rgba(249,115,22,0.1)",  border: "rgba(249,115,22,0.2)",  color: "#f97316" },
-            { val: streak > 0 ? `${streak}🔥` : "–",  label: "Streak",   bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.2)",  color: "#f59e0b" },
+            { val: streak > 0 ? `${streak}🔥` : `${totalDays - data.daysAttended}`, label: streak > 0 ? "Streak" : "Missed", bg: streak > 0 ? "rgba(245,158,11,0.1)" : "rgba(255,255,255,0.04)", border: streak > 0 ? "rgba(245,158,11,0.2)" : "rgba(255,255,255,0.06)", color: streak > 0 ? "#f59e0b" : "#4b5563" },
             { val: `${rate}%`,              label: "Rate",     bg: rate >= 50 ? "rgba(249,115,22,0.1)" : "rgba(239,68,68,0.08)", border: rate >= 50 ? "rgba(249,115,22,0.2)" : "rgba(239,68,68,0.2)", color: rate >= 50 ? "#f97316" : "#ef4444" },
             { val: avgMins ? fmtDuration(avgMins) : "–", label: "Avg Time", bg: "rgba(139,92,246,0.1)", border: "rgba(139,92,246,0.2)", color: "#a78bfa" },
           ].map(({ val, label, bg, border, color }) => (
