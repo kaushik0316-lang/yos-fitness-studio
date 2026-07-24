@@ -477,24 +477,24 @@ export default function MyMembershipPage() {
                     className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
                     style={{
                       background: isSelected
-                        ? attended ? "#f97316" : "#1e1e1e"
+                        ? attended ? "#16a34a" : "#1e1e1e"
                         : attended
-                        ? "rgba(249,115,22,0.2)"
+                        ? "rgba(34,197,94,0.15)"
                         : "transparent",
                       border: isSelected
-                        ? attended ? "2px solid #f97316" : "2px solid #374151"
+                        ? attended ? "2px solid #22c55e" : "2px solid #374151"
                         : isToday
                         ? "2px solid rgba(249,115,22,0.5)"
                         : attended
-                        ? "2px solid rgba(249,115,22,0.35)"
+                        ? "2px solid rgba(34,197,94,0.4)"
                         : "2px solid transparent",
-                      boxShadow: isSelected && attended ? "0 0 12px rgba(249,115,22,0.4)" : "none",
+                      boxShadow: isSelected && attended ? "0 0 12px rgba(34,197,94,0.35)" : "none",
                     }}>
                     <span style={{
                       fontSize: "10px",
                       fontWeight: attended || isToday ? 800 : 500,
                       color: isSelected && attended ? "#fff"
-                        : attended ? "#fb923c"
+                        : attended ? "#4ade80"
                         : isToday ? "rgba(249,115,22,0.7)"
                         : isFuture ? "#1e1e1e"
                         : "#2a2a2a",
@@ -515,7 +515,7 @@ export default function MyMembershipPage() {
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-gray-500">Session 1</span>
-                    <span className="text-[11px] font-semibold" style={{ color: "#fb923c" }}>
+                    <span className="text-[11px] font-semibold" style={{ color: "#4ade80" }}>
                       {fmtTime(selRec.checkInTime)}
                       {selRec.checkOutTime ? ` → ${fmtTime(selRec.checkOutTime)}` : " (no checkout)"}
                       {selRec.autoCheckedOut && <span className="text-gray-600"> auto</span>}
@@ -524,7 +524,7 @@ export default function MyMembershipPage() {
                   {selRec.session2CheckInTime && (
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-gray-500">Session 2</span>
-                      <span className="text-[11px] font-semibold" style={{ color: "#fb923c" }}>
+                      <span className="text-[11px] font-semibold" style={{ color: "#4ade80" }}>
                         {fmtTime(selRec.session2CheckInTime)}
                         {selRec.session2CheckOutTime ? ` → ${fmtTime(selRec.session2CheckOutTime)}` : " (no checkout)"}
                         {selRec.session2AutoCheckedOut && <span className="text-gray-600"> auto</span>}
@@ -549,7 +549,7 @@ export default function MyMembershipPage() {
           {/* Legend */}
           <div className="flex items-center gap-4 mt-3 pt-2.5" style={{ borderTop: "1px solid #1e1e1e" }}>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full" style={{ background: "rgba(249,115,22,0.2)", border: "1.5px solid rgba(249,115,22,0.35)" }} />
+              <div className="w-3 h-3 rounded-full" style={{ background: "rgba(34,197,94,0.15)", border: "1.5px solid rgba(34,197,94,0.4)" }} />
               <span className="text-[9px] font-semibold text-gray-600">Attended</span>
             </div>
             <div className="flex items-center gap-1.5">
