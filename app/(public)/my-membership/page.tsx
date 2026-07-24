@@ -357,8 +357,8 @@ export default function MyMembershipPage() {
                 return (
                   <g>
                     <line x1={0} y1={avgY} x2={skyW} y2={avgY} stroke="#a78bfa" strokeWidth="1.5" strokeDasharray="5 4" opacity={0.55} />
-                    <rect x={4} y={avgY - 9} width={32} height={12} rx={3} fill="#16103a" />
-                    <text x={20} y={avgY + 1} textAnchor="middle" fontSize="7.5" fontWeight="800" fill="#a78bfa">{fmtDuration(avgMins)}</text>
+                    <rect x={skyW - 38} y={avgY - 9} width={34} height={12} rx={3} fill="#16103a" />
+                    <text x={skyW - 21} y={avgY + 1} textAnchor="middle" fontSize="7.5" fontWeight="800" fill="#a78bfa">{fmtDuration(avgMins)}</text>
                   </g>
                 );
               })()}
