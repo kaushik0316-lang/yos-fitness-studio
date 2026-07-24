@@ -316,29 +316,51 @@ export default function MyMembershipPage() {
           )}
         </div>
 
-        {/* ── Weekly pattern bars ── */}
+        {/* ── Weekly pattern — SVG bar chart ── */}
         <div className="mx-4 mb-3 px-4 py-3 rounded-xl" style={{ background: "#141414", border: "1px solid #1e1e1e" }}>
-          <p className="text-xs font-bold text-gray-400 mb-3">Your Weekly Pattern</p>
-          <div className="flex items-end justify-between gap-1">
+          <p className="text-xs font-bold text-gray-400 mb-1">Your Weekly Pattern</p>
+          <svg viewBox="0 0 280 72" className="w-full" style={{ overflow: "visible" }}>
+            <defs>
+              <linearGradient id="dowGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#22c55e" />
+                <stop offset="100%" stopColor="#16a34a" />
+              </linearGradient>
+              <linearGradient id="dowGradDim" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#22c55e" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#16a34a" stopOpacity="0.2" />
+              </linearGradient>
+            </defs>
             {DOW_LABELS.map((label, i) => {
-              const count = dowCounts[i];
-              const barH  = Math.max(4, Math.round((count / maxDow) * 36));
-              const isSun = i === 0;
+              const count  = dowCounts[i];
+              const barH   = count > 0 ? Math.max(6, Math.round((count / maxDow) * 42)) : 4;
+              const isSun  = i === 0;
+              const slotW  = 280 / 7;
+              const barW   = 22;
+              const x      = i * slotW + slotW / 2 - barW / 2;
+              const y      = 50 - barH;
               return (
-                <div key={i} className="flex flex-col items-center gap-1.5 flex-1">
-                  <span className="text-[9px] font-bold" style={{ color: count > 0 ? "#22c55e" : "#374151" }}>
-                    {count > 0 ? count : ""}
-                  </span>
-                  <div className="w-full rounded-sm"
-                    style={{
-                      height: `${barH}px`,
-                      background: count > 0 ? (isSun ? "rgba(34,197,94,0.4)" : "#22c55e") : "#1e1e1e",
-                    }} />
-                  <span className="text-[9px] font-bold" style={{ color: isSun ? "#4b5563" : "#6b7280" }}>{label}</span>
-                </div>
+                <g key={i}>
+                  {/* bar background track */}
+                  <rect x={x} y={50 - 42} width={barW} height={42} rx={4} fill="#1e1e1e" />
+                  {/* filled bar */}
+                  <rect x={x} y={y} width={barW} height={barH} rx={4}
+                    fill={count > 0 ? (isSun ? "url(#dowGradDim)" : "url(#dowGrad)") : "#1e1e1e"} />
+                  {/* count label above bar */}
+                  {count > 0 && (
+                    <text x={x + barW / 2} y={y - 3} textAnchor="middle"
+                      fontSize="8" fontWeight="700" fill={isSun ? "#4ade80" : "#22c55e"}>
+                      {count}
+                    </text>
+                  )}
+                  {/* day label */}
+                  <text x={x + barW / 2} y={64} textAnchor="middle"
+                    fontSize="9" fontWeight="700" fill={isSun ? "#4b5563" : count > 0 ? "#9ca3af" : "#374151"}>
+                    {label}
+                  </text>
+                </g>
               );
             })}
-          </div>
+          </svg>
         </div>
 
         {/* ── Last visit nudge ── */}
@@ -444,6 +466,95 @@ export default function MyMembershipPage() {
             </div>
           </div>
         </div>
+
+        {/* ── Time Per Visit bar chart ── */}
+        {durations.length > 0 && (() => {
+          const chartRecords = data.records.filter((r) => totalMins(r) !== null && totalMins(r)! > 0);
+          const maxM  = Math.max(...chartRecords.map((r) => totalMins(r)!));
+          const BAR_W = 28;
+          const GAP   = 8;
+          const CHART_H = 80;
+          const svgW  = chartRecords.length * (BAR_W + GAP) + 8;
+          return (
+            <div className="mx-4 mb-3 rounded-xl overflow-hidden" style={{ background: "#141414", border: "1px solid #1e1e1e" }}>
+              <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+                <p className="text-xs font-bold text-gray-400">Time Per Visit</p>
+                {avgMins !== null && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    style={{ background: "rgba(139,92,246,0.15)", color: "#a78bfa" }}>
+                    avg {fmtDuration(avgMins)}
+                  </span>
+                )}
+              </div>
+              <div className="overflow-x-auto pb-3 px-2" style={{ WebkitOverflowScrolling: "touch" }}>
+                <svg width={svgW} height={CHART_H} style={{ display: "block", minWidth: "100%" }}>
+                  <defs>
+                    <linearGradient id="timeGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#a78bfa" />
+                      <stop offset="100%" stopColor="#7c3aed" />
+                    </linearGradient>
+                    {avgMins !== null && (
+                      <line id="avgLine" />
+                    )}
+                  </defs>
+
+                  {/* Avg time dashed guide line */}
+                  {avgMins !== null && (() => {
+                    const avgY = CHART_H - 18 - Math.round((avgMins / maxM) * 52);
+                    return (
+                      <line x1={0} y1={avgY} x2={svgW} y2={avgY}
+                        stroke="#a78bfa" strokeWidth="1" strokeDasharray="3 3" opacity={0.4} />
+                    );
+                  })()}
+
+                  {chartRecords.map((r, i) => {
+                    const mins  = totalMins(r)!;
+                    const barH  = Math.max(6, Math.round((mins / maxM) * 52));
+                    const x     = 4 + i * (BAR_W + GAP);
+                    const y     = CHART_H - 18 - barH;
+                    const day   = parseInt(r.date.split("-")[2]);
+                    const hasS2 = !!r.session2CheckInTime;
+                    return (
+                      <g key={r.date}>
+                        {/* Bar */}
+                        <rect x={x} y={y} width={BAR_W} height={barH} rx={5}
+                          fill="url(#timeGrad)" opacity={0.9} />
+                        {/* S2 indicator dot */}
+                        {hasS2 && (
+                          <circle cx={x + BAR_W - 4} cy={y + 5} r={3} fill="#22c55e" />
+                        )}
+                        {/* Duration label above bar */}
+                        <text x={x + BAR_W / 2} y={y - 3} textAnchor="middle"
+                          fontSize="7" fontWeight="800" fill="#c4b5fd">
+                          {fmtDuration(mins)}
+                        </text>
+                        {/* Day number below */}
+                        <text x={x + BAR_W / 2} y={CHART_H - 4} textAnchor="middle"
+                          fontSize="8" fontWeight="600" fill="#4b5563">
+                          {day}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
+              <div className="px-4 pb-3 flex items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: "linear-gradient(#a78bfa,#7c3aed)" }} />
+                  <span className="text-[9px] font-semibold text-gray-500">Time spent</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-0.5 rounded-full" style={{ background: "#a78bfa", opacity: 0.5 }} />
+                  <span className="text-[9px] font-semibold text-gray-500">Avg ({avgMins !== null ? fmtDuration(avgMins) : "—"})</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full" style={{ background: "#22c55e" }} />
+                  <span className="text-[9px] font-semibold text-gray-500">2 sessions</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── Compact visit log (attended days only) ── */}
         {data.records.length > 0 && (
