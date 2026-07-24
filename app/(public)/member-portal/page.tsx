@@ -541,7 +541,11 @@ export default function MemberPortalPage() {
   // ── DASHBOARD ──────────────────────────────────────────────────────────────
   const isActive  = member?.status === "ACTIVE";
   const isExpired = member?.status !== "ACTIVE";
-  const prog = isActive ? membershipProgress(member?.startDate ?? null, member?.expiryDate ?? null) : null;
+  const isGeneralMembership = (() => {
+    const n = (member?.packageName ?? "").toLowerCase();
+    return !/(pt|personal|training|class|session|coach|semi.?private|hit\b)/i.test(n);
+  })();
+  const prog = isActive && isGeneralMembership ? membershipProgress(member?.startDate ?? null, member?.expiryDate ?? null) : null;
   const barColor = prog ? (prog.pct >= 85 ? "#f87171" : prog.pct >= 60 ? "#fb923c" : "#4ade80") : "#4ade80";
 
   return (
