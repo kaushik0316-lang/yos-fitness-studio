@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Yos Fitness Studio",
     short_name: "Yos Fitness",
     description: "Yos Fitness Studio CRM & Staff Portal",
-    start_url: "/staff-dashboard",
+    start_url: "/login",
     display: "standalone",
     background_color: "#0a0a0a",
     theme_color: "#f97316",
