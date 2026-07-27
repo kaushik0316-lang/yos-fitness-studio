@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Company, PaymentMode } from "@prisma/client";
+import { Company, PaymentMode, PaymentType } from "@prisma/client";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
@@ -14,6 +14,7 @@ const editSchema = z.object({
   discount: z.number().nonnegative().optional(),
   pendingAmount: z.number().nonnegative().optional(),
   paymentMode: z.nativeEnum(PaymentMode).optional(),
+  paymentType: z.nativeEnum(PaymentType).optional(),
   categoryLabel: z.string().optional(),
   periodLabel: z.string().optional(),
   startDate: z.string().optional(),
@@ -38,7 +39,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ error: "Invalid input: " + parsed.error.errors[0]?.message }, { status: 400 });
     }
     const { memberName, memberPhone, newMemberId, date, amount, discount, pendingAmount, paymentMode,
-            categoryLabel, periodLabel, startDate, expiryDate,
+            paymentType, categoryLabel, periodLabel, startDate, expiryDate,
             notes, transactionRef, company, soldById, soldById2, soldByPct } = parsed.data;
 
     const payment = await prisma.payment.findUnique({
@@ -88,6 +89,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         discount:      discount  != null ? discount    : undefined,
         pendingAmount: pendingAmount != null ? pendingAmount : undefined,
         paymentMode:   paymentMode  || undefined,
+        paymentType:   paymentType  || undefined,
         categoryLabel: categoryLabel || undefined,
         periodLabel:   periodLabel   || undefined,
         startDate:     startDate  ? new Date(startDate)  : undefined,

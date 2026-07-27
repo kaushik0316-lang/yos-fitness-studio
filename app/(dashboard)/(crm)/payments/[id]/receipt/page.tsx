@@ -158,6 +158,7 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
               discount:      discountNum,
               pendingAmount: pendingNum,
               paymentMode:   payment.paymentMode,
+              paymentType:   payment.paymentType,
               categoryLabel: category,
               periodLabel:   period ?? "",
               startDate:     payment.startDate ? format(new Date(payment.startDate), "yyyy-MM-dd") : "",

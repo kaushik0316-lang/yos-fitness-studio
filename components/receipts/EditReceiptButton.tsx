@@ -16,6 +16,7 @@ type Props = {
     discount: number;
     pendingAmount: number;
     paymentMode: string;
+    paymentType: string;
     categoryLabel: string;
     periodLabel: string;
     startDate: string;
@@ -35,6 +36,10 @@ const MODES = ["CASH", "UPI", "CARD", "CHEQUE", "BANK_TRANSFER", "FREE"];
 const MODE_LABELS: Record<string, string> = {
   CASH: "Cash", UPI: "GPay / UPI", CARD: "Card",
   CHEQUE: "Cheque", BANK_TRANSFER: "Bank Transfer", FREE: "Free",
+};
+const PAYMENT_TYPES = ["ADMISSION", "RENEWAL", "BALANCE", "UPGRADE"];
+const PAYMENT_TYPE_LABELS: Record<string, string> = {
+  ADMISSION: "Admission", RENEWAL: "Renewal", BALANCE: "Balance", UPGRADE: "Upgrade",
 };
 
 const INP: React.CSSProperties = {
@@ -275,6 +280,15 @@ export function EditReceiptButton({ paymentId, employees, current }: Props) {
                     <option value="YOS_FITNESS_STUDIO">Yos Studio</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Payment Type */}
+              <div>
+                <label style={LBL}>Payment Type</label>
+                <select style={INP} value={form.paymentType}
+                  onChange={(e) => set("paymentType", e.target.value)}>
+                  {PAYMENT_TYPES.map((t) => <option key={t} value={t}>{PAYMENT_TYPE_LABELS[t]}</option>)}
+                </select>
               </div>
 
               {/* Category + Period */}
