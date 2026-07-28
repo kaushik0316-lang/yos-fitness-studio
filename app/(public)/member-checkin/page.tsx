@@ -10,7 +10,7 @@ interface SuccessData { fullName: string; time: string; streak?: number; }
 
 const TOTAL_DIGITS  = 4;
 const NUMPAD_KEYS   = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
-const AUTO_RESET_MS = 5000;
+const AUTO_RESET_MS = 5000; // only used for checkout success
 
 function todayLabel() {
   return new Date().toLocaleDateString("en-IN", {
@@ -77,7 +77,7 @@ export default function MemberCheckinPage() {
   }, []);
 
   useEffect(() => {
-    if (phase !== "success" && phase !== "checkoutSuccess") return;
+    if (phase !== "checkoutSuccess") return;
     const t = setTimeout(resetForm, AUTO_RESET_MS);
     return () => clearTimeout(t);
   }, [phase]);
@@ -225,18 +225,15 @@ export default function MemberCheckinPage() {
             )}
             {(!successData.streak || successData.streak < 2) && <div className="mb-6" />}
             <Link href="/my-membership"
-              className="block w-full py-3.5 rounded-2xl font-semibold text-sm mb-3 uppercase tracking-wide"
-              style={{ background: "#1e1e1e", color: "#6b7280", border: "1px solid #2a2a2a" }}>
-              View My Attendance →
+              className="block w-full py-4 rounded-2xl font-bold text-white text-sm uppercase tracking-widest mb-3"
+              style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)", boxShadow: "0 8px 24px -4px rgba(34,197,94,0.4)" }}>
+              Go to My Dashboard →
             </Link>
             <button onClick={resetForm}
-              className="w-full py-4 rounded-2xl font-bold text-white text-sm uppercase tracking-widest"
-              style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)", boxShadow: "0 8px 24px -4px rgba(34,197,94,0.4)" }}>
+              className="w-full py-3.5 rounded-2xl font-semibold text-sm uppercase tracking-wide"
+              style={{ background: "#1e1e1e", color: "#6b7280", border: "1px solid #2a2a2a" }}>
               Done
             </button>
-            <p className="text-gray-700 text-xs mt-4 uppercase tracking-widest">
-              Resets automatically in 5 seconds
-            </p>
           </div>
         </div>
       </Screen>
