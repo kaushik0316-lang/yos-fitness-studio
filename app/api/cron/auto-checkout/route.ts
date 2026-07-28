@@ -189,9 +189,9 @@ async function runAutoCheckout() {
   }
 
   // ── MEMBER AUTO-CHECKOUT ─────────────────────────────────────────────────────
-  // Any member checked in 3+ hours ago with no checkout → set checkOutTime to checkInTime + 30 min
-  const THIRTY_MIN_MS = 30 * 60 * 1000;
-  const cutoff = new Date(now.getTime() - THIRTY_MIN_MS);
+  // Members with no checkout who checked in 3+ hours ago → auto-close
+  const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+  const cutoff = new Date(now.getTime() - THREE_HOURS_MS);
 
   const openMemberCheckIns = await prisma.memberAttendance.findMany({
     where: {
@@ -215,11 +215,11 @@ async function runAutoCheckout() {
       const updates: Record<string, unknown> = {};
 
       if (!record.checkOutTime && record.checkInTime <= cutoff) {
-        updates.checkOutTime    = new Date(record.checkInTime.getTime() + THIRTY_MIN_MS);
+        updates.checkOutTime    = now;
         updates.autoCheckedOut  = true;
       }
       if (record.session2CheckInTime && !record.session2CheckOutTime && record.session2CheckInTime <= cutoff) {
-        updates.session2CheckOutTime     = new Date(record.session2CheckInTime.getTime() + THIRTY_MIN_MS);
+        updates.session2CheckOutTime     = now;
         updates.session2AutoCheckedOut   = true;
       }
 
@@ -251,18 +251,21 @@ function isAuthorized(req: NextRequest): boolean {
   return manual === cronSecret || bearer === cronSecret;
 }
 
-export async function GET(req: NextRequest) {
+async function handleCron(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const result = await runAutoCheckout();
-  return NextResponse.json({ success: true, ...result });
+  try {
+    await prisma.$connect();
+    const result = await runAutoCheckout();
+    return NextResponse.json({ success: true, ...result });
+  } catch (err: any) {
+    console.error("[auto-checkout] fatal error:", err?.message ?? err);
+    return NextResponse.json({ error: err?.message ?? "Unknown error" }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
-export async function POST(req: NextRequest) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const result = await runAutoCheckout();
-  return NextResponse.json({ success: true, ...result });
-}
+export const GET  = handleCron;
+export const POST = handleCron;

@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "app/api/cron/auto-checkout/route.ts": { "maxDuration": 60 },
+    "app/api/cron/mark-absent/route.ts":   { "maxDuration": 60 },
+    "app/api/cron/route.ts":               { "maxDuration": 60 }
+  },
   "crons": [
     {
       "path": "/api/cron/auto-checkout",
