@@ -58,3 +58,5 @@ yarn-error.log*
 scripts/snapshot-backup-*.json
 
 .env*.local
+.env.vercel.prod
+.env.production.pulled

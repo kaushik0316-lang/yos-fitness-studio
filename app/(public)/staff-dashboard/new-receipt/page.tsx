@@ -64,8 +64,11 @@ export default function StaffNewReceipt() {
   // Fetch members
   useEffect(() => {
     if (!pin) return;
-    const q = memberSearch.length >= 1 ? `&q=${encodeURIComponent(memberSearch)}` : "";
-    fetch(`/api/staff/members?pin=${encodeURIComponent(pin)}${q}`)
+    fetch("/api/staff/members", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin, q: memberSearch.length >= 1 ? memberSearch : "" }),
+    })
       .then(r => r.json())
       .then(d => setMembers(d.members ?? []))
       .catch(() => {});
