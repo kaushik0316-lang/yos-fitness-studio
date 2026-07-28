@@ -29,7 +29,7 @@ function recordDeviceCheckin(deviceId: string, employeeId: string) {
 
 const GYM_LAT = 13.0347589;
 const GYM_LNG = 80.2713245;
-const GEOFENCE_RADIUS_M = 250;
+const GEOFENCE_RADIUS_M = 2000;
 
 // Gym operating hours (IST)
 // Mon–Sat: 5:30 AM – 10:30 PM
