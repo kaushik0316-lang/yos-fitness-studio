@@ -189,9 +189,9 @@ async function runAutoCheckout() {
   }
 
   // ── MEMBER AUTO-CHECKOUT ─────────────────────────────────────────────────────
-  // Members with no checkout who checked in 3+ hours ago → auto-close
-  const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
-  const cutoff = new Date(now.getTime() - THREE_HOURS_MS);
+  // Members with no checkout who checked in 30+ minutes ago → auto-close at checkIn + 30 min
+  const THIRTY_MIN_MS = 30 * 60 * 1000;
+  const cutoff = new Date(now.getTime() - THIRTY_MIN_MS);
 
   const openMemberCheckIns = await prisma.memberAttendance.findMany({
     where: {
@@ -215,11 +215,11 @@ async function runAutoCheckout() {
       const updates: Record<string, unknown> = {};
 
       if (!record.checkOutTime && record.checkInTime <= cutoff) {
-        updates.checkOutTime    = now;
+        updates.checkOutTime    = new Date(record.checkInTime.getTime() + THIRTY_MIN_MS);
         updates.autoCheckedOut  = true;
       }
       if (record.session2CheckInTime && !record.session2CheckOutTime && record.session2CheckInTime <= cutoff) {
-        updates.session2CheckOutTime     = now;
+        updates.session2CheckOutTime     = new Date(record.session2CheckInTime.getTime() + THIRTY_MIN_MS);
         updates.session2AutoCheckedOut   = true;
       }
 
