@@ -75,6 +75,14 @@ export async function POST(req: NextRequest) {
 
     // Session 2 is open — check that out first
     if (record.session2CheckInTime && !record.session2CheckOutTime) {
+      const mins2 = (now.getTime() - record.session2CheckInTime.getTime()) / 60000;
+      if (mins2 < 10) {
+        const wait = Math.ceil(10 - mins2);
+        return NextResponse.json(
+          { error: `Too soon — please wait ${wait} more minute${wait === 1 ? "" : "s"} before checking out.` },
+          { status: 400 }
+        );
+      }
       await prisma.memberAttendance.update({
         where: { id: record.id },
         data: { session2CheckOutTime: now },
@@ -97,6 +105,14 @@ export async function POST(req: NextRequest) {
 
     // Session 1 open — check that out
     if (!record.checkOutTime) {
+      const mins1 = (now.getTime() - record.checkInTime.getTime()) / 60000;
+      if (mins1 < 10) {
+        const wait = Math.ceil(10 - mins1);
+        return NextResponse.json(
+          { error: `Too soon — please wait ${wait} more minute${wait === 1 ? "" : "s"} before checking out.` },
+          { status: 400 }
+        );
+      }
       await prisma.memberAttendance.update({
         where: { id: record.id },
         data: { checkOutTime: now },

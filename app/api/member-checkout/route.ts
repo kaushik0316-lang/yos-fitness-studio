@@ -33,6 +33,15 @@ export async function POST(req: NextRequest) {
     }
 
     const now = new Date();
+    const minsSinceCheckIn = (now.getTime() - record.checkInTime.getTime()) / 60000;
+    if (minsSinceCheckIn < 10) {
+      const wait = Math.ceil(10 - minsSinceCheckIn);
+      return NextResponse.json(
+        { error: `Too soon — please wait ${wait} more minute${wait === 1 ? "" : "s"} before checking out.` },
+        { status: 400 }
+      );
+    }
+
     await prisma.memberAttendance.update({
       where: { id: attendanceId },
       data: { checkOutTime: now },
