@@ -192,7 +192,7 @@ export default function MemberCheckinPage() {
       } else if (data.checkoutPending) {
         // Already checked in — check out immediately, no extra tap needed
         setPin("");
-        await performCheckout(data.attendanceId, data.fullName);
+        await performCheckout(data.attendanceId, data.fullName, data.session ?? 1);
       } else {
         sessionStorage.setItem("member_pin", enteredPin);
         setSuccess({ fullName: data.fullName, time: data.time, streak: data.streak });
@@ -206,13 +206,13 @@ export default function MemberCheckinPage() {
     }
   }
 
-  async function performCheckout(attendanceId: string, fullName: string) {
+  async function performCheckout(attendanceId: string, fullName: string, session = 1) {
     setPhase("loading");
     try {
       const res = await fetch("/api/member-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attendanceId }),
+        body: JSON.stringify({ attendanceId, session }),
       });
       const data = await res.json();
       if (!res.ok) {

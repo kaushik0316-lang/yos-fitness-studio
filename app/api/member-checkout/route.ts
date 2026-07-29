@@ -15,37 +15,62 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { attendanceId } = await req.json() as { attendanceId: string };
+    const { attendanceId, session = 1 } = await req.json() as { attendanceId: string; session?: number };
     if (!attendanceId) {
       return NextResponse.json({ error: "Attendance ID is required." }, { status: 400 });
     }
 
     const record = await prisma.memberAttendance.findUnique({
       where: { id: attendanceId },
-      select: { id: true, checkInTime: true, checkOutTime: true, member: { select: { fullName: true } } },
+      select: {
+        id: true, checkInTime: true, checkOutTime: true,
+        session2CheckInTime: true, session2CheckOutTime: true,
+        member: { select: { fullName: true } },
+      },
     });
 
     if (!record) {
       return NextResponse.json({ error: "Attendance record not found." }, { status: 404 });
     }
-    if (record.checkOutTime) {
-      return NextResponse.json({ error: "Already checked out." }, { status: 409 });
-    }
 
     const now = new Date();
-    const minsSinceCheckIn = (now.getTime() - record.checkInTime.getTime()) / 60000;
-    if (minsSinceCheckIn < 10) {
-      const wait = Math.ceil(10 - minsSinceCheckIn);
-      return NextResponse.json(
-        { error: `Too soon — please wait ${wait} more minute${wait === 1 ? "" : "s"} before checking out.` },
-        { status: 400 }
-      );
-    }
 
-    await prisma.memberAttendance.update({
-      where: { id: attendanceId },
-      data: { checkOutTime: now },
-    });
+    if (session === 2) {
+      if (!record.session2CheckInTime) {
+        return NextResponse.json({ error: "No second session found." }, { status: 404 });
+      }
+      if (record.session2CheckOutTime) {
+        return NextResponse.json({ error: "Already checked out." }, { status: 409 });
+      }
+      const mins = (now.getTime() - record.session2CheckInTime.getTime()) / 60000;
+      if (mins < 10) {
+        const wait = Math.ceil(10 - mins);
+        return NextResponse.json(
+          { error: `Too soon — please wait ${wait} more minute${wait === 1 ? "" : "s"} before checking out.` },
+          { status: 400 }
+        );
+      }
+      await prisma.memberAttendance.update({
+        where: { id: attendanceId },
+        data: { session2CheckOutTime: now },
+      });
+    } else {
+      if (record.checkOutTime) {
+        return NextResponse.json({ error: "Already checked out." }, { status: 409 });
+      }
+      const mins = (now.getTime() - record.checkInTime.getTime()) / 60000;
+      if (mins < 10) {
+        const wait = Math.ceil(10 - mins);
+        return NextResponse.json(
+          { error: `Too soon — please wait ${wait} more minute${wait === 1 ? "" : "s"} before checking out.` },
+          { status: 400 }
+        );
+      }
+      await prisma.memberAttendance.update({
+        where: { id: attendanceId },
+        data: { checkOutTime: now },
+      });
+    }
 
     const timeStr = now.toLocaleTimeString("en-IN", {
       timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
