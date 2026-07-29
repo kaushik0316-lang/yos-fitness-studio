@@ -190,6 +190,7 @@ export default function MemberCheckinPage() {
         setPin("");
         await performCheckout(data.attendanceId, data.fullName);
       } else {
+        sessionStorage.setItem("member_pin", enteredPin);
         setSuccess({ fullName: data.fullName, time: data.time, streak: data.streak });
         setPhase("success");
       }
