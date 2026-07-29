@@ -398,6 +398,11 @@ export default function MemberCheckinPage() {
             })}
           </div>
 
+          {/* Checkout hint */}
+          {phase === "input" && pin.length === 0 && (
+            <p className="text-center text-[11px] text-gray-600 mb-1">Already checked in? Enter your PIN to check out</p>
+          )}
+
           {/* Status line */}
           <div className="h-8 flex items-center justify-center mb-2">
             {phase === "error" && (
