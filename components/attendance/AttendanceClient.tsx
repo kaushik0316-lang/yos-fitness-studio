@@ -19,6 +19,9 @@ type AttendanceRecord = {
   checkOutTime: string | null;
   autoCheckedOut: boolean;
   remarks: string | null;
+  session2CheckInTime: string | null;
+  session2CheckOutTime: string | null;
+  session2AutoCheckedOut: boolean;
   member: {
     id: string; memberId: string; fullName: string; phone: string; gender: string | null;
     expiryDate: string | null; lastAttendanceDate: string | null;
@@ -432,6 +435,11 @@ export function AttendanceClient({
                           {dur}
                         </span>
                       )}
+                      {a.session2CheckInTime && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: "rgba(34,197,94,0.12)", color: "#4ade80" }}>
+                          2×
+                        </span>
+                      )}
                       {a.autoCheckedOut && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: "rgba(255,255,255,0.06)", color: "#6b7280" }}>
                           auto-out
@@ -456,6 +464,17 @@ export function AttendanceClient({
                         → {formatTime(new Date(a.checkOutTime!))}
                       </p>
                     ) : (
+                      <p className="text-xs text-emerald-700 mt-0.5">still inside</p>
+                    )}
+                    {a.session2CheckInTime && (
+                      <p className="text-xs font-extrabold text-emerald-400 mt-1">{formatTime(new Date(a.session2CheckInTime))}</p>
+                    )}
+                    {a.session2CheckInTime && a.session2CheckOutTime && (
+                      <p className="text-xs font-semibold mt-0.5" style={{ color: "#60a5fa" }}>
+                        → {formatTime(new Date(a.session2CheckOutTime))}
+                      </p>
+                    )}
+                    {a.session2CheckInTime && !a.session2CheckOutTime && (
                       <p className="text-xs text-emerald-700 mt-0.5">still inside</p>
                     )}
                   </div>

@@ -26,6 +26,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
       where: { date: { gte: dayStart, lte: dayEnd } },
       select: {
         id: true, checkInTime: true, checkOutTime: true, autoCheckedOut: true, remarks: true,
+        session2CheckInTime: true, session2CheckOutTime: true, session2AutoCheckedOut: true,
         member: {
           select: {
             id: true, memberId: true, fullName: true, phone: true, gender: true,
@@ -106,6 +107,9 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
       ...a,
       checkInTime:  a.checkInTime.toISOString(),
       checkOutTime: a.checkOutTime?.toISOString() ?? null,
+      session2CheckInTime:  a.session2CheckInTime?.toISOString() ?? null,
+      session2CheckOutTime: a.session2CheckOutTime?.toISOString() ?? null,
+      session2AutoCheckedOut: a.session2AutoCheckedOut,
       member: {
         ...a.member,
         expiryDate:          a.member.expiryDate?.toISOString() ?? null,
