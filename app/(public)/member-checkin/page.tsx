@@ -440,12 +440,6 @@ export default function MemberCheckinPage() {
           </div>
 
           <div className="mt-4 text-center space-y-2">
-            <Link href="/member-portal"
-              className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest transition-colors"
-              style={{ color: "#374151" }}>
-              <ArrowLeft className="h-3 w-3" />
-              Member Portal
-            </Link>
             <div>
               <Link href="/member-portal?setup=1"
                 className="text-[11px] text-green-600/60 hover:text-green-500 transition-colors">
