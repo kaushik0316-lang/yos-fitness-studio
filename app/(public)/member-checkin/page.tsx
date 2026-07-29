@@ -313,8 +313,10 @@ export default function MemberCheckinPage() {
             </h1>
             <p className="text-gray-500 text-sm mt-1">Enter your 4-digit PIN</p>
             {/* Inline reminder row */}
-            <div className="mt-3 mx-auto flex items-center justify-center gap-3 rounded-xl px-4 py-2"
+            <div className="mt-3 mx-auto rounded-xl px-4 py-2"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+              <p className="text-[10px] uppercase tracking-widest text-green-400/60 font-semibold mb-1.5">Before you enter</p>
+              <div className="flex items-center justify-center gap-3">
               {[
                 { icon: "👟", text: "Clean footwear" },
                 { icon: "🧴", text: "Towel" },
@@ -325,6 +327,7 @@ export default function MemberCheckinPage() {
                   <span className="text-gray-500 text-[11px]">{text}</span>
                 </div>
               ))}
+              </div>
             </div>
             <div className="mt-2 mx-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
               style={{ background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.25)" }}>
