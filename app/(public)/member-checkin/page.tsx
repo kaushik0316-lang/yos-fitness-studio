@@ -223,7 +223,12 @@ export default function MemberCheckinPage() {
                 </div>
               </div>
             )}
-            {(!successData.streak || successData.streak < 2) && <div className="mb-6" />}
+            {(!successData.streak || successData.streak < 2) && <div className="mb-2" />}
+            <div className="mb-6 mx-auto max-w-xs rounded-xl px-4 py-3 text-left"
+              style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.15)" }}>
+              <p className="text-green-400/60 text-[10px] uppercase tracking-widest font-semibold mb-1">Today&apos;s tip</p>
+              <p className="text-gray-400 text-sm">Warm up for 5 minutes before lifting — it prevents injury and improves performance.</p>
+            </div>
             <Link href="/my-membership"
               className="block w-full py-4 rounded-2xl font-bold text-white text-sm uppercase tracking-widest mb-3"
               style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)", boxShadow: "0 8px 24px -4px rgba(34,197,94,0.4)" }}>
@@ -258,7 +263,12 @@ export default function MemberCheckinPage() {
             <h2 className="text-3xl font-extrabold text-white uppercase tracking-wide mb-1">
               {successData.fullName}
             </h2>
-            <p className="text-gray-400 text-xl mb-8">{successData.time}</p>
+            <p className="text-gray-400 text-xl mb-5">{successData.time}</p>
+            <div className="mb-6 mx-auto max-w-xs rounded-xl px-4 py-3 text-left"
+              style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)" }}>
+              <p className="text-indigo-400/60 text-[10px] uppercase tracking-widest font-semibold mb-1">Well done!</p>
+              <p className="text-gray-400 text-sm">Rest well — recovery is part of the process. See you next time! 💪</p>
+            </div>
             <button onClick={resetForm}
               className="w-full py-4 rounded-2xl font-bold text-white text-sm uppercase tracking-widest mb-3"
               style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)", boxShadow: "0 8px 24px -4px rgba(34,197,94,0.4)" }}>
