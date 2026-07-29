@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 
 const GYM_LAT = 13.0347589;
 const GYM_LNG = 80.2713245;
-const GEOFENCE_RADIUS_M = 50;
+const GEOFENCE_RADIUS_M = 2000;
 
 function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
