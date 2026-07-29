@@ -10,6 +10,36 @@ interface SuccessData { fullName: string; time: string; streak?: number; }
 
 const TOTAL_DIGITS  = 4;
 const NUMPAD_KEYS   = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
+
+const CHECKIN_TIPS = [
+  "Warm up for 5 minutes before lifting — it prevents injury and improves performance.",
+  "Stay hydrated! Drink water before, during, and after your workout.",
+  "Focus on form over weight — good technique gives better results and prevents injury.",
+  "Compound movements like squats and deadlifts burn more calories than isolation exercises.",
+  "Getting 7–8 hours of sleep is when your muscles actually grow.",
+  "Consistency beats intensity — showing up regularly matters more than one hard session.",
+  "Don't skip your cool-down — stretching after a workout reduces soreness.",
+  "Protein within 30 minutes after training helps muscle recovery.",
+  "Track your progress — what gets measured gets improved.",
+  "A strong core protects your spine in every exercise you do.",
+  "Rest days are not lazy days — they are when your body gets stronger.",
+  "Breathe out on exertion — exhale when you push or pull.",
+];
+
+const CHECKOUT_MSGS = [
+  "Rest well — recovery is part of the process. See you next time! 💪",
+  "Great session! Refuel with a good meal within the next hour.",
+  "Your muscles are rebuilding stronger right now. Rest up!",
+  "Consistency is the secret. Same time tomorrow? 🙌",
+  "One more session done. You're closer to your goal than yesterday.",
+  "Stretch, hydrate, and sleep well — your body will thank you.",
+  "Every rep counts. Well done today! 💪",
+];
+
+function dailyPick<T>(arr: T[]): T {
+  const day = Math.floor(Date.now() / 86_400_000);
+  return arr[day % arr.length];
+}
 const AUTO_RESET_MS = 60 * 60 * 1000; // 1 hour — used for both success screens
 
 function todayLabel() {
@@ -227,7 +257,7 @@ export default function MemberCheckinPage() {
             <div className="mb-6 mx-auto max-w-xs rounded-xl px-4 py-3 text-left"
               style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.15)" }}>
               <p className="text-green-400/60 text-[10px] uppercase tracking-widest font-semibold mb-1">Today&apos;s tip</p>
-              <p className="text-gray-400 text-sm">Warm up for 5 minutes before lifting — it prevents injury and improves performance.</p>
+              <p className="text-gray-400 text-sm">{dailyPick(CHECKIN_TIPS)}</p>
             </div>
             <Link href="/my-membership"
               className="block w-full py-4 rounded-2xl font-bold text-white text-sm uppercase tracking-widest mb-3"
@@ -267,7 +297,7 @@ export default function MemberCheckinPage() {
             <div className="mb-6 mx-auto max-w-xs rounded-xl px-4 py-3 text-left"
               style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)" }}>
               <p className="text-indigo-400/60 text-[10px] uppercase tracking-widest font-semibold mb-1">Well done!</p>
-              <p className="text-gray-400 text-sm">Rest well — recovery is part of the process. See you next time! 💪</p>
+              <p className="text-gray-400 text-sm">{dailyPick(CHECKOUT_MSGS)}</p>
             </div>
             <button onClick={resetForm}
               className="w-full py-4 rounded-2xl font-bold text-white text-sm uppercase tracking-widest mb-3"
