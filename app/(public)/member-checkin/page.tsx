@@ -290,6 +290,7 @@ export default function MemberCheckinPage() {
               style={{ background: "rgba(29,78,216,0.15)", color: "#93c5fd", border: "1px solid rgba(29,78,216,0.3)" }}>
               Checked Out
             </span>
+            <h1 className="text-2xl font-extrabold text-white uppercase tracking-wide mb-1">Check Out</h1>
             <h2 className="text-3xl font-extrabold text-white uppercase tracking-wide mb-1">
               {successData.fullName}
             </h2>
@@ -349,7 +350,7 @@ export default function MemberCheckinPage() {
               </p>
             </div>
             <h1 className="text-2xl font-extrabold text-white uppercase tracking-wide">
-              Check In / Check Out
+              Check In
             </h1>
             <p className="text-gray-500 text-sm mt-1">Enter your 4-digit PIN</p>
             {/* Inline reminder row */}
