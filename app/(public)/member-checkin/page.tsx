@@ -298,7 +298,7 @@ export default function MemberCheckinPage() {
       <LogoBar />
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-6">
         <div className="w-full max-w-[300px]">
-          <div className="text-center mb-8">
+          <div className="text-center mb-4">
             <div className="flex items-center justify-center gap-3 mb-1">
               <p className="text-green-400/70 text-[11px] font-bold uppercase tracking-[0.2em]">
                 {todayLabel()}
@@ -311,37 +311,37 @@ export default function MemberCheckinPage() {
             <h1 className="text-2xl font-extrabold text-white uppercase tracking-wide">
               Check In / Check Out
             </h1>
-            <p className="text-gray-500 text-sm mt-1.5">Enter your 4-digit PIN</p>
-            <div className="mt-4 mx-auto max-w-xs rounded-xl px-4 py-3 flex flex-col gap-1.5"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-              <p className="text-[11px] uppercase tracking-widest text-green-400/60 font-semibold mb-0.5">Before you enter</p>
+            <p className="text-gray-500 text-sm mt-1">Enter your 4-digit PIN</p>
+            {/* Inline reminder row */}
+            <div className="mt-3 mx-auto flex items-center justify-center gap-3 rounded-xl px-4 py-2"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
               {[
                 { icon: "👟", text: "Clean footwear" },
-                { icon: "🧴", text: "Carry a towel" },
-                { icon: "💧", text: "Bring your water bottle" },
+                { icon: "🧴", text: "Towel" },
+                { icon: "💧", text: "Water bottle" },
               ].map(({ icon, text }) => (
-                <div key={text} className="flex items-center gap-2">
-                  <span className="text-base">{icon}</span>
-                  <span className="text-gray-400 text-sm">{text}</span>
+                <div key={text} className="flex items-center gap-1">
+                  <span className="text-sm">{icon}</span>
+                  <span className="text-gray-500 text-[11px]">{text}</span>
                 </div>
               ))}
             </div>
-            <div className="mt-2.5 mx-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+            <div className="mt-2 mx-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
               style={{ background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.25)" }}>
-              <span className="text-base leading-none">📍</span>
+              <span className="text-sm leading-none">📍</span>
               <p className="text-yellow-400/80 text-[11px] font-medium">Allow location — you must be at the gym</p>
             </div>
           </div>
 
           {/* PIN dots */}
-          <div className="flex gap-4 justify-center mb-2"
+          <div className="flex gap-3 justify-center mb-2"
             style={{ animation: shaking ? "shake 0.45s ease-in-out" : "none" }}>
             {Array.from({ length: TOTAL_DIGITS }).map((_, i) => {
               const filled = i < pin.length;
               const isNext = i === pin.length;
               return (
                 <div key={i}
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center border-2 transition-all duration-150"
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all duration-150"
                   style={{
                     background: filled ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.03)",
                     borderColor: filled ? "#22c55e" : isNext ? "#4b5563" : "#2a2a2a",
@@ -355,7 +355,7 @@ export default function MemberCheckinPage() {
           </div>
 
           {/* Status line */}
-          <div className="h-10 flex items-center justify-center mb-3">
+          <div className="h-8 flex items-center justify-center mb-2">
             {phase === "error" && (
               <p className="text-red-400 text-sm font-medium text-center">{errorMsg}</p>
             )}
@@ -382,7 +382,7 @@ export default function MemberCheckinPage() {
                 <button key={i}
                   onClick={() => pressKey(key)}
                   disabled={isProcessing}
-                  className="h-[68px] rounded-2xl flex items-center justify-center font-bold text-2xl transition-all duration-100 active:scale-90 disabled:opacity-30"
+                  className="h-[60px] rounded-2xl flex items-center justify-center font-bold text-2xl transition-all duration-100 active:scale-90 disabled:opacity-30"
                   style={{
                     background: isBackspace ? "transparent" : "#1e1e1e",
                     color: isBackspace ? "#6b7280" : "#ffffff",
@@ -395,7 +395,7 @@ export default function MemberCheckinPage() {
             })}
           </div>
 
-          <div className="mt-8 text-center space-y-3">
+          <div className="mt-4 text-center space-y-2">
             <Link href="/member-portal"
               className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest transition-colors"
               style={{ color: "#374151" }}>
