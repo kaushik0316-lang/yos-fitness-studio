@@ -259,7 +259,7 @@ export default function MemberCheckinPage() {
               <p className="text-green-400/60 text-[10px] uppercase tracking-widest font-semibold mb-1">Today&apos;s tip</p>
               <p className="text-gray-400 text-sm">{dailyPick(CHECKIN_TIPS)}</p>
             </div>
-            <Link href="/my-membership"
+            <Link href="/member-portal"
               className="block w-full py-4 rounded-2xl font-bold text-white text-sm uppercase tracking-widest mb-3"
               style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)", boxShadow: "0 8px 24px -4px rgba(34,197,94,0.4)" }}>
               Go to My Dashboard →
