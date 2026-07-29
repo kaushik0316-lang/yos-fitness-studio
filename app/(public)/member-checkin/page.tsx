@@ -100,6 +100,8 @@ export default function MemberCheckinPage() {
   const [liveTime, setLiveTime]             = useState(currentTimeIST);
   const submittingRef                       = useRef(false);
   const hiddenInputRef                      = useRef<HTMLInputElement>(null);
+  const lastLat                             = useRef(0);
+  const lastLng                             = useRef(0);
 
   useEffect(() => {
     const t = setInterval(() => setLiveTime(currentTimeIST()), 10000);
@@ -171,6 +173,8 @@ export default function MemberCheckinPage() {
   }
 
   async function doSubmit(enteredPin: string, lat: number, lng: number) {
+    lastLat.current = lat;
+    lastLng.current = lng;
     setPhase("loading");
     try {
       const res = await fetch("/api/member-checkin", {
@@ -211,7 +215,14 @@ export default function MemberCheckinPage() {
         body: JSON.stringify({ attendanceId }),
       });
       const data = await res.json();
-      if (!res.ok) { setErrorMsg(data.error ?? "Checkout failed."); setPhase("error"); return; }
+      if (!res.ok) {
+        if (res.status === 409) {
+          // Already checked out (e.g. by auto-cron) — retry as a fresh check-in for session 2
+          await doSubmit(pin, lastLat.current, lastLng.current);
+          return;
+        }
+        setErrorMsg(data.error ?? "Checkout failed."); setPhase("error"); return;
+      }
       setSuccess({ fullName, time: data.time });
       setPhase("checkoutSuccess");
     } catch {
