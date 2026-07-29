@@ -312,6 +312,20 @@ export default function MemberCheckinPage() {
               Check In / Check Out
             </h1>
             <p className="text-gray-500 text-sm mt-1.5">Enter your 4-digit PIN</p>
+            <div className="mt-4 mx-auto max-w-xs rounded-xl px-4 py-3 flex flex-col gap-1.5"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <p className="text-[11px] uppercase tracking-widest text-green-400/60 font-semibold mb-0.5">Before you enter</p>
+              {[
+                { icon: "👟", text: "Clean footwear" },
+                { icon: "🧴", text: "Carry a towel" },
+                { icon: "💧", text: "Bring your water bottle" },
+              ].map(({ icon, text }) => (
+                <div key={text} className="flex items-center gap-2">
+                  <span className="text-base">{icon}</span>
+                  <span className="text-gray-400 text-sm">{text}</span>
+                </div>
+              ))}
+            </div>
             <div className="mt-2.5 mx-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
               style={{ background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.25)" }}>
               <span className="text-base leading-none">📍</span>
