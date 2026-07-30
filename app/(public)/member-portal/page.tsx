@@ -690,20 +690,23 @@ export default function MemberPortalPage() {
                     </span>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between mt-1">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-gray-600 flex-shrink-0" />
-                      <span className="text-xs text-gray-500">Not checked out yet</span>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between mt-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-gray-600 flex-shrink-0" />
+                        <span className="text-xs text-gray-500">Not checked out yet</span>
+                      </div>
+                      <button onClick={handleCheckOut} disabled={checkingOut}
+                        className="text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-50"
+                        style={{ background: "rgba(29,78,216,0.2)", color: "#93c5fd", border: "1px solid rgba(29,78,216,0.3)" }}>
+                        {checkingOut ? "…" : "Check Out"}
+                      </button>
                     </div>
-                    <button onClick={handleCheckOut} disabled={checkingOut}
-                      className="text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-50"
-                      style={{ background: "rgba(29,78,216,0.2)", color: "#93c5fd", border: "1px solid rgba(29,78,216,0.3)" }}>
-                      {checkingOut ? "…" : "Check Out"}
-                    </button>
+                    {errorMsg && (
+                      <p className="text-xs text-red-400 text-center">{errorMsg}</p>
+                    )}
                   </div>
-                  {errorMsg && (
-                    <p className="text-xs text-red-400 mt-2 text-center">{errorMsg}</p>
-                  )}
+                )}
               </div>
             ) : (
               <div className="flex items-center gap-3 py-1">
