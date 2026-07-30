@@ -150,6 +150,8 @@ export default function MemberPortalPage() {
       setToday(data.todayCheckIn);
       setCheckOut(data.todayCheckOut ?? null);
       setAutoOut(data.autoCheckedOut ?? false);
+      setAttendanceId(data.todayAttendanceId ?? null);
+      setTotalVisits(data.totalVisits ?? 0);
       setPin(enteredPin);
       sessionStorage.setItem("member_pin", enteredPin);
       setPhase("dashboard");
@@ -210,6 +212,7 @@ export default function MemberPortalPage() {
       if (res.ok) {
         setCheckOut(new Date().toISOString());
         setAttendanceId(null);
+        setErrorMsg("");
       } else {
         setErrorMsg(data.error ?? "Checkout failed.");
       }
@@ -698,7 +701,9 @@ export default function MemberPortalPage() {
                       {checkingOut ? "…" : "Check Out"}
                     </button>
                   </div>
-                )}
+                  {errorMsg && (
+                    <p className="text-xs text-red-400 mt-2 text-center">{errorMsg}</p>
+                  )}
               </div>
             ) : (
               <div className="flex items-center gap-3 py-1">
