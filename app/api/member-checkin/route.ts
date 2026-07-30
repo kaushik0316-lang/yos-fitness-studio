@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
       if (minsGap < 60) {
         const waitMins = Math.ceil(60 - minsGap);
         return NextResponse.json(
-          { error: `Please wait ${waitMins} more minute${waitMins === 1 ? "" : "s"} before your second session.` },
+          { error: `You've already logged out. Please wait ${waitMins} more minute${waitMins === 1 ? "" : "s"} before logging in again.` },
           { status: 400 }
         );
       }
