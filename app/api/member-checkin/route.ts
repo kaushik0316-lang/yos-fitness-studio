@@ -121,7 +121,18 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Session 1 done, session 2 not started — begin second session
+      // Session 1 done, session 2 not started — enforce 1-hour gap
+      const ONE_HOUR_MS = 60 * 60 * 1000;
+      const s1CheckOut = existing.checkOutTime!;
+      const minsGap = (now.getTime() - s1CheckOut.getTime()) / 60000;
+      if (minsGap < 60) {
+        const waitMins = Math.ceil(60 - minsGap);
+        return NextResponse.json(
+          { error: `Please wait ${waitMins} more minute${waitMins === 1 ? "" : "s"} before your second session.` },
+          { status: 400 }
+        );
+      }
+
       await prisma.memberAttendance.update({
         where: { id: existing.id },
         data: { session2CheckInTime: now },
