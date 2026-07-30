@@ -186,8 +186,10 @@ export default function MemberCheckinPage() {
       if (!res.ok) {
         setErrorMsg(data.error ?? "Something went wrong.");
         setPin("");
-        setShaking(true);
-        setTimeout(() => setShaking(false), 500);
+        if (res.status !== 429) {
+          setShaking(true);
+          setTimeout(() => setShaking(false), 500);
+        }
         setPhase("error");
       } else if (data.checkoutPending) {
         // Already checked in — check out immediately, no extra tap needed
@@ -221,7 +223,9 @@ export default function MemberCheckinPage() {
           await doSubmit(pin, lastLat.current, lastLng.current);
           return;
         }
-        setErrorMsg(data.error ?? "Checkout failed."); setPhase("error"); return;
+        setErrorMsg(data.error ?? "Checkout failed.");
+        if (res.status !== 429) { setShaking(true); setTimeout(() => setShaking(false), 500); }
+        setPhase("error"); return;
       }
       setSuccess({ fullName, time: data.time });
       setPhase("checkoutSuccess");
