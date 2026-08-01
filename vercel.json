@@ -7,23 +7,11 @@
   "crons": [
     {
       "path": "/api/cron/auto-checkout",
-      "schedule": "30 6 * * *"
-    },
-    {
-      "path": "/api/cron/auto-checkout",
-      "schedule": "30 8 * * *"
-    },
-    {
-      "path": "/api/cron/auto-checkout",
       "schedule": "0 18 * * *"
     },
     {
       "path": "/api/cron/mark-absent",
       "schedule": "30 17 * * *"
-    },
-    {
-      "path": "/api/cron",
-      "schedule": "30 3 * * *"
     }
   ]
 }
