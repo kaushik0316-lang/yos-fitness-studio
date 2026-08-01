@@ -191,7 +191,7 @@ export function ChallengeClient({ rows, stats }: { rows: Row[]; stats: Stats }) 
 
       {filtered.length > 0 && (
         <p className="text-xs text-gray-600 text-center">
-          Showing {filtered.length} of {rows.length} participants · Only days with both Check-In and Check-Out and ≥ 1 hour workout count
+          Showing {filtered.length} of {rows.length} participants · Only days with both Check-In and Check-Out and ≥ 50 min workout count
         </p>
       )}
     </div>

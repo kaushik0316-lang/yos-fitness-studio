@@ -38,11 +38,11 @@ export default async function ChallengePage() {
     days: string[]; // ISO date strings
   }>();
 
-  const ONE_HOUR_MS = 60 * 60 * 1000;
+  const MIN_DURATION_MS = 50 * 60 * 1000;
 
   for (const r of records) {
-    // Must be at least 1 hour between check-in and check-out
-    if (!r.checkOutTime || r.checkOutTime.getTime() - r.checkInTime.getTime() < ONE_HOUR_MS) continue;
+    // Must be at least 50 minutes between check-in and check-out
+    if (!r.checkOutTime || r.checkOutTime.getTime() - r.checkInTime.getTime() < MIN_DURATION_MS) continue;
 
     const id = r.member.id;
     if (!byMember.has(id)) {

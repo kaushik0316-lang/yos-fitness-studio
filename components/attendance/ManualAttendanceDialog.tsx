@@ -166,10 +166,10 @@ export function ManualAttendanceDialog({ open, onClose, allMembers, defaultDate 
                 const [oh, om] = checkOut.split(":").map(Number);
                 const mins = (oh * 60 + om) - (ih * 60 + im);
                 const label = mins < 60 ? `${mins}m` : `${Math.floor(mins/60)}h ${mins%60 > 0 ? mins%60+"m" : ""}`.trim();
-                const countsForChallenge = mins >= 60;
+                const countsForChallenge = mins >= 50;
                 return (
                   <p className="text-xs text-center -mt-1" style={{ color: countsForChallenge ? "#22c55e" : "#f97316" }}>
-                    Duration: {label} {countsForChallenge ? "✓ counts for Aug Challenge" : "⚠ under 1 hour — won't count for challenge"}
+                    Duration: {label} {countsForChallenge ? "✓ counts for Aug Challenge" : "⚠ under 50 mins — won't count for challenge"}
                   </p>
                 );
               })()}
