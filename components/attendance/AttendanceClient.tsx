@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search, CheckCircle2, Clock, CalendarCheck, ChevronLeft, ChevronRight,
-  LogOut, Dumbbell, Users, Timer, TrendingUp, Calendar,
+  LogOut, Dumbbell, Users, Timer, TrendingUp, Calendar, Trophy,
 } from "lucide-react";
 import Link from "next/link";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
@@ -321,26 +321,34 @@ export function AttendanceClient({
               className="w-full pl-9 pr-4 py-2 text-sm rounded-xl outline-none"
               style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#e5e7eb" }} />
           </div>
-          <div className="flex gap-1 rounded-xl p-1 flex-shrink-0" style={{ background: "rgba(255,255,255,0.05)" }}>
-            {([
-              { key: "inGym"   as const, label: `In Gym`, count: inGym.length,           accent: "#10b981" },
-              { key: "visited" as const, label: `Visited`, count: todayAttendance.length, accent: "#a855f7" },
-              { key: "pending" as const, label: `Pending`, count: notCheckedIn.length,    accent: "#f97316" },
-            ]).map((tab) => (
-              <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
-                style={activeTab === tab.key
-                  ? { background: tab.accent, color: "#fff" }
-                  : { color: "#6b7280" }}>
-                {tab.label}
-                <span className="text-[10px] font-extrabold px-1 py-0.5 rounded-md"
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex gap-1 rounded-xl p-1" style={{ background: "rgba(255,255,255,0.05)" }}>
+              {([
+                { key: "inGym"   as const, label: `In Gym`, count: inGym.length,           accent: "#10b981" },
+                { key: "visited" as const, label: `Visited`, count: todayAttendance.length, accent: "#a855f7" },
+                { key: "pending" as const, label: `Pending`, count: notCheckedIn.length,    accent: "#f97316" },
+              ]).map((tab) => (
+                <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
                   style={activeTab === tab.key
-                    ? { background: "rgba(0,0,0,0.2)", color: "#fff" }
-                    : { background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
-                  {tab.count}
-                </span>
-              </button>
-            ))}
+                    ? { background: tab.accent, color: "#fff" }
+                    : { color: "#6b7280" }}>
+                  {tab.label}
+                  <span className="text-[10px] font-extrabold px-1 py-0.5 rounded-md"
+                    style={activeTab === tab.key
+                      ? { background: "rgba(0,0,0,0.2)", color: "#fff" }
+                      : { background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <Link href="/challenge"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+              style={{ background: "rgba(234,179,8,0.12)", color: "#eab308", border: "1px solid rgba(234,179,8,0.2)" }}>
+              <Trophy className="h-3.5 w-3.5" />
+              Aug Challenge
+            </Link>
           </div>
         </div>
 
