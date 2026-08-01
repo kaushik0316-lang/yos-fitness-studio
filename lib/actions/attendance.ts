@@ -211,17 +211,50 @@ export async function manualMarkMemberAttendance(input: {
   return { success: true };
 }
 
-// ── Manual check-out a member right now ─────────────────────────────────────
-export async function checkOutMemberNow(attendanceId: string) {
+// ── Check out a member with optional custom time and remarks ─────────────────
+export async function checkOutMember(input: {
+  attendanceId: string;
+  checkOutTime?: string; // "HH:MM" IST — defaults to now
+  remarks?: string;
+}) {
   const session = await auth();
   if (!session?.user) throw new Error("Unauthorized");
   if (session.user.role !== "ADMIN" && session.user.role !== "FRONT_DESK") {
     throw new Error("Insufficient permissions");
   }
 
+  const record = await prisma.memberAttendance.findUnique({
+    where: { id: input.attendanceId },
+    select: { checkInTime: true, date: true },
+  });
+  if (!record) throw new Error("Attendance record not found.");
+
+  let checkOutTime: Date;
+  if (input.checkOutTime) {
+    // Build checkout as IST time on the same calendar day as check-in
+    const checkInIST = new Date(record.checkInTime.getTime() + 5.5 * 60 * 60 * 1000);
+    const [h, m] = input.checkOutTime.split(":").map(Number);
+    checkOutTime = new Date(
+      Date.UTC(
+        checkInIST.getUTCFullYear(),
+        checkInIST.getUTCMonth(),
+        checkInIST.getUTCDate(),
+        h, m, 0
+      ) - 5.5 * 60 * 60 * 1000
+    );
+    if (checkOutTime <= record.checkInTime) {
+      throw new Error("Check-out time must be after check-in time.");
+    }
+  } else {
+    checkOutTime = new Date();
+  }
+
   await prisma.memberAttendance.update({
-    where: { id: attendanceId },
-    data: { checkOutTime: new Date() },
+    where: { id: input.attendanceId },
+    data: {
+      checkOutTime,
+      ...(input.remarks ? { remarks: input.remarks } : {}),
+    },
   });
 
   revalidatePath("/attendance");

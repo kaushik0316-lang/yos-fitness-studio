@@ -9,7 +9,7 @@ import {
 import Link from "next/link";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import { ManualAttendanceDialog } from "@/components/attendance/ManualAttendanceDialog";
-import { checkOutMemberNow } from "@/lib/actions/attendance";
+import { CheckOutDialog } from "@/components/attendance/CheckOutDialog";
 import { formatTime, daysAgo } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { format, addDays, subDays, differenceInMinutes, parseISO } from "date-fns";
@@ -100,7 +100,7 @@ export function AttendanceClient({
   const [search, setSearch]             = useState("");
   const [markFor, setMarkFor]           = useState<Member | null>(null);
   const [manualOpen, setManualOpen]     = useState(false);
-  const [checkingOut, setCheckingOut]   = useState<string | null>(null);
+  const [checkOutFor, setCheckOutFor]   = useState<typeof todayAttendance[0] | null>(null);
 
   const inGym    = useMemo(() => todayAttendance.filter((a) => !a.checkOutTime), [todayAttendance]);
   const visited  = todayAttendance;
@@ -416,15 +416,10 @@ export function AttendanceClient({
                     </div>
                     {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
                       <button
-                        disabled={checkingOut === a.id}
-                        onClick={async () => {
-                          setCheckingOut(a.id);
-                          try { await checkOutMemberNow(a.id); }
-                          finally { setCheckingOut(null); }
-                        }}
-                        className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40"
+                        onClick={() => setCheckOutFor(a)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
                         style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>
-                        {checkingOut === a.id ? "…" : "Check Out"}
+                        Check Out
                       </button>
                     )}
                   </div>
@@ -598,6 +593,22 @@ export function AttendanceClient({
         allMembers={allMembers}
         defaultDate={selectedDate}
       />
+
+      {checkOutFor && (
+        <CheckOutDialog
+          open={!!checkOutFor}
+          onClose={() => setCheckOutFor(null)}
+          attendance={{
+            id: checkOutFor.id,
+            checkInTime: checkOutFor.checkInTime,
+            checkOutTime: checkOutFor.checkOutTime,
+          }}
+          member={{
+            fullName: checkOutFor.member.fullName,
+            memberId: checkOutFor.member.memberId,
+          }}
+        />
+      )}
     </div>
   );
 }
