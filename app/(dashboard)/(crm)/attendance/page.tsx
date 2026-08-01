@@ -2,16 +2,71 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { AttendanceClient } from "@/components/attendance/AttendanceClient";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, subDays, format } from "date-fns";
+import { MonthlyAttendanceView } from "@/components/attendance/MonthlyAttendanceView";
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, subDays, format, startOfMonth, endOfMonth, differenceInMinutes, getDaysInMonth } from "date-fns";
 import { MemberStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Attendance" };
 
-type SearchParams = { date?: string };
+type SearchParams = { date?: string; view?: string; month?: string; year?: string };
 
 export default async function AttendancePage({ searchParams }: { searchParams: SearchParams }) {
   const session = await auth();
+
+  // ── Month view ──────────────────────────────────────────────────────────────
+  if (searchParams.view === "month") {
+    const now   = new Date();
+    const month = searchParams.month ? parseInt(searchParams.month) : now.getMonth() + 1;
+    const year  = searchParams.year  ? parseInt(searchParams.year)  : now.getFullYear();
+    const monthDate  = new Date(year, month - 1, 1);
+    const monthStart = startOfMonth(monthDate);
+    const monthEnd   = endOfMonth(monthDate);
+    const totalDays  = getDaysInMonth(monthDate);
+    const isAugust   = month === 8 && year === 2026;
+
+    const records = await prisma.memberAttendance.findMany({
+      where: { date: { gte: monthStart, lte: monthEnd } },
+      include: { member: { select: { id: true, memberId: true, fullName: true, currentPackage: { select: { name: true } } } } },
+      orderBy: { date: "asc" },
+    });
+
+    const memberMap = new Map<string, {
+      id: string; memberId: string; fullName: string; packageName: string | null;
+      visits: number; totalMins: number; challengeDays: number; daysAttended: Set<number>;
+    }>();
+
+    for (const r of records) {
+      const id = r.member.id;
+      if (!memberMap.has(id)) {
+        memberMap.set(id, {
+          id, memberId: r.member.memberId, fullName: r.member.fullName,
+          packageName: r.member.currentPackage?.name ?? null,
+          visits: 0, totalMins: 0, challengeDays: 0, daysAttended: new Set(),
+        });
+      }
+      const entry = memberMap.get(id)!;
+      const day   = parseInt(r.date.toISOString().slice(8, 10));
+      const mins  = r.checkOutTime ? differenceInMinutes(r.checkOutTime, r.checkInTime) : 0;
+      entry.visits++;
+      entry.totalMins += mins;
+      entry.daysAttended.add(day);
+      if (mins >= 50) entry.challengeDays++;
+    }
+
+    const rows = Array.from(memberMap.values())
+      .map((m) => ({ ...m, avgMins: m.visits > 0 ? Math.round(m.totalMins / m.visits) : 0 }))
+      .sort((a, b) => b.visits - a.visits);
+
+    return (
+      <>
+        <Header title="Member Attendance" subtitle={`${format(monthDate, "MMMM yyyy")} · ${rows.length} members`} />
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6">
+          <MonthlyAttendanceView rows={rows} month={month} year={year} totalDays={totalDays} isAugust={isAugust} />
+        </div>
+      </>
+    );
+  }
 
   const selectedDate = searchParams.date ? new Date(searchParams.date) : new Date();
   const dayStart  = startOfDay(selectedDate);

@@ -4,12 +4,13 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search, CheckCircle2, Clock, CalendarCheck, ChevronLeft, ChevronRight,
-  LogOut, Dumbbell, Users, Timer, TrendingUp, Calendar, Trophy,
+  LogOut, Dumbbell, Users, Timer, TrendingUp, Calendar, Trophy, Pencil,
 } from "lucide-react";
 import Link from "next/link";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import { ManualAttendanceDialog } from "@/components/attendance/ManualAttendanceDialog";
 import { CheckOutDialog } from "@/components/attendance/CheckOutDialog";
+import { EditAttendanceDialog } from "@/components/attendance/EditAttendanceDialog";
 import { formatTime, daysAgo } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { format, addDays, subDays, differenceInMinutes, parseISO } from "date-fns";
@@ -101,6 +102,7 @@ export function AttendanceClient({
   const [markFor, setMarkFor]           = useState<Member | null>(null);
   const [manualOpen, setManualOpen]     = useState(false);
   const [checkOutFor, setCheckOutFor]   = useState<typeof todayAttendance[0] | null>(null);
+  const [editRecord,  setEditRecord]    = useState<typeof todayAttendance[0] | null>(null);
 
   const inGym    = useMemo(() => todayAttendance.filter((a) => !a.checkOutTime), [todayAttendance]);
   const visited  = todayAttendance;
@@ -348,6 +350,12 @@ export function AttendanceClient({
                 </button>
               ))}
             </div>
+            <Link href={`/attendance?view=month&month=${new Date().getMonth() + 1}&year=${new Date().getFullYear()}`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+              style={{ background: "rgba(59,130,246,0.12)", color: "#60a5fa", border: "1px solid rgba(59,130,246,0.2)" }}>
+              <CalendarCheck className="h-3.5 w-3.5" />
+              Month View
+            </Link>
             <Link href="/challenge"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
               style={{ background: "rgba(234,179,8,0.12)", color: "#eab308", border: "1px solid rgba(234,179,8,0.2)" }}>
@@ -383,7 +391,7 @@ export function AttendanceClient({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Link href={`/members/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors text-sm">
+                      <Link href={`/attendance/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors text-sm">
                         {toTitleCase(a.member.fullName)}
                       </Link>
                       {streak >= 3 && (
@@ -451,7 +459,7 @@ export function AttendanceClient({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Link href={`/members/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors text-sm">
+                      <Link href={`/attendance/${a.member.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors text-sm">
                         {toTitleCase(a.member.fullName)}
                       </Link>
                       {streak >= 3 && (
@@ -508,6 +516,14 @@ export function AttendanceClient({
                       <p className="text-xs text-emerald-700 mt-0.5">still inside</p>
                     )}
                   </div>
+                  {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
+                    <button onClick={() => setEditRecord(a)}
+                      className="flex-shrink-0 p-2 rounded-lg text-gray-700 hover:text-orange-400 transition-colors ml-1"
+                      style={{ background: "rgba(255,255,255,0.04)" }}
+                      title="Edit times">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -593,6 +609,22 @@ export function AttendanceClient({
         allMembers={allMembers}
         defaultDate={selectedDate}
       />
+
+      {editRecord && (
+        <EditAttendanceDialog
+          open={!!editRecord}
+          onClose={() => { setEditRecord(null); router.refresh(); }}
+          record={{
+            id:             editRecord.id,
+            date:           selectedDate,
+            checkInTime:    editRecord.checkInTime,
+            checkOutTime:   editRecord.checkOutTime,
+            autoCheckedOut: editRecord.autoCheckedOut,
+            remarks:        editRecord.remarks,
+          }}
+          member={{ fullName: editRecord.member.fullName, memberId: editRecord.member.memberId }}
+        />
+      )}
 
       {checkOutFor && (
         <CheckOutDialog

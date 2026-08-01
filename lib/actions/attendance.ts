@@ -262,6 +262,43 @@ export async function checkOutMember(input: {
   return { success: true };
 }
 
+// ── Edit an existing member attendance record's times ───────────────────────
+export async function editMemberAttendance(input: {
+  attendanceId: string;
+  checkInTime: string;       // "HH:MM" IST
+  checkOutTime?: string | null; // "HH:MM" IST
+  remarks?: string | null;
+}) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
+  if (session.user.role !== "ADMIN" && session.user.role !== "FRONT_DESK") {
+    throw new Error("Insufficient permissions");
+  }
+
+  const existing = await prisma.memberAttendance.findUnique({
+    where: { id: input.attendanceId },
+    select: { date: true },
+  });
+  if (!existing) throw new Error("Record not found.");
+
+  const dateStr = existing.date.toISOString().slice(0, 10);
+  function toIST(d: string, t: string) { return new Date(`${d}T${t}:00+05:30`); }
+
+  const checkIn  = toIST(dateStr, input.checkInTime);
+  const checkOut = input.checkOutTime ? toIST(dateStr, input.checkOutTime) : null;
+  if (checkOut && checkOut <= checkIn) throw new Error("Check-out must be after check-in.");
+
+  await prisma.memberAttendance.update({
+    where: { id: input.attendanceId },
+    data: { checkInTime: checkIn, checkOutTime: checkOut, remarks: input.remarks ?? null },
+  });
+
+  revalidatePath("/attendance");
+  revalidatePath("/challenge");
+  revalidatePath("/members");
+  return { success: true };
+}
+
 // ── Delete a single attendance shift ────────────────────────────────────────
 export async function deleteAttendanceShift(shiftId: string) {
   const session = await auth();
