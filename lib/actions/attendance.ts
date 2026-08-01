@@ -166,7 +166,7 @@ export async function manualMarkMemberAttendance(input: {
     return new Date(`${dateStr}T${timeStr}:00+05:30`);
   }
 
-  const attendanceDate = startOfDay(new Date(`${input.date}T00:00:00+05:30`));
+  const attendanceDate = new Date(`${input.date}T00:00:00.000Z`);
   const checkIn  = toIST(input.date, input.checkInTime);
   const checkOut = toIST(input.date, input.checkOutTime);
 
