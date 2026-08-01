@@ -148,6 +148,69 @@ export async function manualMarkAttendanceWithTime(input: {
   return { success: true };
 }
 
+// ── Manual member attendance entry with check-in/out times ──────────────────
+export async function manualMarkMemberAttendance(input: {
+  memberId: string;
+  date: string;       // "YYYY-MM-DD"
+  checkInTime: string;  // "HH:MM" IST
+  checkOutTime: string; // "HH:MM" IST
+  remarks?: string;
+}) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
+  if (session.user.role !== "ADMIN" && session.user.role !== "FRONT_DESK") {
+    throw new Error("Insufficient permissions");
+  }
+
+  function toIST(dateStr: string, timeStr: string): Date {
+    return new Date(`${dateStr}T${timeStr}:00+05:30`);
+  }
+
+  const attendanceDate = startOfDay(new Date(`${input.date}T00:00:00+05:30`));
+  const checkIn  = toIST(input.date, input.checkInTime);
+  const checkOut = toIST(input.date, input.checkOutTime);
+
+  if (checkOut <= checkIn) throw new Error("Check-out time must be after check-in time.");
+
+  const existing = await prisma.memberAttendance.findUnique({
+    where: { memberId_date: { memberId: input.memberId, date: attendanceDate } },
+  });
+
+  if (existing) {
+    // Update existing record's times
+    await prisma.memberAttendance.update({
+      where: { id: existing.id },
+      data: {
+        checkInTime:  checkIn,
+        checkOutTime: checkOut,
+        remarks: input.remarks ?? existing.remarks,
+      },
+    });
+  } else {
+    await prisma.$transaction([
+      prisma.memberAttendance.create({
+        data: {
+          memberId:     input.memberId,
+          date:         attendanceDate,
+          checkInTime:  checkIn,
+          checkOutTime: checkOut,
+          markedById:   session.user.id,
+          remarks:      input.remarks ?? null,
+        },
+      }),
+      prisma.member.update({
+        where: { id: input.memberId },
+        data: { lastAttendanceDate: attendanceDate },
+      }),
+    ]);
+  }
+
+  revalidatePath("/attendance");
+  revalidatePath("/challenge");
+  revalidatePath("/members");
+  return { success: true };
+}
+
 // ── Delete a single attendance shift ────────────────────────────────────────
 export async function deleteAttendanceShift(shiftId: string) {
   const session = await auth();

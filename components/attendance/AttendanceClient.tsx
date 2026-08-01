@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
+import { ManualAttendanceDialog } from "@/components/attendance/ManualAttendanceDialog";
 import { formatTime, daysAgo } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { format, addDays, subDays, differenceInMinutes, parseISO } from "date-fns";
@@ -43,6 +44,7 @@ type Member = {
 type Props = {
   todayAttendance: AttendanceRecord[];
   notCheckedIn: Member[];
+  allMembers: { id: string; memberId: string; fullName: string; phone: string }[];
   totalActive: number;
   userId: string;
   userRole: UserRole;
@@ -89,13 +91,14 @@ function Initials({ name, size = 10 }: { name: string; size?: number }) {
 }
 
 export function AttendanceClient({
-  todayAttendance, notCheckedIn, totalActive, userId, userRole,
+  todayAttendance, notCheckedIn, allMembers, totalActive, userId, userRole,
   selectedDate, isToday, weekVisitsMap, streakMap,
 }: Props) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"inGym" | "visited" | "pending">("inGym");
-  const [search, setSearch]       = useState("");
-  const [markFor, setMarkFor]     = useState<Member | null>(null);
+  const [activeTab, setActiveTab]       = useState<"inGym" | "visited" | "pending">("inGym");
+  const [search, setSearch]             = useState("");
+  const [markFor, setMarkFor]           = useState<Member | null>(null);
+  const [manualOpen, setManualOpen]     = useState(false);
 
   const inGym    = useMemo(() => todayAttendance.filter((a) => !a.checkOutTime), [todayAttendance]);
   const visited  = todayAttendance;
@@ -349,6 +352,13 @@ export function AttendanceClient({
               <Trophy className="h-3.5 w-3.5" />
               Aug Challenge
             </Link>
+            {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
+              <button onClick={() => setManualOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                style={{ background: "rgba(99,102,241,0.12)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.2)" }}>
+                + Manual Entry
+              </button>
+            )}
           </div>
         </div>
 
@@ -564,6 +574,13 @@ export function AttendanceClient({
           userId={userId}
         />
       )}
+
+      <ManualAttendanceDialog
+        open={manualOpen}
+        onClose={() => setManualOpen(false)}
+        allMembers={allMembers}
+        defaultDate={selectedDate}
+      />
     </div>
   );
 }

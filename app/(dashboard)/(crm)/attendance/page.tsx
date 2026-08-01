@@ -145,6 +145,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
         <AttendanceClient
           todayAttendance={dayAttendance.map(serializeAttendance) as any}
           notCheckedIn={notCheckedIn.map(serializeMember) as any}
+          allMembers={activeMembers.map((m) => ({ id: m.id, memberId: m.memberId, fullName: m.fullName, phone: m.phone }))}
           totalActive={activeMembers.length}
           userId={session!.user.id}
           userRole={session!.user.role}
