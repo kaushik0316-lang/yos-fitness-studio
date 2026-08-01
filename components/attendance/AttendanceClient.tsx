@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import { ManualAttendanceDialog } from "@/components/attendance/ManualAttendanceDialog";
+import { checkOutMemberNow } from "@/lib/actions/attendance";
 import { formatTime, daysAgo } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { format, addDays, subDays, differenceInMinutes, parseISO } from "date-fns";
@@ -99,6 +100,7 @@ export function AttendanceClient({
   const [search, setSearch]             = useState("");
   const [markFor, setMarkFor]           = useState<Member | null>(null);
   const [manualOpen, setManualOpen]     = useState(false);
+  const [checkingOut, setCheckingOut]   = useState<string | null>(null);
 
   const inGym    = useMemo(() => todayAttendance.filter((a) => !a.checkOutTime), [todayAttendance]);
   const visited  = todayAttendance;
@@ -407,9 +409,24 @@ export function AttendanceClient({
                       {a.member.trainer && <> · <span className="text-gray-600">{toTitleCase(a.member.trainer.fullName)}</span></>}
                     </p>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-extrabold text-emerald-400">{formatTime(new Date(a.checkInTime))}</p>
-                    <p className="text-xs text-emerald-700 mt-0.5">{minsLabel} inside</p>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="text-right">
+                      <p className="text-sm font-extrabold text-emerald-400">{formatTime(new Date(a.checkInTime))}</p>
+                      <p className="text-xs text-emerald-700 mt-0.5">{minsLabel} inside</p>
+                    </div>
+                    {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
+                      <button
+                        disabled={checkingOut === a.id}
+                        onClick={async () => {
+                          setCheckingOut(a.id);
+                          try { await checkOutMemberNow(a.id); }
+                          finally { setCheckingOut(null); }
+                        }}
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40"
+                        style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>
+                        {checkingOut === a.id ? "…" : "Check Out"}
+                      </button>
+                    )}
                   </div>
                 </div>
               );

@@ -211,6 +211,24 @@ export async function manualMarkMemberAttendance(input: {
   return { success: true };
 }
 
+// ── Manual check-out a member right now ─────────────────────────────────────
+export async function checkOutMemberNow(attendanceId: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
+  if (session.user.role !== "ADMIN" && session.user.role !== "FRONT_DESK") {
+    throw new Error("Insufficient permissions");
+  }
+
+  await prisma.memberAttendance.update({
+    where: { id: attendanceId },
+    data: { checkOutTime: new Date() },
+  });
+
+  revalidatePath("/attendance");
+  revalidatePath("/challenge");
+  return { success: true };
+}
+
 // ── Delete a single attendance shift ────────────────────────────────────────
 export async function deleteAttendanceShift(shiftId: string) {
   const session = await auth();
