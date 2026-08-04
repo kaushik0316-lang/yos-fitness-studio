@@ -59,6 +59,9 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId,
       pendingAmount: "0",
       paymentMode: "CASH" as typeof PAYMENT_MODES[number],
       company: "YOS_FITNESS" as Company,
+      paymentType: "RENEWAL",
+      previousReceiptNo: "",
+      transactionRef: "",
       notes: "",
       commissionTrainerId: "",
       commissionPct: "",
@@ -68,6 +71,7 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId,
   const selectedPackageId = watch("packageId");
   const selectedPkg = packages.find((p) => p.id === selectedPackageId);
   const paymentMode = watch("paymentMode");
+  const paymentType = watch("paymentType");
   const amount = watch("amount");
   const discount = watch("discount");
 
@@ -156,6 +160,9 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId,
         soldById: soldById ?? undefined,
         soldById2: soldById && soldById2 ? soldById2 : undefined,
         soldByPct: soldById && soldById2 ? soldByPct : undefined,
+        transactionRef: data.transactionRef || undefined,
+        paymentType: data.paymentType || undefined,
+        previousReceiptNo: data.previousReceiptNo ? Number(data.previousReceiptNo) : undefined,
       });
       setSuccessPaymentId(result.paymentId);
       setSuccessExpiry(result.expiryDate!);
@@ -408,6 +415,39 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId,
                 <option value="YOS_FITNESS">Yos Fitness</option>
                 <option value="YOS_FITNESS_STUDIO">Yos Fitness Studio</option>
               </select>
+            </div>
+
+            {/* Payment Type */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Payment Type</label>
+              <select {...register("paymentType")} className={inputCls}>
+                <option value="RENEWAL">Renewal</option>
+                <option value="ADMISSION">Admission</option>
+                <option value="BALANCE">Balance (clearing dues)</option>
+              </select>
+            </div>
+
+            {/* Previous Receipt # — shown only for BALANCE payments */}
+            {paymentType === "BALANCE" && (
+              <div className="rounded-lg p-3 space-y-2" style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                <p className="text-xs font-bold text-red-400">Clearing balance on original receipt</p>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Original Receipt # *</label>
+                  <input
+                    {...register("previousReceiptNo")}
+                    type="number"
+                    placeholder="e.g. 2501"
+                    className={inputCls}
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">The pending amount on that receipt will be reduced automatically.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Transaction Ref */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Transaction Ref / UPI ID</label>
+              <input {...register("transactionRef")} className={inputCls} placeholder="UPI ref, cheque no..." />
             </div>
 
             {/* Notes */}

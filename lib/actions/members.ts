@@ -214,6 +214,9 @@ export async function renewMembership(input: {
   soldById?: string;
   soldById2?: string;
   soldByPct?: number;
+  transactionRef?: string;
+  paymentType?: string;
+  previousReceiptNo?: number;
 }) {
   const session = await auth();
   if (!session?.user) throw new Error("Unauthorized");
@@ -246,6 +249,9 @@ export async function renewMembership(input: {
         soldById: input.soldById ?? null,
         soldById2: input.soldById2 ?? null,
         soldByPct: input.soldById2 ? (input.soldByPct ?? 100) : 100,
+        transactionRef: input.transactionRef ?? null,
+        paymentType: (input.paymentType as any) ?? "RENEWAL",
+        previousReceiptNo: input.previousReceiptNo ?? null,
       },
     });
 
