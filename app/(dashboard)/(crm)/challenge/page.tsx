@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { Header } from "@/components/layout/Header";
 import { ChallengeClient } from "@/components/challenge/ChallengeClient";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "August Challenge" };
@@ -92,6 +94,10 @@ export default async function ChallengePage() {
     <>
       <Header title="August Challenge" subtitle="27 workouts in 31 days — Aug 2026" />
       <div className="flex-1 overflow-y-auto p-6">
+        <Link href="/attendance" className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors mb-4">
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Back to Attendance
+        </Link>
         <ChallengeClient rows={rows} stats={stats} />
       </div>
     </>
