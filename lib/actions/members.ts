@@ -195,7 +195,13 @@ export async function updateMember(id: string, input: Partial<z.infer<typeof cre
 
 export async function renewMembership(input: {
   memberId: string;
-  packageId: string;
+  // Package-based path (existing)
+  packageId?: string;
+  // Category-based path (same as New Receipt)
+  categoryLabel?: string;
+  periodLabel?: string;
+  durationDays?: number;
+  expiryDate?: string;
   startDate: string;
   amount: number;
   discount?: number;
@@ -221,14 +227,23 @@ export async function renewMembership(input: {
   const session = await auth();
   if (!session?.user) throw new Error("Unauthorized");
 
-  const pkg = await prisma.package.findUnique({ where: { id: input.packageId } });
-  if (!pkg) throw new Error("Package not found");
-
   const startDate = new Date(input.startDate);
-  const expiryDate = addDays(startDate, pkg.durationDays);
+  let expiryDate: Date;
+  let isPT = false;
 
-  // PT packages never update the member's expiry — only General membership does
-  const isPT = /pt|personal\s*train|semi\s*private/i.test(pkg.name);
+  if (input.packageId) {
+    // Package-based path
+    const pkg = await prisma.package.findUnique({ where: { id: input.packageId } });
+    if (!pkg) throw new Error("Package not found");
+    expiryDate = addDays(startDate, pkg.durationDays);
+    isPT = /pt|personal\s*train|semi\s*private/i.test(pkg.name);
+  } else if (input.categoryLabel && input.durationDays) {
+    // Category-based path (like New Receipt)
+    expiryDate = input.expiryDate ? new Date(input.expiryDate) : addDays(startDate, input.durationDays);
+    isPT = /pt|personal\s*train|semi\s*private/i.test(input.categoryLabel);
+  } else {
+    throw new Error("Either packageId or categoryLabel + durationDays is required");
+  }
 
   const { paymentId } = await prisma.$transaction(async (tx) => {
     const payment = await tx.payment.create({
@@ -237,7 +252,9 @@ export async function renewMembership(input: {
         amount: input.amount,
         discount: input.discount ?? 0,
         paymentMode: input.paymentMode,
-        packageId: input.packageId,
+        packageId: input.packageId ?? null,
+        categoryLabel: input.categoryLabel ?? null,
+        periodLabel: input.periodLabel ?? null,
         company: input.company,
         collectedById: session.user.id,
         notes: input.notes ?? "Renewal",
@@ -252,22 +269,27 @@ export async function renewMembership(input: {
         transactionRef: input.transactionRef ?? null,
         paymentType: (input.paymentType as any) ?? "RENEWAL",
         previousReceiptNo: input.previousReceiptNo ?? null,
+        expiryDate,
+        startDate,
       },
     });
 
-    await tx.membership.create({
-      data: {
-        memberId: input.memberId,
-        packageId: input.packageId,
-        startDate,
-        expiryDate,
-        company: input.company,
-        amount: input.amount,
-        discount: input.discount ?? 0,
-        paymentId: payment.id,
-        notes: input.notes,
-      },
-    });
+    // Membership record only when a package is selected (requires packageId)
+    if (input.packageId) {
+      await tx.membership.create({
+        data: {
+          memberId: input.memberId,
+          packageId: input.packageId,
+          startDate,
+          expiryDate,
+          company: input.company,
+          amount: input.amount,
+          discount: input.discount ?? 0,
+          paymentId: payment.id,
+          notes: input.notes,
+        },
+      });
+    }
 
     await tx.member.update({
       where: { id: input.memberId },
@@ -276,7 +298,7 @@ export async function renewMembership(input: {
         lastPaymentDate: new Date(),
         // PT packages don't own the member's expiry — only General membership does
         ...(!isPT && {
-          currentPackageId: input.packageId,
+          ...(input.packageId && { currentPackageId: input.packageId }),
           startDate,
           expiryDate,
           renewalDueDate: expiryDate,
@@ -308,7 +330,7 @@ export async function renewMembership(input: {
         action: "RENEW",
         entity: "Member",
         entityId: input.memberId,
-        newValues: { packageId: input.packageId, expiryDate: expiryDate.toISOString(), amount: input.amount },
+        newValues: { packageId: input.packageId ?? null, categoryLabel: input.categoryLabel ?? null, expiryDate: expiryDate.toISOString(), amount: input.amount },
       },
     });
 

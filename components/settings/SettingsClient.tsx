@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, Loader2, Check, X, Shield, Eye, EyeOff, Wrench, Hash, Trash2, Smartphone, Search, ToggleLeft, ToggleRight } from "lucide-react";
+import { Users, Loader2, Check, X, Shield, Eye, EyeOff, Wrench, Hash, Trash2, Smartphone, Search, ToggleLeft, ToggleRight, Package, Plus, Pencil } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@prisma/client";
@@ -14,6 +14,8 @@ type KioskMember = {
   currentPackage: { name: string } | null; expiryDate: string | null;
 };
 
+type PkgRow = { id: string; name: string; price: any; durationDays: number; company: string | null; isActive: boolean; notes: string | null };
+
 type Props = { users: User[] };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -24,7 +26,111 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export function SettingsClient({ users }: Props) {
-  const [activeTab, setActiveTab] = useState<"users" | "security" | "data" | "kiosk">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "security" | "data" | "kiosk" | "packages">("users");
+
+  // ── Packages state ───────────────────────────────────────────────────────────
+  const [packages, setPackages] = useState<PkgRow[] | null>(null);
+  const [pkgLoading, setPkgLoading] = useState(false);
+  const [pkgForm, setPkgForm] = useState({ name: "", price: "", durationDays: "", company: "", notes: "" });
+  const [pkgSaving, setPkgSaving] = useState(false);
+  const [editingPkg, setEditingPkg] = useState<PkgRow | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", price: "", durationDays: "", company: "", notes: "" });
+  const [editSaving, setEditSaving] = useState(false);
+  const [togglingPkg, setTogglingPkg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeTab === "packages" && packages === null) loadPackages();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  async function loadPackages() {
+    setPkgLoading(true);
+    try {
+      const res = await fetch("/api/packages");
+      if (res.ok) setPackages(await res.json());
+    } finally {
+      setPkgLoading(false);
+    }
+  }
+
+  async function addPackage() {
+    if (!pkgForm.name.trim() || !pkgForm.price || !pkgForm.durationDays) {
+      toast({ title: "Name, price and duration are required", variant: "destructive" }); return;
+    }
+    setPkgSaving(true);
+    try {
+      const res = await fetch("/api/packages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: pkgForm.name.trim(),
+          price: parseFloat(pkgForm.price),
+          durationDays: parseInt(pkgForm.durationDays),
+          company: pkgForm.company || null,
+          notes: pkgForm.notes.trim() || undefined,
+        }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Failed"); }
+      const created = await res.json();
+      setPackages(prev => prev ? [...prev, created].sort((a, b) => a.name.localeCompare(b.name)) : [created]);
+      setPkgForm({ name: "", price: "", durationDays: "", company: "", notes: "" });
+      toast({ title: `Package "${created.name}" added` });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setPkgSaving(false);
+    }
+  }
+
+  function startEdit(pkg: PkgRow) {
+    setEditingPkg(pkg);
+    setEditForm({ name: pkg.name, price: String(Number(pkg.price)), durationDays: String(pkg.durationDays), company: pkg.company ?? "", notes: pkg.notes ?? "" });
+  }
+
+  async function saveEdit() {
+    if (!editingPkg) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/packages/${editingPkg.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editForm.name.trim(),
+          price: parseFloat(editForm.price),
+          durationDays: parseInt(editForm.durationDays),
+          company: editForm.company || null,
+          notes: editForm.notes.trim() || null,
+        }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Failed"); }
+      const updated = await res.json();
+      setPackages(prev => prev ? prev.map(p => p.id === updated.id ? updated : p).sort((a, b) => a.name.localeCompare(b.name)) : null);
+      setEditingPkg(null);
+      toast({ title: "Package updated" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function togglePackage(pkg: PkgRow) {
+    setTogglingPkg(pkg.id);
+    try {
+      const res = await fetch(`/api/packages/${pkg.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !pkg.isActive }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Failed"); }
+      const updated = await res.json();
+      setPackages(prev => prev ? prev.map(p => p.id === updated.id ? updated : p) : null);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setTogglingPkg(null);
+    }
+  }
 
   // ── Kiosk state ─────────────────────────────────────────────────────────────
   const [kioskMembers, setKioskMembers] = useState<KioskMember[] | null>(null);
@@ -165,6 +271,7 @@ export function SettingsClient({ users }: Props) {
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit flex-wrap">
         {[
           { key: "users",    label: `Users (${users.length})`, icon: Users      },
+          { key: "packages", label: "Packages",                 icon: Package    },
           { key: "kiosk",    label: "Kiosk / Check-in",        icon: Smartphone },
           { key: "security", label: "Security",                 icon: Shield     },
           { key: "data",     label: "Data Tools",               icon: Wrench     },
@@ -468,6 +575,186 @@ export function SettingsClient({ users }: Props) {
               );
             })()}
           </div>
+        </div>
+      )}
+
+      {/* Packages tab */}
+      {activeTab === "packages" && (
+        <div className="space-y-4 max-w-2xl">
+          {/* Add package form */}
+          <div className="rounded-xl overflow-hidden" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="px-5 py-4 flex items-center gap-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="rounded-xl p-2" style={{ background: "rgba(249,115,22,0.12)" }}>
+                <Plus className="h-4 w-4 text-orange-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-sm">Add Package</h3>
+                <p className="text-xs text-gray-500">New packages appear in the Renew and Record Payment dialogs</p>
+              </div>
+            </div>
+            <div className="p-5 grid grid-cols-2 gap-3">
+              {[
+                { key: "name",        label: "Package Name *",   placeholder: "e.g. Monthly — General",  col: "col-span-2" },
+                { key: "price",       label: "Price (₹) *",      placeholder: "e.g. 1500",               col: "" },
+                { key: "durationDays",label: "Duration (days) *", placeholder: "e.g. 30",                col: "" },
+              ].map(({ key, label, placeholder, col }) => (
+                <div key={key} className={col}>
+                  <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">{label}</label>
+                  <input
+                    type={key === "name" ? "text" : "number"}
+                    value={(pkgForm as any)[key]}
+                    onChange={(e) => setPkgForm(p => ({ ...p, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    className="w-full rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-gray-700 outline-none transition-all"
+                    style={{ background: "rgba(255,255,255,0.05)", border: "1.5px solid rgba(255,255,255,0.08)" }}
+                    onFocus={e => { e.currentTarget.style.border = "1.5px solid rgba(249,115,22,0.5)"; }}
+                    onBlur={e => { e.currentTarget.style.border = "1.5px solid rgba(255,255,255,0.08)"; }}
+                  />
+                </div>
+              ))}
+              <div>
+                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Company</label>
+                <select
+                  value={pkgForm.company}
+                  onChange={(e) => setPkgForm(p => ({ ...p, company: e.target.value }))}
+                  className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none transition-all"
+                  style={{ background: "rgba(255,255,255,0.05)", border: "1.5px solid rgba(255,255,255,0.08)" }}
+                >
+                  <option value="">Any / Both</option>
+                  <option value="YOS_FITNESS">Yos Fitness</option>
+                  <option value="YOS_FITNESS_STUDIO">Yos Fitness Studio</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Notes</label>
+                <input
+                  value={pkgForm.notes}
+                  onChange={(e) => setPkgForm(p => ({ ...p, notes: e.target.value }))}
+                  placeholder="Optional"
+                  className="w-full rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-gray-700 outline-none transition-all"
+                  style={{ background: "rgba(255,255,255,0.05)", border: "1.5px solid rgba(255,255,255,0.08)" }}
+                  onFocus={e => { e.currentTarget.style.border = "1.5px solid rgba(249,115,22,0.5)"; }}
+                  onBlur={e => { e.currentTarget.style.border = "1.5px solid rgba(255,255,255,0.08)"; }}
+                />
+              </div>
+              <div className="col-span-2">
+                <button
+                  onClick={addPackage}
+                  disabled={pkgSaving}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-60"
+                  style={{ background: "linear-gradient(135deg, #f97316, #ea580c)", boxShadow: "0 4px 16px rgba(249,115,22,0.3)" }}
+                >
+                  {pkgSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  {pkgSaving ? "Adding…" : "Add Package"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Package list */}
+          <div className="rounded-2xl overflow-hidden" style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.07)" }}>
+            {pkgLoading && (
+              <div className="flex items-center justify-center py-12 gap-2 text-gray-600 text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+              </div>
+            )}
+            {!pkgLoading && packages?.length === 0 && (
+              <div className="text-center py-12 text-gray-600 text-sm">No packages yet. Add one above.</div>
+            )}
+            {!pkgLoading && packages && packages.length > 0 && packages.map((pkg, i) => (
+              <div key={pkg.id}>
+                {/* Edit inline */}
+                {editingPkg?.id === pkg.id ? (
+                  <div className="px-5 py-4 space-y-3" style={{ borderTop: i > 0 ? "1px solid rgba(255,255,255,0.05)" : "none", background: "rgba(249,115,22,0.04)" }}>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { key: "name",         label: "Name",     type: "text",   col: "col-span-2" },
+                        { key: "price",        label: "Price (₹)", type: "number", col: "" },
+                        { key: "durationDays", label: "Days",     type: "number", col: "" },
+                      ].map(({ key, label, type, col }) => (
+                        <div key={key} className={col}>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">{label}</label>
+                          <input
+                            type={type}
+                            value={(editForm as any)[key]}
+                            onChange={(e) => setEditForm(p => ({ ...p, [key]: e.target.value }))}
+                            className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(249,115,22,0.3)" }}
+                          />
+                        </div>
+                      ))}
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Company</label>
+                        <select
+                          value={editForm.company}
+                          onChange={(e) => setEditForm(p => ({ ...p, company: e.target.value }))}
+                          className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                          style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(249,115,22,0.3)" }}
+                        >
+                          <option value="">Any / Both</option>
+                          <option value="YOS_FITNESS">Yos Fitness</option>
+                          <option value="YOS_FITNESS_STUDIO">Yos Fitness Studio</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Notes</label>
+                        <input
+                          value={editForm.notes}
+                          onChange={(e) => setEditForm(p => ({ ...p, notes: e.target.value }))}
+                          className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                          style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(249,115,22,0.3)" }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={saveEdit} disabled={editSaving}
+                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold text-white disabled:opacity-60"
+                        style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}>
+                        {editSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                        Save
+                      </button>
+                      <button onClick={() => setEditingPkg(null)}
+                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:text-white transition-colors"
+                        style={{ background: "rgba(255,255,255,0.05)" }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="flex items-center gap-4 px-5 py-4 hover:bg-white/[0.025] transition-colors"
+                    style={{ borderTop: i > 0 ? "1px solid rgba(255,255,255,0.05)" : "none", opacity: pkg.isActive ? 1 : 0.45 }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white">{pkg.name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {pkg.durationDays} days
+                        {pkg.company ? ` · ${pkg.company === "YOS_FITNESS" ? "Yos Fitness" : "Yos Fitness Studio"}` : ""}
+                        {pkg.notes ? ` · ${pkg.notes}` : ""}
+                      </p>
+                    </div>
+                    <span className="text-sm font-bold text-orange-400 flex-shrink-0">₹{Number(pkg.price).toLocaleString("en-IN")}</span>
+                    {!pkg.isActive && <span className="text-[10px] text-gray-600 font-medium flex-shrink-0">INACTIVE</span>}
+                    <button onClick={() => startEdit(pkg)} title="Edit"
+                      className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors">
+                      <Pencil className="h-3.5 w-3.5 text-gray-500 hover:text-white" />
+                    </button>
+                    <button onClick={() => togglePackage(pkg)} disabled={togglingPkg === pkg.id} title={pkg.isActive ? "Deactivate" : "Activate"}
+                      className="flex-shrink-0 transition-opacity disabled:opacity-40">
+                      {togglingPkg === pkg.id
+                        ? <Loader2 className="h-[22px] w-[22px] animate-spin text-gray-500" />
+                        : pkg.isActive
+                          ? <ToggleRight className="h-[22px] w-[22px] text-green-400" />
+                          : <ToggleLeft className="h-[22px] w-[22px] text-gray-600" />
+                      }
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <p className="text-xs text-gray-600 px-1">Active packages appear in Renew and Record Payment dialogs. Deactivated packages are hidden but existing memberships are unaffected.</p>
         </div>
       )}
 

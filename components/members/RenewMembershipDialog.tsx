@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { renewMembership } from "@/lib/actions/members";
 import { toast } from "@/hooks/use-toast";
-import { format, addDays } from "date-fns";
+import { format, addDays, addMonths } from "date-fns";
 import { Company, PaymentMode } from "@prisma/client";
 
 type Trainer = { id: string; fullName: string };
@@ -24,6 +24,38 @@ type Props = {
 };
 
 const PAYMENT_MODES = ["CASH", "UPI", "CARD", "CHEQUE", "BANK_TRANSFER", "FREE"] as const;
+
+const CATEGORIES = [
+  "Personal Training",
+  "General Fitness",
+  "Semi-Private Coaching",
+  "Transformation Package",
+  "Student Package",
+  "HIIT Classes",
+];
+
+const PERIOD_PRESETS = ["2 Weeks", "1 Month", "3 Months", "6 Months", "12 Months"];
+const PERIOD_PRESET_MONTHS: Record<string, number> = {
+  "1 Month": 1, "3 Months": 3, "6 Months": 6, "12 Months": 12,
+};
+const PERIOD_PRESET_DAYS: Record<string, number> = { "2 Weeks": 14 };
+
+function computeExpiry(startStr: string, period: string): { expiryStr: string; durationDays: number } {
+  const start = new Date(startStr);
+  const months = PERIOD_PRESET_MONTHS[period];
+  const days = PERIOD_PRESET_DAYS[period];
+  let expiry: Date;
+  if (months) {
+    expiry = addMonths(start, months);
+    expiry = addDays(expiry, -1);
+  } else if (days) {
+    expiry = addDays(start, days - 1);
+  } else {
+    expiry = addDays(start, 29);
+  }
+  const durationDays = Math.round((expiry.getTime() - start.getTime()) / 86400000) + 1;
+  return { expiryStr: format(expiry, "yyyy-MM-dd"), durationDays };
+}
 
 function todayStr() {
   return new Date().toISOString().split("T")[0];
@@ -68,6 +100,10 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId,
     },
   });
 
+  const [categoryInput, setCategoryInput] = useState("General Fitness");
+  const [showCatDropdown, setShowCatDropdown] = useState(false);
+  const [period, setPeriod] = useState("1 Month");
+
   const selectedPackageId = watch("packageId");
   const selectedPkg = packages.find((p) => p.id === selectedPackageId);
   const paymentMode = watch("paymentMode");
@@ -77,7 +113,7 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId,
 
   const commissionTrainerId = watch("commissionTrainerId");
   const commissionPct = parseFloat(watch("commissionPct") ?? "") || 0;
-  const amountVal = parseFloat(amount ?? "") || Number(selectedPkg?.price ?? 0);
+  const amountVal = parseFloat(amount ?? "") || 0;
   const commissionPreview = amountVal && commissionPct ? Math.round(amountVal * commissionPct) / 100 : 0;
 
   // Card charge logic
@@ -108,40 +144,40 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId,
     setCardChargeAmt(String(Math.round(cardLeg * pct / 100)));
   }, [cardChargePct, cardLeg]);
 
-  // Preview expiry from package
   const startDateVal = watch("startDate");
-  const previewExpiry = selectedPkg && startDateVal
-    ? addDays(new Date(startDateVal), selectedPkg.durationDays)
-    : null;
-
-  // Auto-fill amount when package selected
-  useEffect(() => {
-    if (selectedPkg) setValue("amount", String(Number(selectedPkg.price)));
-  }, [selectedPackageId]);
+  const { expiryStr: previewExpiryStr, durationDays: previewDurationDays } = startDateVal && period
+    ? computeExpiry(startDateVal, period)
+    : { expiryStr: "", durationDays: 0 };
 
   function handleClose() {
     reset();
     setSplitEnabled(false); setSplitAmt(""); setSplitAmt1(""); setSplitMode("UPI");
     setCardChargePct(""); setCardChargeAmt("");
     setSoldById(null); setSoldById2(null); setSoldByPct(80);
+    setCategoryInput("General Fitness"); setPeriod("1 Month");
     setSuccessPaymentId(null); setSuccessExpiry(null);
     onClose();
   }
 
   async function onSubmit(data: any) {
-    if (!data.packageId) {
-      toast({ title: "Select a package", variant: "destructive" });
+    if (!categoryInput.trim()) {
+      toast({ title: "Select a category", variant: "destructive" });
       return;
     }
     setLoading(true);
     try {
       const totalAmt = splitEnabled
         ? (Number(splitAmt1) || 0) + (Number(splitAmt) || 0)
-        : Number(data.amount) || Number(selectedPkg?.price ?? 0);
+        : Number(data.amount) || 0;
+
+      const { expiryStr, durationDays } = computeExpiry(data.startDate, period);
 
       const result = await renewMembership({
         memberId: member.id,
-        packageId: data.packageId,
+        categoryLabel: categoryInput.trim(),
+        periodLabel: period,
+        durationDays,
+        expiryDate: expiryStr,
         startDate: data.startDate,
         amount: totalAmt,
         discount: Number(data.discount) || 0,
@@ -151,7 +187,7 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId,
         commissionTrainerId: data.commissionTrainerId || undefined,
         commissionPct: data.commissionPct ? Number(data.commissionPct) : undefined,
         memberName: member.fullName,
-        packageName: selectedPkg?.name,
+        packageName: categoryInput.trim(),
         billDate: data.billDate || undefined,
         pendingAmount: Number(data.pendingAmount) || 0,
         splitPaymentMode: splitEnabled && splitAmt ? data.paymentMode !== splitMode ? splitMode as PaymentMode : undefined : undefined,
@@ -233,15 +269,44 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId,
               <p className="text-xs text-gray-400">{member.memberId}</p>
             </div>
 
-            {/* Package */}
+            {/* Category */}
+            <div className="relative">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Category *</label>
+              <input
+                value={categoryInput}
+                onChange={(e) => { setCategoryInput(e.target.value); setShowCatDropdown(true); }}
+                onFocus={() => setShowCatDropdown(true)}
+                onBlur={() => setTimeout(() => setShowCatDropdown(false), 150)}
+                placeholder="e.g. Personal Training"
+                className={inputCls}
+              />
+              {showCatDropdown && (
+                <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                  {CATEGORIES.filter(c => c.toLowerCase().includes(categoryInput.toLowerCase())).map(c => (
+                    <button key={c} type="button"
+                      onMouseDown={() => { setCategoryInput(c); setShowCatDropdown(false); }}
+                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-orange-50 hover:text-orange-700 transition-colors">
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Period */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Package *</label>
-              <select {...register("packageId", { required: true })} className={inputCls}>
-                <option value="">Select package</option>
-                {packages.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name} — ₹{Number(p.price).toLocaleString("en-IN")}</option>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Period</label>
+              <div className="flex gap-2 flex-wrap">
+                {PERIOD_PRESETS.map(p => (
+                  <button key={p} type="button"
+                    onClick={() => setPeriod(p)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all ${
+                      period === p ? "bg-orange-500 border-orange-500 text-white" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+                    }`}>
+                    {p}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
             {/* Bill Date */}
@@ -261,7 +326,7 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId,
                 <label className="block text-xs font-medium text-gray-600 mb-1">Expiry (preview)</label>
                 <input
                   readOnly
-                  value={previewExpiry ? format(previewExpiry, "dd MMM yyyy") : "—"}
+                  value={previewExpiryStr ? format(new Date(previewExpiryStr), "dd MMM yyyy") : "—"}
                   className="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-500"
                 />
               </div>
@@ -283,14 +348,11 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId,
               {!splitEnabled ? (
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
-                      Amount
-                      {selectedPkg && <span className="text-gray-400 font-normal ml-1">(MRP ₹{Number(selectedPkg.price).toLocaleString("en-IN")})</span>}
-                    </label>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Amount</label>
                     <input
                       {...register("amount")}
                       type="number"
-                      placeholder={selectedPkg ? String(Number(selectedPkg.price)) : "0"}
+                      placeholder="0"
                       className={inputCls}
                     />
                   </div>
