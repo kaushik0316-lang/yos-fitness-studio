@@ -246,6 +246,13 @@ export async function renewMembership(input: {
   }
 
   const { paymentId } = await prisma.$transaction(async (tx) => {
+    // Auto-assign receiptNumber per company (MAX + 1, race-safe inside transaction)
+    const agg = await tx.payment.aggregate({
+      _max: { receiptNumber: true },
+      where: { company: input.company },
+    });
+    const nextReceiptNumber = (agg._max.receiptNumber ?? 0) + 1;
+
     const payment = await tx.payment.create({
       data: {
         memberId: input.memberId,
@@ -258,6 +265,7 @@ export async function renewMembership(input: {
         company: input.company,
         collectedById: session.user.id,
         notes: input.notes ?? "Renewal",
+        receiptNumber: nextReceiptNumber,
         date: input.billDate ? new Date(input.billDate) : new Date(),
         pendingAmount: input.pendingAmount ?? 0,
         splitPaymentMode: input.splitPaymentMode ?? null,
