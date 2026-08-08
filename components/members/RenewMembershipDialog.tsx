@@ -285,7 +285,7 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId,
                   {CATEGORIES.filter(c => c.toLowerCase().includes(categoryInput.toLowerCase())).map(c => (
                     <button key={c} type="button"
                       onMouseDown={() => { setCategoryInput(c); setShowCatDropdown(false); }}
-                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-orange-50 hover:text-orange-700 transition-colors">
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-orange-50 hover:text-orange-700 transition-colors">
                       {c}
                     </button>
                   ))}
