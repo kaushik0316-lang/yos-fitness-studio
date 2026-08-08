@@ -326,7 +326,7 @@ export function RenewMembershipDialog({ open, onClose, member, packages, userId,
                 <label className="block text-xs font-medium text-gray-600 mb-1">Expiry (preview)</label>
                 <input
                   readOnly
-                  value={previewExpiryStr ? format(new Date(previewExpiryStr), "dd MMM yyyy") : "—"}
+                  value={previewExpiryStr ? format(new Date(previewExpiryStr), "dd-MM-yyyy") : "—"}
                   className="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-500"
                 />
               </div>
