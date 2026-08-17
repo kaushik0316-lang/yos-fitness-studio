@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
 
+const GYM_LAT = 13.0347589;
+const GYM_LNG = 80.2713245;
+const GEOFENCE_RADIUS_M = 50;
+
+function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
@@ -15,7 +31,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { attendanceId, session = 1 } = await req.json() as { attendanceId: string; session?: number };
+    const { attendanceId, session = 1, lat, lng } = await req.json() as { attendanceId: string; session?: number; lat?: number; lng?: number };
+
+    if (lat === undefined || lng === undefined) {
+      return NextResponse.json({ error: "Location is required to check out." }, { status: 400 });
+    }
+
+    const distance = haversineDistance(lat, lng, GYM_LAT, GYM_LNG);
+    if (distance > GEOFENCE_RADIUS_M) {
+      return NextResponse.json({ error: "You must be at the gym to check out." }, { status: 403 });
+    }
     if (!attendanceId) {
       return NextResponse.json({ error: "Attendance ID is required." }, { status: 400 });
     }
@@ -34,6 +59,7 @@ export async function POST(req: NextRequest) {
     }
 
     const now = new Date();
+    let checkInTime: Date;
 
     if (session === 2) {
       if (!record.session2CheckInTime) {
@@ -42,7 +68,8 @@ export async function POST(req: NextRequest) {
       if (record.session2CheckOutTime) {
         return NextResponse.json({ error: "Already checked out." }, { status: 409 });
       }
-      const mins = (now.getTime() - record.session2CheckInTime.getTime()) / 60000;
+      checkInTime = record.session2CheckInTime;
+      const mins = (now.getTime() - checkInTime.getTime()) / 60000;
       if (mins < 10) {
         const wait = Math.ceil(10 - mins);
         return NextResponse.json(
@@ -58,7 +85,8 @@ export async function POST(req: NextRequest) {
       if (record.checkOutTime) {
         return NextResponse.json({ error: "Already checked out." }, { status: 409 });
       }
-      const mins = (now.getTime() - record.checkInTime.getTime()) / 60000;
+      checkInTime = record.checkInTime;
+      const mins = (now.getTime() - checkInTime.getTime()) / 60000;
       if (mins < 10) {
         const wait = Math.ceil(10 - mins);
         return NextResponse.json(
@@ -75,8 +103,9 @@ export async function POST(req: NextRequest) {
     const timeStr = now.toLocaleTimeString("en-IN", {
       timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true,
     });
+    const durationMins = Math.round((now.getTime() - checkInTime.getTime()) / 60000);
 
-    return NextResponse.json({ ok: true, fullName: record.member.fullName, time: timeStr });
+    return NextResponse.json({ ok: true, fullName: record.member.fullName, time: timeStr, durationMins });
   } catch (err) {
     console.error("[member-checkout]", err);
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });

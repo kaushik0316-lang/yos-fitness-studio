@@ -6,7 +6,7 @@ import { Dumbbell, Delete, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 type Phase = "input" | "locating" | "loading" | "success" | "checkoutSuccess" | "error";
 
-interface SuccessData { fullName: string; time: string; streak?: number; }
+interface SuccessData { fullName: string; time: string; streak?: number; totalVisits?: number; durationMins?: number; }
 
 const TOTAL_DIGITS  = 4;
 const NUMPAD_KEYS   = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
@@ -40,7 +40,7 @@ function dailyPick<T>(arr: T[]): T {
   const day = Math.floor(Date.now() / 86_400_000);
   return arr[day % arr.length];
 }
-const AUTO_RESET_MS = 60 * 60 * 1000; // 1 hour — used for both success screens
+const AUTO_RESET_MS = 5 * 60 * 1000; // 5 minutes — used for both success screens
 
 function todayLabel() {
   return new Date().toLocaleDateString("en-IN", {
@@ -197,7 +197,7 @@ export default function MemberCheckinPage() {
         await performCheckout(data.attendanceId, data.fullName, data.session ?? 1);
       } else {
         sessionStorage.setItem("member_pin", enteredPin);
-        setSuccess({ fullName: data.fullName, time: data.time, streak: data.streak });
+        setSuccess({ fullName: data.fullName, time: data.time, streak: data.streak, totalVisits: data.totalVisits });
         setPhase("success");
       }
     } catch {
@@ -214,7 +214,7 @@ export default function MemberCheckinPage() {
       const res = await fetch("/api/member-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attendanceId, session }),
+        body: JSON.stringify({ attendanceId, session, lat: lastLat.current, lng: lastLng.current }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -227,7 +227,7 @@ export default function MemberCheckinPage() {
         if (res.status !== 429) { setShaking(true); setTimeout(() => setShaking(false), 500); }
         setPhase("error"); return;
       }
-      setSuccess({ fullName, time: data.time });
+      setSuccess({ fullName, time: data.time, durationMins: data.durationMins });
       setPhase("checkoutSuccess");
     } catch {
       setErrorMsg("Network error. Please try again."); setPhase("error");
@@ -270,6 +270,33 @@ export default function MemberCheckinPage() {
               </div>
             )}
             {(!successData.streak || successData.streak < 2) && <div className="mb-2" />}
+
+            {/* Milestone moment */}
+            {(() => {
+              const v = successData.totalVisits ?? 0;
+              const milestones: Record<number, { emoji: string; label: string; sub: string }> = {
+                10:  { emoji: "🎯", label: "10 Visits!", sub: "You're building a habit." },
+                25:  { emoji: "⭐", label: "25 Visits!", sub: "One quarter century strong." },
+                50:  { emoji: "🏅", label: "50 Visits!", sub: "Fifty times you showed up." },
+                100: { emoji: "💯", label: "100 Visits!", sub: "A true Yos regular." },
+                150: { emoji: "🔥", label: "150 Visits!", sub: "Nothing stops you." },
+                200: { emoji: "🏆", label: "200 Visits!", sub: "Absolute legend." },
+                300: { emoji: "👑", label: "300 Visits!", sub: "The gym belongs to you." },
+              };
+              const m = milestones[v];
+              if (!m) return null;
+              return (
+                <div className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl mb-6"
+                  style={{ background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.3)" }}>
+                  <span className="text-3xl">{m.emoji}</span>
+                  <div className="text-left">
+                    <p className="font-extrabold text-sm text-yellow-400">{m.label}</p>
+                    <p className="text-[11px] text-yellow-600">{m.sub}</p>
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="mb-6 mx-auto max-w-xs rounded-xl px-4 py-3 text-left"
               style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.15)" }}>
               <p className="text-green-400/60 text-[10px] uppercase tracking-widest font-semibold mb-1">Today&apos;s tip</p>
@@ -309,8 +336,34 @@ export default function MemberCheckinPage() {
             <h2 className="text-3xl font-extrabold text-white uppercase tracking-wide mb-1">
               {successData.fullName}
             </h2>
-            <p className="text-gray-400 text-xl mb-5">{successData.time}</p>
-            <div className="mb-6 mx-auto max-w-xs rounded-xl px-4 py-3 text-left"
+            <p className="text-gray-400 text-xl mb-3">{successData.time}</p>
+
+            {/* Duration */}
+            {successData.durationMins != null && successData.durationMins > 0 && (() => {
+              const h = Math.floor(successData.durationMins / 60);
+              const m = successData.durationMins % 60;
+              const label = h > 0 ? `${h}h ${m > 0 ? m + "m" : ""}`.trim() : `${m} min`;
+              const counts = successData.durationMins >= 50;
+              return (
+                <div className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl mb-4"
+                  style={{
+                    background: counts ? "rgba(234,179,8,0.1)" : "rgba(99,102,241,0.1)",
+                    border: `1px solid ${counts ? "rgba(234,179,8,0.3)" : "rgba(99,102,241,0.25)"}`,
+                  }}>
+                  <span className="text-2xl">{counts ? "🏆" : "💪"}</span>
+                  <div className="text-left">
+                    <p className="font-extrabold text-lg leading-none" style={{ color: counts ? "#fbbf24" : "#a5b4fc" }}>
+                      {label}
+                    </p>
+                    <p className="text-[11px] mt-0.5" style={{ color: counts ? "#92400e" : "#4338ca" }}>
+                      {counts ? "Counts for August Challenge ✓" : "Great session today"}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="mb-5 mx-auto max-w-xs rounded-xl px-4 py-3 text-left"
               style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)" }}>
               <p className="text-indigo-400/60 text-[10px] uppercase tracking-widest font-semibold mb-1">Well done!</p>
               <p className="text-gray-400 text-sm">{dailyPick(CHECKOUT_MSGS)}</p>
