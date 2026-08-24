@@ -24,13 +24,17 @@ type Props = {
   attendanceTrend: { date: string; count: number }[];
   monthlyCollectionsTrend: { label: string; yosFitness: number; yosStudio: number; total: number }[];
   topPackages: { name: string; count: number; revenue: number }[];
-  newMembersThisMonth: number; renewalsThisMonth: number; userRole: UserRole;
+  newMembersThisMonth: number; renewalsThisMonth: number;
+  lastMonthTotal: number; lastMonthNewMembers: number; lastMonthRenewals: number;
+  winBackCount: number;
+  userRole: UserRole;
 };
 
 export function ReportsClient({
   month, year, collectionsByMode, collectionsByCompany, memberStatusCounts,
   attendanceTrend, monthlyCollectionsTrend, topPackages,
   newMembersThisMonth, renewalsThisMonth,
+  lastMonthTotal, lastMonthNewMembers, lastMonthRenewals, winBackCount,
 }: Props) {
   const router = useRouter();
 
@@ -45,6 +49,16 @@ export function ReportsClient({
 
   const totalCollections = collectionsByCompany.reduce((s, c) => s + c.amount, 0);
   const totalMembers = memberStatusCounts.reduce((s, c) => s + c.count, 0);
+
+  function delta(current: number, prev: number) {
+    if (prev === 0) return null;
+    const pct = Math.round(((current - prev) / prev) * 100);
+    return { pct, up: current >= prev };
+  }
+
+  const revDelta      = delta(totalCollections, lastMonthTotal);
+  const membersDelta  = delta(newMembersThisMonth, lastMonthNewMembers);
+  const renewalsDelta = delta(renewalsThisMonth, lastMonthRenewals);
 
   const kpiCards = [
     { label: "Total Collections", value: formatCurrency(totalCollections), icon: TrendingUp, accent: "#10b981", iconBg: "rgba(16,185,129,0.12)" },
@@ -87,6 +101,45 @@ export function ReportsClient({
           </div>
         ))}
       </div>
+
+      {/* ── vs Last Month comparison ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[
+          { label: "Revenue vs Last Month",    current: formatCurrency(totalCollections), prev: formatCurrency(lastMonthTotal),    d: revDelta      },
+          { label: "New Members vs Last Month", current: String(newMembersThisMonth),      prev: String(lastMonthNewMembers),       d: membersDelta  },
+          { label: "Renewals vs Last Month",    current: String(renewalsThisMonth),        prev: String(lastMonthRenewals),         d: renewalsDelta },
+        ].map((item) => (
+          <div key={item.label} className="rounded-2xl p-4 flex items-center gap-4" style={CARD}>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest truncate">{item.label}</p>
+              <div className="flex items-end gap-2 mt-1">
+                <p className="text-xl font-extrabold text-white">{item.current}</p>
+                {item.d && (
+                  <p className="text-xs font-bold mb-0.5" style={{ color: item.d.up ? "#4ade80" : "#f87171" }}>
+                    {item.d.up ? "▲" : "▼"} {Math.abs(item.d.pct)}%
+                  </p>
+                )}
+              </div>
+              <p className="text-[11px] text-gray-600 mt-0.5">Last month: {item.prev}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Win-back alert ── */}
+      {winBackCount > 0 && (
+        <div className="rounded-2xl px-5 py-4 flex items-center justify-between gap-4"
+          style={{ background: "rgba(168,85,247,0.08)", border: "1px solid rgba(168,85,247,0.25)" }}>
+          <div>
+            <p className="text-sm font-bold text-purple-300">{winBackCount} members haven't renewed in 31–90 days</p>
+            <p className="text-xs text-gray-500 mt-0.5">They're the easiest to get back — one message often does it.</p>
+          </div>
+          <a href="/renewals" className="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold text-white transition-colors"
+            style={{ background: "rgba(168,85,247,0.3)", border: "1px solid rgba(168,85,247,0.4)" }}>
+            View Win Back →
+          </a>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 6-month revenue trend */}

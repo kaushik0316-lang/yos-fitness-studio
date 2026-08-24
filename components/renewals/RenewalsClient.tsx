@@ -26,18 +26,21 @@ type Trainer = { id: string; fullName: string };
 
 type Props = {
   expiredMemberships: RenewalMembership[]; expiring1: RenewalMembership[]; expiring3: RenewalMembership[];
-  expiring7: RenewalMembership[]; expiring30: RenewalMembership[]; renewedToday: any[]; packages: any[];
+  expiring7: RenewalMembership[]; expiring30: RenewalMembership[]; renewedToday: any[];
+  winBack: RenewalMembership[];
+  packages: any[];
   trainers?: Trainer[];
   userRole: UserRole; userId: string;
 };
 
 const TABS = [
-  { key: "expired", label: "Expired",             shortLabel: "Expired",   accent: "#ef4444", badgeBg: "rgba(239,68,68,0.12)",   badgeColor: "#f87171" },
-  { key: "1day",    label: "Due Today / Tomorrow", shortLabel: "Tomorrow",  accent: "#f97316", badgeBg: "rgba(249,115,22,0.12)",  badgeColor: "#fb923c" },
-  { key: "3days",   label: "In 3 Days",            shortLabel: "3 Days",    accent: "#f59e0b", badgeBg: "rgba(245,158,11,0.12)",  badgeColor: "#fbbf24" },
-  { key: "7days",   label: "In 7 Days",            shortLabel: "7 Days",    accent: "#eab308", badgeBg: "rgba(234,179,8,0.12)",   badgeColor: "#facc15" },
-  { key: "30days",  label: "This Month",           shortLabel: "Month",     accent: "#3b82f6", badgeBg: "rgba(59,130,246,0.12)",  badgeColor: "#60a5fa" },
-  { key: "renewed", label: "Renewed Today",        shortLabel: "Renewed",   accent: "#10b981", badgeBg: "rgba(16,185,129,0.12)",  badgeColor: "#34d399" },
+  { key: "expired",  label: "Expired",             shortLabel: "Expired",   accent: "#ef4444", badgeBg: "rgba(239,68,68,0.12)",   badgeColor: "#f87171", urgent: false },
+  { key: "1day",     label: "Due Today / Tomorrow", shortLabel: "Tomorrow",  accent: "#f97316", badgeBg: "rgba(249,115,22,0.12)",  badgeColor: "#fb923c", urgent: true  },
+  { key: "3days",    label: "In 3 Days",            shortLabel: "3 Days",    accent: "#f59e0b", badgeBg: "rgba(245,158,11,0.12)",  badgeColor: "#fbbf24", urgent: false },
+  { key: "7days",    label: "In 7 Days",            shortLabel: "7 Days",    accent: "#eab308", badgeBg: "rgba(234,179,8,0.12)",   badgeColor: "#facc15", urgent: false },
+  { key: "30days",   label: "This Month",           shortLabel: "Month",     accent: "#3b82f6", badgeBg: "rgba(59,130,246,0.12)",  badgeColor: "#60a5fa", urgent: false },
+  { key: "renewed",  label: "Renewed Today",        shortLabel: "Renewed",   accent: "#10b981", badgeBg: "rgba(16,185,129,0.12)",  badgeColor: "#34d399", urgent: false },
+  { key: "winback",  label: "Win Back (31–90 days)", shortLabel: "Win Back", accent: "#a855f7", badgeBg: "rgba(168,85,247,0.12)",  badgeColor: "#c084fc", urgent: false },
 ];
 
 const PAGE_SIZE = 50;
@@ -76,7 +79,7 @@ function buildWhatsAppMessage(memberships: RenewalMembership[], tabLabel: string
   return msg.trim();
 }
 
-export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expiring7, expiring30, renewedToday, packages, trainers = [], userRole, userId }: Props) {
+export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expiring7, expiring30, renewedToday, winBack, packages, trainers = [], userRole, userId }: Props) {
   const [activeTab, setActiveTab] = useState("expired");
   const [renewFor, setRenewFor] = useState<{ id: string; memberId: string; fullName: string } | null>(null);
   const [search, setSearch] = useState("");
@@ -87,14 +90,16 @@ export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expir
     expired: expiredMemberships.length, "1day": expiring1.length,
     "3days": expiring3.length, "7days": expiring7.length,
     "30days": expiring30.length, renewed: renewedToday.length,
+    winback: winBack.length,
   };
 
   const rawList: RenewalMembership[] =
-    activeTab === "expired" ? expiredMemberships :
-    activeTab === "1day"    ? expiring1 :
-    activeTab === "3days"   ? expiring3 :
-    activeTab === "7days"   ? expiring7 :
-    activeTab === "30days"  ? expiring30 : [];
+    activeTab === "expired"  ? expiredMemberships :
+    activeTab === "1day"     ? expiring1 :
+    activeTab === "3days"    ? expiring3 :
+    activeTab === "7days"    ? expiring7 :
+    activeTab === "30days"   ? expiring30 :
+    activeTab === "winback"  ? winBack : [];
 
   const q = search.trim().toLowerCase();
   const filteredList = q
@@ -135,19 +140,28 @@ export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expir
   return (
     <div className="space-y-5 pb-28">
       {/* ── Summary cards ── */}
-      <div className="grid grid-cols-6 gap-3">
+      <div className="grid grid-cols-4 sm:grid-cols-7 gap-3">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;
+          const hasUrgent = tab.urgent && counts[tab.key] > 0;
           return (
             <button key={tab.key} onClick={() => { setActiveTab(tab.key); setSearch(""); setPage(1); setSelected(new Set()); }}
               className="relative overflow-hidden rounded-2xl p-4 text-left transition-all"
               style={{
                 background: isActive ? "rgba(255,255,255,0.06)" : "#161616",
-                border: `1px solid ${isActive ? tab.accent + "50" : "rgba(255,255,255,0.06)"}`,
-                boxShadow: isActive ? `0 0 0 1px ${tab.accent}40` : "none",
+                border: `1px solid ${isActive ? tab.accent + "50" : hasUrgent ? tab.accent + "40" : "rgba(255,255,255,0.06)"}`,
+                boxShadow: isActive ? `0 0 0 1px ${tab.accent}40` : hasUrgent ? `0 0 12px ${tab.accent}20` : "none",
               }}>
               <div className="absolute inset-x-0 top-0 h-[3px] rounded-t-2xl" style={{ background: tab.accent }} />
-              <p className="text-[11px] font-bold text-gray-600 uppercase tracking-widest mt-1 truncate">{tab.shortLabel}</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <p className="text-[11px] font-bold text-gray-600 uppercase tracking-widest truncate">{tab.shortLabel}</p>
+                {hasUrgent && (
+                  <span className="relative flex h-2 w-2 flex-shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: tab.accent }} />
+                    <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: tab.accent }} />
+                  </span>
+                )}
+              </div>
               <p className="text-3xl font-extrabold mt-1.5" style={{ color: tab.badgeColor }}>{counts[tab.key]}</p>
             </button>
           );

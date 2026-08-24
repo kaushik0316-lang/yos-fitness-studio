@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { RenewalsClient } from "@/components/renewals/RenewalsClient";
 import { MemberStatus } from "@prisma/client";
-import { addDays, startOfDay, endOfDay } from "date-fns";
+import { addDays, startOfDay, endOfDay, subDays } from "date-fns";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Renewals" };
@@ -16,9 +16,11 @@ export default async function RenewalsPage() {
   const in7Days    = endOfDay(addDays(today, 7));
   const in30Days   = endOfDay(addDays(today, 30));
   const past30Days = startOfDay(addDays(today, -30));
+  const past31Days = startOfDay(addDays(today, -31));
+  const past90Days = startOfDay(addDays(today, -90));
   const endOfToday = endOfDay(today);
 
-  const [allMembers, renewedToday, packages, trainers] = await Promise.all([
+  const [allMembers, renewedToday, packages, trainers, winBackRaw] = await Promise.all([
     prisma.member.findMany({
       where: {
         status: { in: [MemberStatus.EXPIRED, MemberStatus.ACTIVE] },
@@ -58,6 +60,22 @@ export default async function RenewalsPage() {
     }),
     prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.employee.findMany({ where: { role: "TRAINER", isActive: true }, select: { id: true, fullName: true }, orderBy: { fullName: "asc" } }),
+    // Win-back: EXPIRED members whose expiry was 31–90 days ago (haven't renewed yet)
+    prisma.member.findMany({
+      where: { status: MemberStatus.EXPIRED, expiryDate: { gte: past90Days, lt: past31Days } },
+      select: {
+        id: true, memberId: true, fullName: true, phone: true, whatsapp: true,
+        expiryDate: true, lastAttendanceDate: true, status: true,
+        payments: {
+          where: { isVoided: false },
+          orderBy: { date: "desc" as const },
+          take: 1,
+          select: { amount: true, discount: true, categoryLabel: true, package: { select: { name: true } } },
+        },
+        renewalFollowUps: { where: { isCompleted: false }, take: 1 },
+      },
+      orderBy: { expiryDate: "desc" },
+    }),
   ]);
 
   type MRow = {
@@ -153,6 +171,20 @@ export default async function RenewalsPage() {
     .filter((r) => inRange(r, today, in30Days))
     .sort((a, b) => new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime());
 
+  // Shape win-back members into the same RenewalMembership format
+  const winBack = winBackRaw.map((m) => ({
+    id: m.id,
+    expiryDate: m.expiryDate,
+    package: (m.payments[0] as any)?.package ?? null,
+    member: {
+      id: m.id, memberId: m.memberId, fullName: m.fullName,
+      phone: m.phone, whatsapp: m.whatsapp,
+      lastAttendanceDate: m.lastAttendanceDate, status: m.status,
+      renewalFollowUps: m.renewalFollowUps,
+      lastPayment: m.payments[0] ?? null,
+    },
+  }));
+
   return (
     <>
       <Header title="Renewals" subtitle="Memberships expiring soon" />
@@ -164,6 +196,7 @@ export default async function RenewalsPage() {
           expiring7={expiring7 as any}
           expiring30={expiring30 as any}
           renewedToday={renewedToday as any}
+          winBack={winBack as any}
           packages={packages}
           trainers={trainers}
           userRole={session!.user.role}
