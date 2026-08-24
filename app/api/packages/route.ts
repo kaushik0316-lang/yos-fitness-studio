@@ -34,9 +34,12 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(pkg, { status: 201 });
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  // ?all=true returns inactive packages too (used by Settings)
+  const includeInactive = searchParams.get("all") === "true";
   const packages = await prisma.package.findMany({
-    where: { isActive: true },
+    where: includeInactive ? undefined : { isActive: true },
     orderBy: [{ company: "asc" }, { durationDays: "asc" }],
   });
   return NextResponse.json(packages);

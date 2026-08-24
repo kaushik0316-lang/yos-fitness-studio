@@ -46,7 +46,7 @@ export function SettingsClient({ users }: Props) {
   async function loadPackages() {
     setPkgLoading(true);
     try {
-      const res = await fetch("/api/packages");
+      const res = await fetch("/api/packages?all=true");
       if (res.ok) setPackages(await res.json());
     } finally {
       setPkgLoading(false);
