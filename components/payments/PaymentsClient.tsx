@@ -37,7 +37,6 @@ type Props = {
   filteredStats?: Stats | null; filteredLabel?: string;
   packages: any[];
   trainers?: Trainer[];
-  members: { id: string; memberId: string; fullName: string }[];
   userRole: UserRole; userId: string;
   dateFilter?: string; currentSort: string;
   pendingOnly?: boolean; pendingCount?: number; pendingTotal?: number;
@@ -97,7 +96,7 @@ export function PaymentsClient({
   payments, total, totalAmount, page, pageSize,
   todayStats, monthStats, selectedMonthStats, selectedMonthLabel,
   filteredStats, filteredLabel,
-  packages, trainers = [], members,
+  packages, trainers = [],
   userRole, userId, dateFilter, currentSort,
   pendingOnly = false, pendingCount = 0, pendingTotal = 0,
 }: Props) {

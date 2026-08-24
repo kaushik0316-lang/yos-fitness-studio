@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search, CheckCircle2, Clock, CalendarCheck, ChevronLeft, ChevronRight,
@@ -45,7 +45,6 @@ type Member = {
 
 type Props = {
   todayAttendance: AttendanceRecord[];
-  notCheckedIn: Member[];
   allMembers: { id: string; memberId: string; fullName: string; phone: string }[];
   totalActive: number;
   userId: string;
@@ -93,7 +92,7 @@ function Initials({ name, size = 10 }: { name: string; size?: number }) {
 }
 
 export function AttendanceClient({
-  todayAttendance, notCheckedIn, allMembers, totalActive, userId, userRole,
+  todayAttendance, allMembers, totalActive, userId, userRole,
   selectedDate, isToday, weekVisitsMap, streakMap,
 }: Props) {
   const router = useRouter();
@@ -103,6 +102,22 @@ export function AttendanceClient({
   const [manualOpen, setManualOpen]     = useState(false);
   const [checkOutFor, setCheckOutFor]   = useState<typeof todayAttendance[0] | null>(null);
   const [editRecord,  setEditRecord]    = useState<typeof todayAttendance[0] | null>(null);
+
+  // Lazy-load "not checked in" members only when the pending tab is first opened
+  const [notCheckedIn, setNotCheckedIn] = useState<Member[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const pendingFetched = useRef<string | null>(null); // tracks which date was fetched
+
+  useEffect(() => {
+    if (activeTab !== "pending") return;
+    if (pendingFetched.current === selectedDate) return;
+    pendingFetched.current = selectedDate;
+    setPendingLoading(true);
+    fetch(`/api/attendance/pending?date=${selectedDate}`)
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setNotCheckedIn(data); })
+      .finally(() => setPendingLoading(false));
+  }, [activeTab, selectedDate]);
 
   const inGym    = useMemo(() => todayAttendance.filter((a) => !a.checkOutTime), [todayAttendance]);
   const visited  = todayAttendance;
@@ -208,7 +223,7 @@ export function AttendanceClient({
         {[
           { icon: Dumbbell,      label: "In Gym",        value: inGym.length,            sub: "right now",         accent: "#10b981", iconBg: "rgba(16,185,129,0.12)" },
           { icon: CalendarCheck, label: "Visited",        value: todayAttendance.length,  sub: "total check-ins",   accent: "#a855f7", iconBg: "rgba(168,85,247,0.12)" },
-          { icon: Clock,         label: "Pending",        value: notCheckedIn.length,     sub: "not yet in",        accent: "#f97316", iconBg: "rgba(249,115,22,0.12)" },
+          { icon: Clock,         label: "Pending",        value: totalActive - todayAttendance.length,  sub: "not yet in", accent: "#f97316", iconBg: "rgba(249,115,22,0.12)" },
           { icon: Users,         label: "Active Members", value: totalActive,             sub: `${pct}% checked in`, accent: "#3b82f6", iconBg: "rgba(59,130,246,0.12)" },
         ].map((s) => (
           <div key={s.label} className="relative overflow-hidden rounded-2xl p-4"
@@ -333,7 +348,7 @@ export function AttendanceClient({
               {([
                 { key: "inGym"   as const, label: `In Gym`, count: inGym.length,           accent: "#10b981" },
                 { key: "visited" as const, label: `Visited`, count: todayAttendance.length, accent: "#a855f7" },
-                { key: "pending" as const, label: `Pending`, count: notCheckedIn.length,    accent: "#f97316" },
+                { key: "pending" as const, label: `Pending`, count: totalActive - todayAttendance.length, accent: "#f97316" },
               ]).map((tab) => (
                 <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
@@ -533,7 +548,12 @@ export function AttendanceClient({
         {/* ── Pending ── */}
         {activeTab === "pending" && (
           <div className="divide-y divide-white/[0.04]">
-            {filteredPending.length === 0 ? (
+            {pendingLoading ? (
+              <div className="flex items-center justify-center py-12 gap-3 text-gray-500 text-sm">
+                <div className="w-4 h-4 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />
+                Loading members…
+              </div>
+            ) : filteredPending.length === 0 ? (
               <Empty icon={<CheckCircle2 className="h-8 w-8 text-emerald-700" />} label={search ? "No matches" : "All members checked in! 🎉"} />
             ) : filteredPending.map((m) => {
               const lastVisit  = m.lastAttendanceDate ? daysAgo(new Date(m.lastAttendanceDate)) : null;

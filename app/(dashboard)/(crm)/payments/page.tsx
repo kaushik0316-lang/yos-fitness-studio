@@ -93,7 +93,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   }
   selectedMonthLabel ??= today.toLocaleString("en-US", { month: "long", year: "numeric" });
 
-  const [payments, total, totalAmount, todayStats, monthStats, filteredStats, selectedMonthStats, pendingAggregate, packages, trainers, members] = await Promise.all([
+  const [payments, total, totalAmount, todayStats, monthStats, filteredStats, selectedMonthStats, pendingAggregate, packages, trainers] = await Promise.all([
     prisma.payment.findMany({
       where,
       include: {
@@ -130,11 +130,6 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
     prisma.payment.aggregate({ where: { pendingAmount: { gt: 0 }, isVoided: false }, _sum: { pendingAmount: true }, _count: true }),
     prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.employee.findMany({ where: { role: "TRAINER", isActive: true }, select: { id: true, fullName: true }, orderBy: { fullName: "asc" } }),
-    prisma.member.findMany({
-      where: { memberId: { not: { startsWith: "IMP-" } } },
-      select: { id: true, memberId: true, fullName: true },
-      orderBy: { fullName: "asc" },
-    }),
   ]);
 
   return (
@@ -170,7 +165,6 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
           }
           packages={packages}
           trainers={trainers}
-          members={members as any}
           userRole={session!.user.role}
           userId={session!.user.id}
           dateFilter={searchParams.dateFilter}

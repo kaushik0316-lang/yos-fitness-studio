@@ -76,7 +76,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
 
   const sixtyDaysAgo = subDays(selectedDate, 60);
 
-  const [dayAttendance, activeMembers, weekAttendance] = await Promise.all([
+  const [dayAttendance, totalActive, allMembersSlim, weekAttendance] = await Promise.all([
     prisma.memberAttendance.findMany({
       where: { date: { gte: dayStart, lte: dayEnd } },
       select: {
@@ -98,18 +98,12 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
       },
       orderBy: { checkInTime: "desc" },
     }),
+    // Cheap count — avoids loading all member rows just for a number
+    prisma.member.count({ where: { status: MemberStatus.ACTIVE } }),
+    // Slim list used only by ManualAttendanceDialog (no includes needed)
     prisma.member.findMany({
       where: { status: MemberStatus.ACTIVE },
-      select: {
-        id: true, memberId: true, fullName: true, phone: true, gender: true,
-        lastAttendanceDate: true, expiryDate: true,
-        currentPackage: { select: { name: true } },
-        memberships: {
-          orderBy: { expiryDate: "desc" as const }, take: 3,
-          select: { package: { select: { name: true } }, expiryDate: true },
-        },
-        trainer: { select: { fullName: true } },
-      },
+      select: { id: true, memberId: true, fullName: true, phone: true },
       orderBy: { fullName: "asc" },
     }),
     // This week's attendance count per member
@@ -118,9 +112,6 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
       select: { memberId: true },
     }),
   ]);
-
-  const checkedInIds = new Set(dayAttendance.map((a) => a.member.id));
-  const notCheckedIn = activeMembers.filter((m) => !checkedInIds.has(m.id));
 
   // Weekly visit count per member
   const weekVisitsMap: Record<string, number> = {};
@@ -176,18 +167,6 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
       },
     };
   }
-  function serializeMember(m: (typeof activeMembers)[0]) {
-    return {
-      ...m,
-      expiryDate:         m.expiryDate?.toISOString() ?? null,
-      lastAttendanceDate: m.lastAttendanceDate?.toISOString() ?? null,
-      memberships: m.memberships.map((ms) => ({
-        ...ms,
-        expiryDate: ms.expiryDate?.toISOString() ?? null,
-      })),
-    };
-  }
-
   const isToday = format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
 
   return (
@@ -199,9 +178,8 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
       <div className="flex-1 overflow-y-auto p-3 sm:p-6">
         <AttendanceClient
           todayAttendance={dayAttendance.map(serializeAttendance) as any}
-          notCheckedIn={notCheckedIn.map(serializeMember) as any}
-          allMembers={activeMembers.map((m) => ({ id: m.id, memberId: m.memberId, fullName: m.fullName, phone: m.phone }))}
-          totalActive={activeMembers.length}
+          allMembers={allMembersSlim}
+          totalActive={totalActive}
           userId={session!.user.id}
           userRole={session!.user.role}
           selectedDate={format(selectedDate, "yyyy-MM-dd")}
