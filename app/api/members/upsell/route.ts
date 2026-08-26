@@ -40,10 +40,10 @@ export async function GET() {
     LEFT JOIN member_attendance a ON a."memberId" = m.id AND a.date >= ${since}
     WHERE m.status = 'ACTIVE'
       AND NOT EXISTS (
-        SELECT 1 FROM payments pay2
-        LEFT JOIN packages pkg2 ON pkg2.id = pay2."packageId"
-        WHERE pay2."memberId" = m.id
-          AND pay2."isVoided" = false
+        SELECT 1 FROM memberships ms
+        JOIN packages pkg2 ON pkg2.id = ms."packageId"
+        WHERE ms."memberId" = m.id
+          AND ms."expiryDate" >= NOW()
           AND (
             pkg2.name ILIKE '%semi private%'
             OR pkg2.name ILIKE '%semi-private%'
