@@ -41,7 +41,8 @@ export async function GET() {
     WHERE m.status = 'ACTIVE'
       AND NOT EXISTS (
         SELECT 1 FROM memberships ms
-        JOIN packages pkg2 ON pkg2.id = ms."packageId"
+        LEFT JOIN packages pkg2 ON pkg2.id = ms."packageId"
+        LEFT JOIN payments pay3 ON pay3.id = ms."paymentId"
         WHERE ms."memberId" = m.id
           AND ms."startDate" <= NOW()
           AND ms."expiryDate" >= NOW()
@@ -49,6 +50,9 @@ export async function GET() {
             pkg2.name ILIKE '%semi private%'
             OR pkg2.name ILIKE '%semi-private%'
             OR pkg2.name ILIKE '%personal training%'
+            OR pay3."categoryLabel" ILIKE '%semi private%'
+            OR pay3."categoryLabel" ILIKE '%semi-private%'
+            OR pay3."categoryLabel" ILIKE '%personal training%'
           )
       )
     GROUP BY m.id, m."memberId", m."fullName", m.phone
