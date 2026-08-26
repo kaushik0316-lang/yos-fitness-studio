@@ -43,11 +43,8 @@ export async function GET() {
         SELECT 1 FROM memberships ms
         JOIN packages pkg2 ON pkg2.id = ms."packageId"
         WHERE ms."memberId" = m.id
-          AND ms.id = (
-            SELECT id FROM memberships ms2
-            WHERE ms2."memberId" = m.id
-            ORDER BY ms2."createdAt" DESC LIMIT 1
-          )
+          AND ms."startDate" <= NOW()
+          AND ms."expiryDate" >= NOW()
           AND (
             pkg2.name ILIKE '%semi private%'
             OR pkg2.name ILIKE '%semi-private%'
