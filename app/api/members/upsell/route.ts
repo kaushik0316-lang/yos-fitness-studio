@@ -21,7 +21,7 @@ export async function GET() {
     memberId: string;
     fullName: string;
     phone: string;
-    packageName: string | null;
+    categoryLabel: string | null;
     checkIns: bigint;
   }[]>`
     SELECT
@@ -30,29 +30,24 @@ export async function GET() {
       m."fullName",
       m.phone,
       (
-        SELECT pkg.name FROM payments pay
-        LEFT JOIN packages pkg ON pkg.id = pay."packageId"
+        SELECT pay."categoryLabel" FROM payments pay
         WHERE pay."memberId" = m.id AND pay."isVoided" = false
         ORDER BY pay.date DESC LIMIT 1
-      ) AS "packageName",
+      ) AS "categoryLabel",
       COUNT(a.id)::bigint AS "checkIns"
     FROM members m
     LEFT JOIN member_attendance a ON a."memberId" = m.id AND a.date >= ${since}
     WHERE m.status = 'ACTIVE'
       AND NOT EXISTS (
         SELECT 1 FROM memberships ms
-        LEFT JOIN packages pkg2 ON pkg2.id = ms."packageId"
-        LEFT JOIN payments pay3 ON pay3.id = ms."paymentId"
+        JOIN payments pay2 ON pay2.id = ms."paymentId"
         WHERE ms."memberId" = m.id
           AND ms."startDate" <= NOW()
           AND ms."expiryDate" >= NOW()
           AND (
-            pkg2.name ILIKE '%semi private%'
-            OR pkg2.name ILIKE '%semi-private%'
-            OR pkg2.name ILIKE '%personal training%'
-            OR pay3."categoryLabel" ILIKE '%semi private%'
-            OR pay3."categoryLabel" ILIKE '%semi-private%'
-            OR pay3."categoryLabel" ILIKE '%personal training%'
+            pay2."categoryLabel" ILIKE '%semi private%'
+            OR pay2."categoryLabel" ILIKE '%semi-private%'
+            OR pay2."categoryLabel" ILIKE '%personal training%'
           )
       )
     GROUP BY m.id, m."memberId", m."fullName", m.phone
@@ -62,6 +57,6 @@ export async function GET() {
   `;
 
   return NextResponse.json(
-    candidates.map((c) => ({ ...c, checkIns: Number(c.checkIns) }))
+    candidates.map((c) => ({ ...c, checkIns: Number(c.checkIns), packageName: c.categoryLabel }))
   );
 }
