@@ -15,7 +15,7 @@ export async function GET() {
 
   const since = subDays(new Date(), 30);
 
-  // Get active members with their attendance count in last 30 days and current package
+  // Get active members with high attendance who have never had a PT/semi-private package
   const candidates = await prisma.$queryRaw<{
     id: string;
     memberId: string;
@@ -29,21 +29,28 @@ export async function GET() {
       m."memberId",
       m."fullName",
       m.phone,
-      p.name AS "packageName",
+      (
+        SELECT pkg.name FROM payments pay
+        LEFT JOIN packages pkg ON pkg.id = pay."packageId"
+        WHERE pay."memberId" = m.id AND pay."isVoided" = false
+        ORDER BY pay.date DESC LIMIT 1
+      ) AS "packageName",
       COUNT(a.id)::bigint AS "checkIns"
     FROM members m
-    LEFT JOIN packages p ON p.id = m."currentPackageId"
     LEFT JOIN member_attendance a ON a."memberId" = m.id AND a.date >= ${since}
     WHERE m.status = 'ACTIVE'
-      AND (
-        p.name IS NULL
-        OR (
-          p.name NOT ILIKE '%semi private%'
-          AND p.name NOT ILIKE '%semi-private%'
-          AND p.name NOT ILIKE '%personal training%'
-        )
+      AND NOT EXISTS (
+        SELECT 1 FROM payments pay2
+        LEFT JOIN packages pkg2 ON pkg2.id = pay2."packageId"
+        WHERE pay2."memberId" = m.id
+          AND pay2."isVoided" = false
+          AND (
+            pkg2.name ILIKE '%semi private%'
+            OR pkg2.name ILIKE '%semi-private%'
+            OR pkg2.name ILIKE '%personal training%'
+          )
       )
-    GROUP BY m.id, m."memberId", m."fullName", m.phone, p.name
+    GROUP BY m.id, m."memberId", m."fullName", m.phone
     HAVING COUNT(a.id) >= 12
     ORDER BY "checkIns" DESC
     LIMIT 30
