@@ -160,12 +160,60 @@ class MSG91Provider implements MessageProvider {
   }
 }
 
+// ── WATI (WhatsApp BSP for India) ────────────────────────────────────────────
+class WatiProvider implements MessageProvider {
+  name = "WATI";
+  async send(payload: MessagePayload): Promise<SendResult> {
+    const token    = process.env.WATI_API_TOKEN;
+    const tenantId = process.env.WATI_TENANT_ID ?? "10235515";
+
+    if (!token) return { success: false, error: "WATI not configured" };
+
+    // Normalise phone: strip leading + and ensure 91 country code
+    const phone = payload.to.replace(/^\+/, "");
+
+    try {
+      if (payload.templateName) {
+        // Template message (business-initiated)
+        const params = (payload.templateParams ?? []).map((p) => ({ name: p.text }));
+        const res = await fetch(
+          `https://live.wati.io/${tenantId}/api/v1/sendTemplateMessage?whatsappNumber=${phone}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ template_name: payload.templateName, broadcast_name: payload.templateName, parameters: params }),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok) return { success: false, error: data?.info ?? JSON.stringify(data) };
+        return { success: true, messageId: data?.id };
+      } else {
+        // Session / free-form message
+        const res = await fetch(
+          `https://live.wati.io/${tenantId}/api/v1/sendSessionMessage/${phone}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ messageText: payload.message }),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok) return { success: false, error: data?.info ?? JSON.stringify(data) };
+        return { success: true, messageId: data?.id };
+      }
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  }
+}
+
 // ── Provider registry ────────────────────────────────────────────────────────
 const providers: Record<string, MessageProvider> = {
   MANUAL:    new ManualProvider(),
   WHATSAPP:  new WhatsAppProvider(),
   TWILIO:    new TwilioProvider(),
   MSG91:     new MSG91Provider(),
+  WATI:      new WatiProvider(),
 };
 
 export function getProvider(name?: string): MessageProvider {
@@ -175,8 +223,9 @@ export function getProvider(name?: string): MessageProvider {
 
 // Determine active provider based on env config
 export function getActiveProvider(): MessageProvider {
-  if (process.env.WHATSAPP_API_TOKEN)  return providers["WHATSAPP"];
-  if (process.env.TWILIO_ACCOUNT_SID)  return providers["TWILIO"];
-  if (process.env.MSG91_AUTH_KEY)       return providers["MSG91"];
+  if (process.env.WATI_API_TOKEN)       return providers["WATI"];
+  if (process.env.WHATSAPP_API_TOKEN)   return providers["WHATSAPP"];
+  if (process.env.TWILIO_ACCOUNT_SID)   return providers["TWILIO"];
+  if (process.env.MSG91_AUTH_KEY)        return providers["MSG91"];
   return providers["MANUAL"];
 }
