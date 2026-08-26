@@ -64,6 +64,18 @@ export async function POST(req: NextRequest) {
     include: { assignedTo: { select: { id: true, fullName: true } } },
   });
 
+  // Instant WhatsApp first response — fire and forget
+  try {
+    const { getActiveProvider } = await import("@/lib/messaging/provider");
+    const phone = enquiry.phone.replace(/\D/g, "").slice(-10);
+    const firstName = enquiry.name.split(" ")[0];
+    await getActiveProvider().send({
+      to: `+91${phone}`,
+      channel: "WHATSAPP",
+      message: `Hi ${firstName}! 👋 Thanks for your interest in Yos Fitness Studio.\n\nOur team will get in touch with you shortly. Feel free to reply here with any questions!\n\n📍 Mylapore, Chennai`,
+    });
+  } catch {}
+
   return NextResponse.json({ enquiry });
 }
 

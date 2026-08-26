@@ -136,6 +136,19 @@ export async function createMember(input: z.infer<typeof createMemberSchema>) {
   revalidatePath("/members");
   revalidatePath("/");
 
+  // Welcome WhatsApp — fire and forget (don't block on failure)
+  try {
+    const { getActiveProvider } = await import("@/lib/messaging/provider");
+    const phone = (data.whatsapp || data.phone).replace(/\D/g, "");
+    const firstName = member.fullName.split(" ")[0];
+    const portalLink = `https://yosfitnessstudio.in/member-portal?id=${member.memberId}`;
+    await getActiveProvider().send({
+      to: phone.startsWith("91") || phone.length === 10 ? `+91${phone.slice(-10)}` : `+${phone}`,
+      channel: "WHATSAPP",
+      message: `Welcome to Yos Fitness Studio, ${firstName}! 🎉\n\nYour Member ID is *${member.memberId}*.\n\nView your membership, attendance & payments anytime:\n👉 ${portalLink}\n\nCheck in by scanning the QR at the front desk. See you at the gym! 💪`,
+    });
+  } catch {}
+
   return { success: true, memberId: member.memberId, id: member.id };
 }
 

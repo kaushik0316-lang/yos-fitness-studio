@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ArrowLeft, Phone, User, Calendar, Package, CreditCard,
   Clock, RotateCcw, CheckCircle, MessageSquare, AlertTriangle, MapPin, Link2Off, BellOff,
-  Mail, ShieldAlert, ChevronDown, ChevronUp, Shield,
+  Mail, ShieldAlert, ChevronDown, ChevronUp, Shield, Activity,
 } from "lucide-react";
 import { EditMemberButton } from "@/components/members/EditMemberButton";
 import { DeleteMemberButton } from "@/components/members/DeleteMemberButton";
@@ -605,6 +605,49 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
 
         {/* ── Right: History ── */}
         <div className="lg:col-span-2 space-y-4">
+
+          {/* ── Activity Timeline ── */}
+          {(() => {
+            type TimelineEvent = { date: Date; type: "payment" | "checkin" | "membership" | "joined"; label: string; sub?: string; color: string };
+            const events: TimelineEvent[] = [];
+            events.push({ date: member.joinDate ?? member.createdAt, type: "joined", label: "Joined Yos", sub: member.memberId, color: "#f97316" });
+            for (const p of (member.payments ?? []).slice(0, 8)) {
+              events.push({ date: new Date(p.date), type: "payment", label: `Payment — ${p.package?.name ?? p.categoryLabel ?? "—"}`, sub: `₹${Number(p.amount).toLocaleString("en-IN")}${p.discount ? ` (₹${Number(p.discount)} off)` : ""}`, color: "#22c55e" });
+            }
+            for (const a of (member.attendances ?? []).slice(0, 10)) {
+              events.push({ date: new Date(a.date), type: "checkin", label: "Check-in", sub: new Date(a.date).toLocaleDateString("en-IN", { weekday: "short" }), color: "#3b82f6" });
+            }
+            events.sort((a, b) => b.date.getTime() - a.date.getTime());
+            const recent = events.slice(0, 15);
+            return (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-4">
+                  <div className="bg-orange-50 rounded-xl p-1.5">
+                    <Activity className="h-4 w-4 text-orange-500" />
+                  </div>
+                  Activity Timeline
+                </h3>
+                <div className="relative space-y-0">
+                  {recent.map((e, i) => (
+                    <div key={i} className="flex gap-3 pb-4 last:pb-0 relative">
+                      <div className="flex flex-col items-center">
+                        <div className="w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: e.color }} />
+                        {i < recent.length - 1 && <div className="w-px flex-1 mt-1" style={{ background: "#f3f4f6" }} />}
+                      </div>
+                      <div className="flex-1 min-w-0 pb-0">
+                        <div className="flex items-baseline gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-gray-900">{e.label}</span>
+                          {e.sub && <span className="text-xs text-gray-500">{e.sub}</span>}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5">{e.date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Attendance */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-4">

@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Users, TrendingUp, RotateCcw, UserPlus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, Users, TrendingUp, RotateCcw, UserPlus, Zap } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
   PieChart, Pie, Cell, LineChart, Line, CartesianGrid,
@@ -27,6 +28,9 @@ type Props = {
   newMembersThisMonth: number; renewalsThisMonth: number;
   lastMonthTotal: number; lastMonthNewMembers: number; lastMonthRenewals: number;
   winBackCount: number;
+  totalDiscountsThisMonth: number;
+  renewalsDueCount: number;
+  avgPaymentAmount: number;
   userRole: UserRole;
 };
 
@@ -35,8 +39,13 @@ export function ReportsClient({
   attendanceTrend, monthlyCollectionsTrend, topPackages,
   newMembersThisMonth, renewalsThisMonth,
   lastMonthTotal, lastMonthNewMembers, lastMonthRenewals, winBackCount,
+  totalDiscountsThisMonth, renewalsDueCount, avgPaymentAmount,
 }: Props) {
   const router = useRouter();
+  const [upsell, setUpsell] = useState<{ memberId: string; fullName: string; phone: string; packageName: string | null; checkIns: number }[]>([]);
+  useEffect(() => {
+    fetch("/api/members/upsell").then(r => r.json()).then(d => { if (Array.isArray(d)) setUpsell(d); });
+  }, []);
 
   function prevMonth() {
     const d = new Date(year, month - 2, 1);
@@ -124,6 +133,32 @@ export function ReportsClient({
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── Forecast + Discount row ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Revenue forecast */}
+        <div className="rounded-2xl p-4" style={CARD}>
+          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Next 30 Days — Expected Revenue</p>
+          <p className="text-2xl font-extrabold text-white mt-1" style={{ fontVariantNumeric: "tabular-nums" }}>
+            {formatCurrency(Math.round(renewalsDueCount * avgPaymentAmount * 0.65))}
+          </p>
+          <p className="text-xs text-gray-600 mt-1">
+            {renewalsDueCount} memberships expiring · avg {formatCurrency(Math.round(avgPaymentAmount))} · 65% renewal rate
+          </p>
+        </div>
+        {/* Discount leakage */}
+        {totalDiscountsThisMonth > 0 && (
+          <div className="rounded-2xl p-4" style={{ ...CARD, borderLeft: "3px solid #f59e0b" }}>
+            <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Discounts Given This Month</p>
+            <p className="text-2xl font-extrabold mt-1" style={{ color: "#f59e0b", fontVariantNumeric: "tabular-nums" }}>
+              {formatCurrency(totalDiscountsThisMonth)}
+            </p>
+            <p className="text-xs text-gray-600 mt-1">
+              {totalCollections > 0 ? `${Math.round((totalDiscountsThisMonth / (totalCollections + totalDiscountsThisMonth)) * 100)}% of gross revenue waived` : "Review discount approvals"}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* ── Win-back alert ── */}
@@ -219,6 +254,39 @@ export function ReportsClient({
           )}
         </div>
       </div>
+
+      {/* ── Upsell candidates ── */}
+      {upsell.length > 0 && (
+        <div className="rounded-2xl p-5" style={CARD}>
+          <div className="flex items-center gap-2 mb-4">
+            <Zap className="h-4 w-4" style={{ color: "#f59e0b" }} />
+            <h3 className="font-semibold text-white">PT Upsell Candidates</h3>
+            <span className="ml-auto text-xs text-gray-600">Active members, 12+ check-ins/30d, no PT package</span>
+          </div>
+          <div className="space-y-2">
+            {upsell.map((m, i) => (
+              <div key={m.memberId} className="flex items-center justify-between p-3 rounded-lg" style={{ background: "rgba(255,255,255,0.04)" }}>
+                <div className="flex items-center gap-3">
+                  <span className="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center" style={{ background: "rgba(245,158,11,0.15)", color: "#fbbf24" }}>{i + 1}</span>
+                  <div>
+                    <p className="text-sm font-medium text-white">{m.fullName}</p>
+                    <p className="text-xs text-gray-600">{m.packageName ?? "No package"} · {m.memberId}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-bold" style={{ color: "#f59e0b" }}>{m.checkIns} visits</span>
+                  <a href={`https://wa.me/91${m.phone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(`Hi ${m.fullName.split(" ")[0]}! We noticed you've been crushing it at Yos 💪 Would you be interested in Personal Training for faster results? Reply here and we'll tell you more!`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+                    style={{ background: "rgba(37,211,102,0.12)", color: "#25d366", border: "1px solid rgba(37,211,102,0.2)" }}>
+                    WhatsApp
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Top packages */}
       {topPackages.length > 0 && (

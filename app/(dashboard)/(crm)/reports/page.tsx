@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { ReportsClient } from "@/components/reports/ReportsClient";
 import { Company } from "@prisma/client";
-import { startOfMonth, endOfMonth, subMonths, format, addDays, startOfDay } from "date-fns";
+import { startOfMonth, endOfMonth, subMonths, format, addDays, startOfDay, endOfDay } from "date-fns";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Reports" };
@@ -27,8 +27,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
 
   const lastMonthStart = startOfMonth(subMonths(monthStart, 1));
   const lastMonthEnd   = endOfMonth(lastMonthStart);
-  const past31Days = startOfDay(addDays(new Date(), -31));
-  const past90Days = startOfDay(addDays(new Date(), -90));
+  const past31Days  = startOfDay(addDays(new Date(), -31));
+  const past90Days  = startOfDay(addDays(new Date(), -90));
+  const next30Days  = endOfDay(addDays(new Date(), 30));
 
   const [
     collectionsByMode,
@@ -43,6 +44,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
     lastMonthNewMembers,
     lastMonthRenewals,
     winBackCount,
+    discountAggregate,
+    renewalsDue,
+    avgPayment,
   ] = await Promise.all([
     // Collections by payment mode this month (voided excluded)
     prisma.payment.groupBy({
@@ -104,6 +108,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
     prisma.membership.count({ where: { createdAt: { gte: lastMonthStart, lte: lastMonthEnd } } }),
     // Win-back: EXPIRED members whose expiry was 31–90 days ago
     prisma.member.count({ where: { status: "EXPIRED", expiryDate: { gte: past90Days, lt: past31Days } } }),
+    // Discount total this month
+    prisma.payment.aggregate({ where: { date: { gte: monthStart, lte: monthEnd }, isVoided: false }, _sum: { discount: true } }),
+    // Renewals due in next 30 days (active members expiring)
+    prisma.member.findMany({
+      where: { status: "ACTIVE", expiryDate: { gte: new Date(), lte: next30Days } },
+      select: { expiryDate: true },
+    }),
+    // Last 5 payments for average package value estimate
+    prisma.payment.aggregate({ where: { date: { gte: monthStart, lte: monthEnd }, isVoided: false }, _avg: { amount: true } }),
   ]);
 
   // Enrich top packages with names
@@ -136,6 +149,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
           lastMonthNewMembers={lastMonthNewMembers}
           lastMonthRenewals={lastMonthRenewals}
           winBackCount={winBackCount}
+          totalDiscountsThisMonth={Number(discountAggregate._sum.discount ?? 0)}
+          renewalsDueCount={renewalsDue.length}
+          avgPaymentAmount={Number(avgPayment._avg.amount ?? 0)}
           userRole={session!.user.role}
         />
       </div>
