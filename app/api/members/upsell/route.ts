@@ -38,9 +38,9 @@ export async function GET() {
       AND (
         p.name IS NULL
         OR (
-          p.name NOT ILIKE '%personal%'
-          AND p.name NOT ILIKE '%PT%'
-          AND p.name NOT ILIKE '%private%'
+          p.name NOT ILIKE '%semi private%'
+          AND p.name NOT ILIKE '%semi-private%'
+          AND p.name NOT ILIKE '%personal training%'
         )
       )
     GROUP BY m.id, m."memberId", m."fullName", m.phone, p.name
