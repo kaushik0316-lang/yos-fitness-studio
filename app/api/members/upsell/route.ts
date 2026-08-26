@@ -39,11 +39,10 @@ export async function GET() {
     LEFT JOIN member_attendance a ON a."memberId" = m.id AND a.date >= ${since}
     WHERE m.status = 'ACTIVE'
       AND NOT EXISTS (
-        SELECT 1 FROM memberships ms
-        JOIN payments pay2 ON pay2.id = ms."paymentId"
-        WHERE ms."memberId" = m.id
-          AND ms."startDate" <= NOW()
-          AND ms."expiryDate" >= NOW()
+        SELECT 1 FROM payments pay2
+        WHERE pay2."memberId" = m.id
+          AND pay2."isVoided" = false
+          AND pay2."expiryDate" >= NOW()
           AND (
             pay2."categoryLabel" ILIKE '%semi private%'
             OR pay2."categoryLabel" ILIKE '%semi-private%'
