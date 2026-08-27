@@ -45,10 +45,26 @@ const TABS = [
 
 const PAGE_SIZE = 50;
 
-function waLink(phone: string) {
+function waLink(phone: string, message?: string) {
   const digits = phone.replace(/\D/g, "");
   const num = digits.startsWith("91") && digits.length === 12 ? digits : `91${digits.slice(-10)}`;
-  return `https://wa.me/${num}`;
+  return message ? `https://wa.me/${num}?text=${encodeURIComponent(message)}` : `https://wa.me/${num}`;
+}
+
+function buildRenewalTemplate(member: { fullName: string }, expiryDate: Date | null, pkgName: string | null, isExpired: boolean): string {
+  const firstName = member.fullName.split(" ")[0];
+  const expStr = expiryDate
+    ? new Date(expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
+    : null;
+  const pkg = pkgName ? ` (${pkgName})` : "";
+
+  if (isExpired && expStr) {
+    return `Hi ${firstName}! 👋\n\nYour Yos Fitness Studio membership${pkg} expired on *${expStr}*.\n\nWe'd love to have you back — come in to renew and keep your fitness journey going! 💪\n\nSee you soon!\n– Team Yos`;
+  }
+  if (expStr) {
+    return `Hi ${firstName}! 👋\n\nJust a friendly reminder that your Yos Fitness Studio membership${pkg} is expiring on *${expStr}*.\n\nRenew now to keep your streak going without a break! 💪\n\nSee you at the studio!\n– Team Yos`;
+  }
+  return `Hi ${firstName}! 👋\n\nYour Yos Fitness Studio membership${pkg} is due for renewal. Come in to renew and keep training! 💪\n\n– Team Yos`;
 }
 
 function getInitials(name: string) {
@@ -309,7 +325,8 @@ export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expir
                             <Phone className="h-3 w-3" />
                             {ms.member.phone}
                           </a>
-                          <a href={waLink(waNumber)} target="_blank" rel="noopener noreferrer"
+                          <a href={waLink(waNumber, buildRenewalTemplate(ms.member, ms.expiryDate, pkgName, isExpired))}
+                            target="_blank" rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
                             className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors"
                             style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}>
