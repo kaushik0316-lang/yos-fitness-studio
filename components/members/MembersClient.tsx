@@ -281,7 +281,7 @@ export function MembersClient({
                     const dobStr = dob.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
                     const phone = (m.whatsapp ?? m.phone ?? "").replace(/\D/g, "").slice(-10);
                     const firstName = m.fullName.split(" ")[0];
-                    const bdayMsg = `🎂 Happy Birthday, ${firstName}! 🎉\n\nWishing you a wonderful day filled with joy! Keep crushing those fitness goals — the whole Yos team is cheering for you! 💪\n\n– Team Yos Fitness Studio`;
+                    const bdayMsg = `Happy Birthday, ${firstName}!\n\nWishing you a wonderful day filled with joy! Keep crushing those fitness goals — the whole Yos team is cheering for you!\n\n– Team Yos Fitness Studio`;
                     return (
                       <div key={m.id} className="flex items-center gap-4 px-5 py-3.5">
                         <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-extrabold flex-shrink-0"

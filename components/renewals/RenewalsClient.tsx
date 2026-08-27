@@ -59,12 +59,12 @@ function buildRenewalTemplate(member: { fullName: string }, expiryDate: Date | n
   const pkg = pkgName ? ` (${pkgName})` : "";
 
   if (isExpired && expStr) {
-    return `Hi ${firstName}! 👋\n\nYour Yos Fitness Studio membership expired on *${expStr}*.\n\nWe'd love to have you back — come in to renew and keep your fitness journey going! 💪\n\nSee you soon!\n– Team Yos`;
+    return `Hi ${firstName}!\n\nYour Yos Fitness Studio membership expired on *${expStr}*.\n\nWe'd love to have you back — come in to renew and keep your fitness journey going!\n\nSee you soon!\n– Team Yos`;
   }
   if (expStr) {
-    return `Hi ${firstName}! 👋\n\nJust a friendly reminder that your Yos Fitness Studio membership is expiring on *${expStr}*.\n\nRenew now to keep your streak going without a break! 💪\n\nSee you at the studio!\n– Team Yos`;
+    return `Hi ${firstName}!\n\nJust a friendly reminder that your Yos Fitness Studio membership is expiring on *${expStr}*.\n\nRenew now to keep your streak going without a break!\n\nSee you at the studio!\n– Team Yos`;
   }
-  return `Hi ${firstName}! 👋\n\nYour Yos Fitness Studio membership is due for renewal. Come in to renew and keep training! 💪\n\n– Team Yos`;
+  return `Hi ${firstName}!\n\nYour Yos Fitness Studio membership is due for renewal. Come in to renew and keep training!\n\n– Team Yos`;
 }
 
 function getInitials(name: string) {

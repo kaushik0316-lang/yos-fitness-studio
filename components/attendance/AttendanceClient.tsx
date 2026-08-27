@@ -606,10 +606,10 @@ export function AttendanceClient({
                       if (!phone) return null;
                       const firstName = m.fullName.split(" ")[0];
                       const nudge = expiringSoon
-                        ? `Hi ${firstName}! Your Yos membership expires in ${expDays} day${expDays === 1 ? "" : "s"}. Come renew today and keep your streak going! 💪`
+                        ? `Hi ${firstName}! Your Yos membership expires in ${expDays} day${expDays === 1 ? "" : "s"}. Come renew today and keep your streak going!`
                         : expired
-                        ? `Hi ${firstName}! Your Yos membership has expired. Come in today to renew and get back on track! 💪`
-                        : `Hi ${firstName}! We missed you at Yos today. See you tomorrow? 💪`;
+                        ? `Hi ${firstName}! Your Yos membership has expired. Come in today to renew and get back on track!`
+                        : `Hi ${firstName}! We missed you at Yos today. See you tomorrow?`;
                       return (
                         <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(nudge)}`}
                           target="_blank" rel="noopener noreferrer"
