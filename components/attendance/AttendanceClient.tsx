@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search, CheckCircle2, Clock, CalendarCheck, ChevronLeft, ChevronRight,
-  LogOut, Dumbbell, Users, Timer, TrendingUp, Calendar, Trophy, Pencil,
+  LogOut, Dumbbell, Users, Timer, TrendingUp, Calendar, Pencil,
 } from "lucide-react";
 import Link from "next/link";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
@@ -43,6 +43,15 @@ type Member = {
   trainer: { fullName: string } | null;
 };
 
+type ChallengeRow = {
+  memberId: string; fullName: string; phone: string | null; packageName: string | null;
+  days: string[]; count: number; needed: number; onTrack: boolean; completed: boolean;
+};
+type ChallengeStats = {
+  totalParticipants: number; completed: number; onTrack: number; atRisk: number;
+  dayOfAug: number; daysLeft: number;
+};
+
 type Props = {
   todayAttendance: AttendanceRecord[];
   allMembers: { id: string; memberId: string; fullName: string; phone: string }[];
@@ -53,6 +62,8 @@ type Props = {
   isToday: boolean;
   weekVisitsMap: Record<string, number>;
   streakMap: Record<string, number>;
+  challengeRows: ChallengeRow[];
+  challengeStats: ChallengeStats | null;
 };
 
 function pkgName(m: { currentPackage: { name: string } | null; memberships: { package: { name: string } | null }[] }): string | null {
@@ -93,10 +104,10 @@ function Initials({ name, size = 10 }: { name: string; size?: number }) {
 
 export function AttendanceClient({
   todayAttendance, allMembers, totalActive, userId, userRole,
-  selectedDate, isToday, weekVisitsMap, streakMap,
+  selectedDate, isToday, weekVisitsMap, streakMap, challengeRows, challengeStats,
 }: Props) {
   const router = useRouter();
-  const [activeTab, setActiveTab]       = useState<"inGym" | "visited" | "pending">("inGym");
+  const [activeTab, setActiveTab]       = useState<"inGym" | "visited" | "pending" | "challenge">("inGym");
   const [search, setSearch]             = useState("");
   const [markFor, setMarkFor]           = useState<Member | null>(null);
   const [manualOpen, setManualOpen]     = useState(false);
@@ -349,6 +360,7 @@ export function AttendanceClient({
                 { key: "inGym"   as const, label: `In Gym`, count: inGym.length,           accent: "#10b981" },
                 { key: "visited" as const, label: `Visited`, count: todayAttendance.length, accent: "#a855f7" },
                 { key: "pending" as const, label: `Pending`, count: totalActive - todayAttendance.length, accent: "#f97316" },
+                ...(challengeStats ? [{ key: "challenge" as const, label: "Challenge", count: challengeStats.totalParticipants, accent: "#eab308" }] : []),
               ]).map((tab) => (
                 <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
@@ -371,13 +383,7 @@ export function AttendanceClient({
               <CalendarCheck className="h-3.5 w-3.5" />
               Month View
             </Link>
-            <Link href="/challenge"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
-              style={{ background: "rgba(234,179,8,0.12)", color: "#eab308", border: "1px solid rgba(234,179,8,0.2)" }}>
-              <Trophy className="h-3.5 w-3.5" />
-              Aug Challenge
-            </Link>
-            {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
+{(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
               <button onClick={() => setManualOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
                 style={{ background: "rgba(99,102,241,0.12)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.2)" }}>
@@ -632,6 +638,87 @@ export function AttendanceClient({
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* ── Challenge tab ── */}
+        {activeTab === "challenge" && challengeStats && (
+          <div className="p-4 space-y-5">
+            {/* Stats strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: "Participants", value: challengeStats.totalParticipants, color: "#818cf8" },
+                { label: "Completed", value: challengeStats.completed, color: "#eab308" },
+                { label: "On Track", value: challengeStats.onTrack, color: "#22c55e" },
+                { label: "At Risk", value: challengeStats.atRisk, color: "#ef4444" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="rounded-xl p-3 flex items-center gap-3"
+                  style={{ background: "#1a1a1a", border: "1px solid #2a2a2a" }}>
+                  <p className="text-2xl font-extrabold" style={{ color }}>{value}</p>
+                  <p className="text-[11px] text-gray-500">{label}</p>
+                </div>
+              ))}
+            </div>
+            {/* Day progress */}
+            <div className="rounded-xl px-4 py-3 flex items-center justify-between gap-4"
+              style={{ background: "#1a1a2e", border: "1px solid #2a2a3a" }}>
+              <div>
+                <p className="text-white font-bold text-sm">Day {challengeStats.dayOfAug} of 31</p>
+                <p className="text-gray-400 text-xs">{challengeStats.daysLeft} days left · Goal: 27 workouts (≥ 50 min)</p>
+              </div>
+              <div className="w-32 h-2 rounded-full overflow-hidden" style={{ background: "#2a2a3a" }}>
+                <div className="h-full rounded-full" style={{ width: `${Math.min(100, (challengeStats.dayOfAug / 31) * 100)}%`, background: "#818cf8" }} />
+              </div>
+            </div>
+            {/* Leaderboard */}
+            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #2a2a2a" }}>
+              <div className="grid grid-cols-[1.5rem_1fr_4rem_8rem_5.5rem] gap-3 px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-gray-600"
+                style={{ background: "#161616", borderBottom: "1px solid #222" }}>
+                <div>#</div><div>Member</div><div className="text-center">Days</div><div>Progress</div><div className="text-center">Status</div>
+              </div>
+              {challengeRows.length === 0 && (
+                <div className="py-10 text-center text-gray-600 text-sm" style={{ background: "#111" }}>No challenge participants yet.</div>
+              )}
+              {challengeRows.map((r, idx) => {
+                const rank = idx + 1;
+                const pct = Math.min(100, Math.round((r.count / 27) * 100));
+                const barColor = pct >= 100 ? "#eab308" : pct >= 60 ? "#22c55e" : pct >= 30 ? "#f97316" : "#ef4444";
+                return (
+                  <div key={r.memberId}
+                    className="grid grid-cols-[1.5rem_1fr_4rem_8rem_5.5rem] gap-3 px-4 py-3 items-center"
+                    style={{ background: idx % 2 === 0 ? "#111" : "#131313", borderBottom: "1px solid #1e1e1e" }}>
+                    <div className="text-xs font-bold" style={{ color: rank === 1 ? "#eab308" : rank === 2 ? "#94a3b8" : rank === 3 ? "#b45309" : "#374151" }}>
+                      {rank <= 3 ? ["🥇","🥈","🥉"][rank-1] : rank}
+                    </div>
+                    <div>
+                      <p className="text-white text-sm font-semibold leading-tight">{r.fullName}</p>
+                      <p className="text-[10px] text-gray-600">{r.memberId}</p>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-base font-extrabold" style={{ color: barColor }}>{r.count}</span>
+                      <span className="text-gray-600 text-xs"> /27</span>
+                    </div>
+                    <div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#2a2a2a" }}>
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
+                      </div>
+                      <p className="text-[10px] mt-1 text-gray-600">
+                        {r.completed ? "Complete!" : r.onTrack ? `${r.needed} more · on pace` : `${r.needed} needed`}
+                      </p>
+                    </div>
+                    <div className="flex justify-center">
+                      {r.completed
+                        ? <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/25">Done</span>
+                        : r.onTrack
+                        ? <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/15 text-green-400 border border-green-500/25">On track</span>
+                        : <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-400 border border-red-500/25">At risk</span>
+                      }
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-xs text-gray-600 text-center">Only days with check-in + check-out and ≥ 50 min workouts count</p>
           </div>
         )}
       </div>

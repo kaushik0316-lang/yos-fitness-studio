@@ -76,7 +76,13 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
 
   const sixtyDaysAgo = subDays(selectedDate, 60);
 
-  const [dayAttendance, totalActive, allMembersSlim, weekAttendance] = await Promise.all([
+  const now = new Date();
+  const isAugust = now.getMonth() === 7 && now.getFullYear() === 2026; // August 2026
+
+  const AUG_START = new Date("2026-08-01T00:00:00.000Z");
+  const AUG_END   = new Date("2026-08-31T23:59:59.999Z");
+
+  const [dayAttendance, totalActive, allMembersSlim, weekAttendance, challengeRecordsRaw] = await Promise.all([
     prisma.memberAttendance.findMany({
       where: { date: { gte: dayStart, lte: dayEnd } },
       select: {
@@ -111,6 +117,14 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
       where: { date: { gte: weekStart, lte: weekEnd } },
       select: { memberId: true },
     }),
+    // Aug Challenge leaderboard (only fetched in August)
+    isAugust
+      ? prisma.memberAttendance.findMany({
+          where: { date: { gte: AUG_START, lte: AUG_END }, checkOutTime: { not: null } },
+          include: { member: { select: { id: true, memberId: true, fullName: true, phone: true, currentPackage: { select: { name: true } } } } },
+          orderBy: { date: "asc" },
+        })
+      : Promise.resolve([]),
   ]);
 
   // Weekly visit count per member
@@ -146,6 +160,37 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
       streakMap[memberId] = streak;
     }
   }
+
+  // Challenge leaderboard
+  const MIN_CHALLENGE_MS = 50 * 60 * 1000;
+  const CHALLENGE_GOAL = 27;
+  const challengeByMember = new Map<string, { memberId: string; fullName: string; phone: string | null; packageName: string | null; days: string[] }>();
+  for (const r of challengeRecordsRaw as any[]) {
+    if (!r.checkOutTime || r.checkOutTime.getTime() - r.checkInTime.getTime() < MIN_CHALLENGE_MS) continue;
+    const id = r.member.id;
+    if (!challengeByMember.has(id)) {
+      challengeByMember.set(id, { memberId: r.member.memberId, fullName: r.member.fullName, phone: r.member.phone, packageName: r.member.currentPackage?.name ?? null, days: [] });
+    }
+    const dateStr = r.date.toISOString().slice(0, 10);
+    const entry = challengeByMember.get(id)!;
+    if (!entry.days.includes(dateStr)) entry.days.push(dateStr);
+  }
+  const dayOfAug = isAugust ? Math.min(Math.floor((now.getTime() - AUG_START.getTime()) / 86_400_000) + 1, 31) : 0;
+  const daysLeft = Math.max(0, 31 - dayOfAug);
+  const challengeRows = Array.from(challengeByMember.values())
+    .map((m) => {
+      const count = m.days.length;
+      const needed = Math.max(0, CHALLENGE_GOAL - count);
+      return { ...m, count, needed, onTrack: needed <= daysLeft, completed: count >= CHALLENGE_GOAL };
+    })
+    .sort((a, b) => b.count - a.count || a.fullName.localeCompare(b.fullName));
+  const challengeStats = {
+    totalParticipants: challengeRows.length,
+    completed: challengeRows.filter((r) => r.completed).length,
+    onTrack: challengeRows.filter((r) => r.onTrack && !r.completed).length,
+    atRisk: challengeRows.filter((r) => !r.onTrack && !r.completed).length,
+    dayOfAug, daysLeft,
+  };
 
   // Serialize dates
   function serializeAttendance(a: (typeof dayAttendance)[0]) {
@@ -186,6 +231,8 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
           isToday={isToday}
           weekVisitsMap={weekVisitsMap}
           streakMap={streakMap}
+          challengeRows={isAugust ? challengeRows : []}
+          challengeStats={isAugust ? challengeStats : null}
         />
       </div>
     </>
