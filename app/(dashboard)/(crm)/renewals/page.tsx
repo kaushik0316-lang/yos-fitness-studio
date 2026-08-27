@@ -44,6 +44,8 @@ export default async function RenewalsPage() {
             amount: true, discount: true, categoryLabel: true,
             packageId: true, date: true, expiryDate: true,
             package: { select: { name: true } },
+            soldBy: { select: { fullName: true, employeeId: true } },
+            soldBy2: { select: { fullName: true, employeeId: true } },
           },
         },
         renewalFollowUps: { where: { isCompleted: false }, take: 1 },
@@ -70,7 +72,7 @@ export default async function RenewalsPage() {
           where: { isVoided: false },
           orderBy: { date: "desc" as const },
           take: 1,
-          select: { amount: true, discount: true, categoryLabel: true, package: { select: { name: true } } },
+          select: { amount: true, discount: true, categoryLabel: true, package: { select: { name: true } }, soldBy: { select: { fullName: true, employeeId: true } }, soldBy2: { select: { fullName: true, employeeId: true } } },
         },
         renewalFollowUps: { where: { isCompleted: false }, take: 1 },
       },
@@ -87,7 +89,7 @@ export default async function RenewalsPage() {
       lastAttendanceDate: Date | null; status: string;
       renewalFollowUps: any[];
       // last payment for the amount display
-      lastPayment: { amount: any; discount: any; categoryLabel?: string | null } | null;
+      lastPayment: { amount: any; discount: any; categoryLabel?: string | null; soldBy?: { fullName: string; employeeId: string } | null; soldBy2?: { fullName: string; employeeId: string } | null } | null;
     };
   };
 

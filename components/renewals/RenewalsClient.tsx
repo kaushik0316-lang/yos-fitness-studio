@@ -12,7 +12,7 @@ type MemberInfo = {
   id: string; memberId: string; fullName: string; phone: string; whatsapp: string | null;
   lastAttendanceDate?: Date | null; status: string;
   renewalFollowUps?: any[];
-  lastPayment?: { amount: number | string; discount: number | string; categoryLabel?: string | null } | null;
+  lastPayment?: { amount: number | string; discount: number | string; categoryLabel?: string | null; soldBy?: { fullName: string; employeeId: string } | null; soldBy2?: { fullName: string; employeeId: string } | null } | null;
 };
 
 type RenewalMembership = {
@@ -316,6 +316,18 @@ export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expir
                             )}
                           </span>
                         </div>
+
+                        {/* Row 2b: sold by */}
+                        {ms.member.lastPayment?.soldBy && (
+                          <div className="mt-1">
+                            <span className="text-xs font-semibold" style={{ color: "#f97316" }}>
+                              Sold by {toTitleCase(ms.member.lastPayment.soldBy.fullName)}
+                            </span>
+                            {ms.member.lastPayment.soldBy2 && (
+                              <span className="text-xs text-gray-600"> & {toTitleCase(ms.member.lastPayment.soldBy2.fullName)}</span>
+                            )}
+                          </div>
+                        )}
 
                         {/* Row 3: phone + action buttons */}
                         <div className="flex items-center gap-2 mt-2.5 flex-wrap">
