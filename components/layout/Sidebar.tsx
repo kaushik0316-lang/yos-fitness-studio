@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   Users, CalendarCheck, RotateCcw, CreditCard,
-  ClipboardList, DollarSign, BarChart3, MessageSquare,
-  Zap, Settings, LogOut, Dumbbell, Wrench, FileUp, UserSearch, TrendingUp,
+  ClipboardList, DollarSign, BarChart3,
+  Settings, LogOut, Dumbbell, Wrench, FileUp, UserSearch, TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@prisma/client";
@@ -35,8 +35,6 @@ const navGroups = [
     label: "Insights",
     items: [
       { label: "Reports",          href: "/reports",            icon: BarChart3,     roles: ["ADMIN", "ACCOUNTANT"] },
-      { label: "Messages",         href: "/messages",           icon: MessageSquare, roles: ["ADMIN", "FRONT_DESK"] },
-      { label: "Automation",       href: "/automation",         icon: Zap,           roles: ["ADMIN"] },
       { label: "Settings",         href: "/settings",           icon: Settings,      roles: ["ADMIN"] },
       { label: "Import",           href: "/admin/import",       icon: FileUp,        roles: ["ADMIN"] },
     ],
