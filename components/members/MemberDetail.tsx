@@ -515,14 +515,39 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                          `${daysLeft} days remaining`}
                       </p>
                     )}
-                    {(expiryStatus === "expired" || expiryStatus === "critical") && (userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "ACCOUNTANT") && (
-                      <Link
-                        href={`/payments/new?memberId=${member.id}`}
-                        className="inline-flex items-center gap-1 mt-2 text-xs font-bold text-red-700 hover:text-orange-700 transition-colors"
-                      >
-                        <RotateCcw className="h-3 w-3" />
-                        Renew →
-                      </Link>
+                    {(expiryStatus === "expired" || expiryStatus === "critical" || expiryStatus === "soon") && (userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "ACCOUNTANT") && (
+                      <div className="flex items-center gap-3 mt-2 flex-wrap">
+                        {(expiryStatus === "expired" || expiryStatus === "critical") && (
+                          <Link
+                            href={`/payments/new?memberId=${member.id}`}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-red-700 hover:text-orange-700 transition-colors"
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                            Renew →
+                          </Link>
+                        )}
+                        {member.phone && (() => {
+                          const firstName = member.fullName.split(" ")[0];
+                          const expStr = member.expiryDate
+                            ? new Date(member.expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
+                            : null;
+                          const msg = expiryStatus === "expired" && expStr
+                            ? `Hi ${firstName}!\n\nYour Yos Fitness Studio membership expired on *${expStr}*.\n\nWe'd love to have you back — come in to renew and keep your fitness journey going!\n\nSee you soon!\n– Team Yos`
+                            : expStr
+                            ? `Hi ${firstName}!\n\nJust a friendly reminder that your Yos Fitness Studio membership is expiring on *${expStr}*.\n\nRenew now to keep your streak going without a break!\n\nSee you at the studio!\n– Team Yos`
+                            : `Hi ${firstName}!\n\nYour Yos Fitness Studio membership is due for renewal. Come in to renew and keep training!\n\n– Team Yos`;
+                          const phone = member.phone.replace(/\D/g, "").slice(-10);
+                          return (
+                            <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs font-bold"
+                              style={{ color: "#25d366" }}>
+                              <MessageSquare className="h-3 w-3" />
+                              WA Reminder
+                            </a>
+                          );
+                        })()}
+                      </div>
                     )}
                   </div>
                 )}
@@ -557,14 +582,39 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                          `${daysLeft} days remaining`}
                       </p>
                     )}
-                    {(expiryStatus === "expired" || expiryStatus === "critical") && (userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "ACCOUNTANT") && (
-                      <Link
-                        href={`/payments/new?memberId=${member.id}`}
-                        className="inline-flex items-center gap-1 mt-2 text-xs font-bold text-red-700 hover:text-orange-700 transition-colors"
-                      >
-                        <RotateCcw className="h-3 w-3" />
-                        Renew →
-                      </Link>
+                    {(expiryStatus === "expired" || expiryStatus === "critical" || expiryStatus === "soon") && (userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "ACCOUNTANT") && (
+                      <div className="flex items-center gap-3 mt-2 flex-wrap">
+                        {(expiryStatus === "expired" || expiryStatus === "critical") && (
+                          <Link
+                            href={`/payments/new?memberId=${member.id}`}
+                            className="inline-flex items-center gap-1 text-xs font-bold text-red-700 hover:text-orange-700 transition-colors"
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                            Renew →
+                          </Link>
+                        )}
+                        {member.phone && (() => {
+                          const firstName = member.fullName.split(" ")[0];
+                          const expStr = member.expiryDate
+                            ? new Date(member.expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
+                            : null;
+                          const msg = expiryStatus === "expired" && expStr
+                            ? `Hi ${firstName}!\n\nYour Yos Fitness Studio membership expired on *${expStr}*.\n\nWe'd love to have you back — come in to renew and keep your fitness journey going!\n\nSee you soon!\n– Team Yos`
+                            : expStr
+                            ? `Hi ${firstName}!\n\nJust a friendly reminder that your Yos Fitness Studio membership is expiring on *${expStr}*.\n\nRenew now to keep your streak going without a break!\n\nSee you at the studio!\n– Team Yos`
+                            : `Hi ${firstName}!\n\nYour Yos Fitness Studio membership is due for renewal. Come in to renew and keep training!\n\n– Team Yos`;
+                          const phone = member.phone.replace(/\D/g, "").slice(-10);
+                          return (
+                            <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs font-bold"
+                              style={{ color: "#25d366" }}>
+                              <MessageSquare className="h-3 w-3" />
+                              WA Reminder
+                            </a>
+                          );
+                        })()}
+                      </div>
                     )}
                   </div>
                 )}

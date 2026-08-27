@@ -42,10 +42,22 @@ const SOURCE_LABELS: Record<string, string> = {
 const STATUSES = ["NEW", "CONTACTED", "FOLLOW_UP", "CONVERTED", "LOST"];
 const SOURCES  = ["WALK_IN", "INSTAGRAM", "REFERRAL", "PHONE", "WEBSITE", "OTHER"];
 
-function waLink(phone: string) {
+function waLink(phone: string, message?: string) {
   const digits = phone.replace(/\D/g, "");
   const num = digits.startsWith("91") && digits.length === 12 ? digits : `91${digits.slice(-10)}`;
-  return `https://wa.me/${num}`;
+  return message ? `https://wa.me/${num}?text=${encodeURIComponent(message)}` : `https://wa.me/${num}`;
+}
+
+function buildEnquiryTemplate(name: string, status: string, interest: string | null): string {
+  const firstName = name.split(" ")[0];
+  const pkg = interest ? ` for ${interest}` : "";
+  if (status === "NEW" || status === "CONTACTED") {
+    return `Hi ${firstName}! Thank you for your interest in Yos Fitness Studio${pkg}.\n\nWe'd love to have you visit us and experience our facility. Would you like to schedule a free trial session?\n\nLet us know a convenient time and we'll set it up for you!\n\n– Team Yos`;
+  }
+  if (status === "TRIAL_SCHEDULED" || status === "TRIAL_DONE") {
+    return `Hi ${firstName}! Hope you enjoyed your trial at Yos Fitness Studio.\n\nWe'd love to have you join us as a member${pkg}. Ready to get started?\n\nDrop us a message and we'll get your membership sorted!\n\n– Team Yos`;
+  }
+  return `Hi ${firstName}! Just checking in from Yos Fitness Studio. Are you still interested in joining us${pkg}?\n\nFeel free to reach out anytime — we're happy to answer any questions!\n\n– Team Yos`;
 }
 
 function daysUntil(d: Date) {
@@ -267,7 +279,7 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
                           style={{ background: "rgba(255,255,255,0.06)" }}>
                           <Phone className="h-3 w-3" />{e.phone}
                         </a>
-                        <a href={waLink(e.phone)} target="_blank" rel="noopener noreferrer"
+                        <a href={waLink(e.phone, buildEnquiryTemplate(e.name, e.status, e.interest))} target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg"
                           style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}>
                           <MessageCircle className="h-3 w-3" />WhatsApp
@@ -501,7 +513,7 @@ function DetailDrawer({ enquiry, onClose, onEdit, onDelete, onStatusChange }: {
             style={{ background: "rgba(255,255,255,0.06)" }}>
             <Phone className="h-3.5 w-3.5" /> Call
           </a>
-          <a href={waLink(enquiry.phone)} target="_blank" rel="noopener noreferrer"
+          <a href={waLink(enquiry.phone, buildEnquiryTemplate(enquiry.name, enquiry.status, enquiry.interest))} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold"
             style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}>
             <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
