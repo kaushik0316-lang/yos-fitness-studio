@@ -5,6 +5,11 @@ import { MembersClient } from "@/components/members/MembersClient";
 import { MemberStatus } from "@prisma/client";
 import { subDays } from "date-fns";
 
+function todayMonthDay() {
+  const now = new Date();
+  return { month: now.getMonth() + 1, day: now.getDate() };
+}
+
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Members" };
 
@@ -52,7 +57,9 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
     ];
   }
 
-  const [members, total, packages, employees, statusCounts] = await Promise.all([
+  const { month: todayMonth, day: todayDay } = todayMonthDay();
+
+  const [members, total, packages, employees, statusCounts, birthdayMembers] = await Promise.all([
     prisma.member.findMany({
       where,
       include: {
@@ -94,6 +101,16 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
     }),
     // Count per status (ignoring current filters for global counts)
     prisma.member.groupBy({ by: ["status"], _count: { status: true } }),
+    // Birthdays this week (next 7 days by month+day)
+    prisma.$queryRaw<{ id: string; memberId: string; fullName: string; phone: string; whatsapp: string | null; dateOfBirth: Date }[]>`
+      SELECT id, "memberId", "fullName", phone, whatsapp, "dateOfBirth"
+      FROM members
+      WHERE "dateOfBirth" IS NOT NULL
+        AND EXTRACT(MONTH FROM "dateOfBirth") = ${todayMonth}
+        AND EXTRACT(DAY FROM "dateOfBirth") BETWEEN ${todayDay} AND ${todayDay + 6}
+      ORDER BY EXTRACT(DAY FROM "dateOfBirth") ASC
+      LIMIT 50
+    `,
   ]);
 
   const countsMap: Record<string, number> = {};
@@ -114,6 +131,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
           userId={session!.user.id}
           statusCounts={countsMap}
           activeStatusFilter={statusParam}
+          birthdayMembers={birthdayMembers as any}
         />
       </div>
     </>
