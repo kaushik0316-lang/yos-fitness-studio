@@ -20,13 +20,13 @@ type Stats = {
   completed: number;
   onTrack: number;
   atRisk: number;
-  dayOfAug: number;
+  dayOfMonth: number;
   daysLeft: number;
+  daysInMonth: number;
 };
 
-const GOAL = 27;
-
-export function ChallengeClient({ rows, stats }: { rows: Row[]; stats: Stats }) {
+export function ChallengeClient({ rows, stats, goal, monthName }: { rows: Row[]; stats: Stats; goal: number; monthName: string }) {
+  const GOAL = goal;
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "completed" | "ontrack" | "atrisk">("all");
 
@@ -80,14 +80,14 @@ export function ChallengeClient({ rows, stats }: { rows: Row[]; stats: Stats }) 
       <div className="rounded-2xl px-5 py-4 flex items-center justify-between gap-4"
         style={{ background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)", border: "1px solid #2a2a3a" }}>
         <div>
-          <p className="text-white font-bold">Day {stats.dayOfAug} of 31</p>
+          <p className="text-white font-bold">Day {stats.dayOfMonth} of {stats.daysInMonth}</p>
           <p className="text-gray-400 text-sm">{stats.daysLeft} days remaining · Need {GOAL} workouts to complete</p>
         </div>
         <div className="text-right">
-          <p className="text-[11px] text-gray-500 mb-1">August progress</p>
+          <p className="text-[11px] text-gray-500 mb-1">{monthName} progress</p>
           <div className="w-40 h-2 rounded-full overflow-hidden" style={{ background: "#2a2a3a" }}>
             <div className="h-full rounded-full transition-all"
-              style={{ width: `${Math.min(100, (stats.dayOfAug / 31) * 100)}%`, background: "#818cf8" }} />
+              style={{ width: `${Math.min(100, (stats.dayOfMonth / stats.daysInMonth) * 100)}%`, background: "#818cf8" }} />
           </div>
         </div>
       </div>
@@ -173,7 +173,7 @@ export function ChallengeClient({ rows, stats }: { rows: Row[]; stats: Stats }) 
                 </div>
                 <p className="text-[10px] mt-1" style={{ color: "#4b5563" }}>
                   {r.completed
-                    ? "Challenge complete! 🎉"
+                    ? `${monthName} Challenge complete!`
                     : r.onTrack
                     ? `${r.needed} more needed · on pace`
                     : `${r.needed} needed · ${stats.daysLeft} days left`}

@@ -23,7 +23,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
     const monthStart = startOfMonth(monthDate);
     const monthEnd   = endOfMonth(monthDate);
     const totalDays  = getDaysInMonth(monthDate);
-    const isAugust   = month === 8 && year === 2026;
+    const isAugust   = true; // Always show challenge days column in month view
 
     const records = await prisma.memberAttendance.findMany({
       where: { date: { gte: monthStart, lte: monthEnd } },
