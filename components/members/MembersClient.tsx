@@ -61,7 +61,7 @@ const SORT_OPTS = [
 
 function waLink(phone: string) {
   const digits = phone.replace(/\D/g, "");
-  const num = digits.startsWith("91") && digits.length === 12 ? digits : `91${digits}`;
+  const num = digits.startsWith("91") && digits.length === 12 ? digits : `91${digits.slice(-10)}`;
   return `https://wa.me/${num}`;
 }
 
