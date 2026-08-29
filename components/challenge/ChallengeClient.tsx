@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Trophy, Flame, AlertTriangle, Users, CheckCircle2, Search } from "lucide-react";
+import { toTitleCase } from "@/lib/utils/titleCase";
 
 type Row = {
   memberId: string;
@@ -155,7 +156,7 @@ export function ChallengeClient({ rows, stats, goal, monthName }: { rows: Row[];
 
               {/* Member info */}
               <div>
-                <p className="text-white text-sm font-semibold leading-tight">{r.fullName}</p>
+                <p className="text-white text-sm font-semibold leading-tight">{toTitleCase(r.fullName)}</p>
                 <p className="text-[11px] text-gray-600 mt-0.5">{r.memberId}{r.packageName ? ` · ${r.packageName}` : ""}</p>
               </div>
 

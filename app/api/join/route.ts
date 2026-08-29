@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     const employee = await prisma.employee.create({
       data: {
         employeeId,
-        fullName: data.fullName.trim().toUpperCase(),
+        fullName: data.fullName.replace(/\./g, " ").replace(/\s{2,}/g, " ").trim().split(" ").map((w: string) => w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w).join(" "),
         phone: data.phone,
         role: data.role,
         joinDate: new Date(),

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { EnquirySource, EnquiryStatus } from "@prisma/client";
 import { z } from "zod";
+import { toTitleCase, normalizeName } from "@/lib/utils/titleCase";
 
 const enquirySchema = z.object({
   name: z.string().min(1),
@@ -24,7 +25,7 @@ export async function createEnquiry(input: z.infer<typeof enquirySchema>) {
 
   await prisma.enquiry.create({
     data: {
-      name: data.name.trim().toUpperCase(),
+      name: toTitleCase(normalizeName(data.name)),
       phone: data.phone.trim(),
       interest: data.interest?.trim() || null,
       source: data.source,

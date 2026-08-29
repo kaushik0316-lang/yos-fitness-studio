@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Pencil, Loader2 } from "lucide-react";
 import { updateMember } from "@/lib/actions/members";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import { useRouter } from "next/navigation";
 
 type Props = {
@@ -85,7 +86,7 @@ export function EditMemberButton({ member }: Props) {
               {/* Name */}
               <div>
                 <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Full Name *</label>
-                <input value={form.fullName} onChange={(e) => set("fullName", e.target.value)} className={inputCls + " mt-1"} style={inputStyle} />
+                <input value={form.fullName} onChange={(e) => set("fullName", toTitleCase(e.target.value))} className={inputCls + " mt-1"} style={inputStyle} />
               </div>
 
               {/* Contact */}
