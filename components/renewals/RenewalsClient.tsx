@@ -46,6 +46,98 @@ const TABS = [
 
 const PAGE_SIZE = 50;
 
+// ── Bulk WA Panel ─────────────────────────────────────────────────────────────
+function BulkWaPanel({
+  filteredList, selected, activeTab, packageName, buildRenewalTemplate, onClose,
+}: {
+  filteredList: any[]; selected: Set<string>; activeTab: string;
+  packageName: (ms: any) => string | null;
+  buildRenewalTemplate: (member: any, expiryDate: Date | null, pkgName: string | null, isExpired: boolean) => string;
+  onClose: () => void;
+}) {
+  const [rowState, setRowState] = useState<Record<string, "idle" | "opened" | "sent">>({});
+  const isExp = activeTab === "expired";
+  const selectedList = filteredList.filter((ms) => selected.has(ms.id));
+  const sentCount = Object.values(rowState).filter((s) => s === "sent").length;
+
+  async function markSent(ms: any, msg: string) {
+    setRowState((r) => ({ ...r, [ms.id]: "sent" }));
+    try {
+      const { logManualWA } = await import("@/lib/actions/whatsapp");
+      await logManualWA(ms.member.id, "RENEWAL", msg);
+    } catch { /* silent */ }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.7)" }}
+      onClick={onClose}>
+      <div className="w-full max-w-md rounded-3xl overflow-hidden"
+        style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.1)", maxHeight: "80vh" }}
+        onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+          <div>
+            <p className="font-bold text-white">Bulk WhatsApp</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {selectedList.length} members · {sentCount} logged as sent
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
+            <X className="h-4 w-4 text-gray-400" />
+          </button>
+        </div>
+        {/* Member rows */}
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(80vh - 80px)" }}>
+          {selectedList.map((ms) => {
+            const phone = (ms.member.whatsapp || ms.member.phone || "").replace(/\D/g, "").slice(-10);
+            const pkgName = packageName(ms);
+            const msg = buildRenewalTemplate(ms.member, ms.expiryDate, pkgName, isExp);
+            const expStr = ms.expiryDate ? new Date(ms.expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+            const state = rowState[ms.id] ?? "idle";
+
+            return (
+              <div key={ms.id} className="flex items-center gap-3 px-5 py-3.5 border-b border-white/5">
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-white text-sm">{toTitleCase(ms.member.fullName)}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{ms.member.phone} · {isExp ? "expired" : "expires"} {expStr}</p>
+                </div>
+                {!phone ? (
+                  <span className="text-xs text-gray-600 px-3">No phone</span>
+                ) : state === "sent" ? (
+                  <span className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold"
+                    style={{ background: "rgba(34,197,94,0.12)", color: "#4ade80" }}>
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Sent
+                  </span>
+                ) : (
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      onClick={() => setRowState((r) => ({ ...r, [ms.id]: "opened" }))}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
+                      style={{ background: "rgba(37,211,102,0.12)", color: "#25d366", border: "1px solid rgba(37,211,102,0.2)" }}>
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      {state === "opened" ? "Re-open" : "Open Chat"}
+                    </a>
+                    {state === "opened" && (
+                      <button
+                        onClick={() => markSent(ms, msg)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors"
+                        style={{ background: "rgba(34,197,94,0.15)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.3)" }}>
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Sent?
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function waLink(phone: string, message?: string) {
   const digits = phone.replace(/\D/g, "");
   const num = digits.startsWith("91") && digits.length === 12 ? digits : `91${digits.slice(-10)}`;
@@ -403,59 +495,16 @@ export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expir
       )}
 
       {/* ── Bulk WhatsApp panel ── */}
-      {showBulkPanel && (() => {
-        const selectedList = filteredList.filter((ms) => selected.has(ms.id));
-        const isExp = activeTab === "expired";
-        return (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-            style={{ background: "rgba(0,0,0,0.7)" }}
-            onClick={() => setShowBulkPanel(false)}>
-            <div className="w-full max-w-md rounded-3xl overflow-hidden"
-              style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.1)", maxHeight: "80vh" }}
-              onClick={(e) => e.stopPropagation()}>
-              {/* Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-                <div>
-                  <p className="font-bold text-white">Bulk WhatsApp</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{selectedList.length} members — click each to open chat</p>
-                </div>
-                <button onClick={() => setShowBulkPanel(false)}
-                  className="p-2 rounded-xl hover:bg-white/10 transition-colors">
-                  <X className="h-4 w-4 text-gray-400" />
-                </button>
-              </div>
-              {/* Member list */}
-              <div className="overflow-y-auto" style={{ maxHeight: "calc(80vh - 80px)" }}>
-                {selectedList.map((ms) => {
-                  const phone = (ms.member.whatsapp || ms.member.phone || "").replace(/\D/g, "").slice(-10);
-                  const pkgName = packageName(ms);
-                  const msg = buildRenewalTemplate(ms.member, ms.expiryDate, pkgName, isExp);
-                  const waHref = phone ? `https://wa.me/91${phone}?text=${encodeURIComponent(msg)}` : null;
-                  const expStr = ms.expiryDate ? formatDate(ms.expiryDate) : "—";
-                  return (
-                    <div key={ms.id} className="flex items-center gap-3 px-5 py-3.5 border-b border-white/5 hover:bg-white/[0.03] transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-white text-sm">{toTitleCase(ms.member.fullName)}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{ms.member.phone} · {isExp ? "expired" : "expires"} {expStr}</p>
-                      </div>
-                      {waHref ? (
-                        <a href={waHref} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold flex-shrink-0"
-                          style={{ background: "rgba(37,211,102,0.12)", color: "#25d366", border: "1px solid rgba(37,211,102,0.2)" }}>
-                          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                          Open Chat
-                        </a>
-                      ) : (
-                        <span className="text-xs text-gray-600 px-3">No phone</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {showBulkPanel && (
+        <BulkWaPanel
+          filteredList={filteredList}
+          selected={selected}
+          activeTab={activeTab}
+          packageName={packageName}
+          buildRenewalTemplate={buildRenewalTemplate}
+          onClose={() => setShowBulkPanel(false)}
+        />
+      )}
 
       {renewFor && (
         <RenewMembershipDialog
