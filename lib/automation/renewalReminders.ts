@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getFirstName } from "@/lib/utils/titleCase";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import { MemberStatus, AutomationTrigger, MessageChannel, MessageStatus } from "@prisma/client";
 import { format } from "date-fns";
 import { getActiveProvider } from "@/lib/messaging/provider";
@@ -81,7 +81,7 @@ export async function runRenewalReminders(): Promise<{
         });
 
         const bodyTemplate = dbTemplate?.body ?? DEFAULT_TEMPLATES[rule.trigger as keyof typeof DEFAULT_TEMPLATES] ?? "";
-        const firstName    = getFirstName(member.fullName);
+        const firstName    = toTitleCase(member.fullName);
         const expiryDate   = member.expiryDate ? format(member.expiryDate, "dd MMM yyyy") : "—";
         const packageName  = member.currentPackage?.name ?? "your membership";
 
@@ -152,7 +152,7 @@ export async function runRenewalReminders(): Promise<{
     if (!member.whatsapp && !member.phone) continue;
     processed++;
     try {
-      const firstName = getFirstName(member.fullName);
+      const firstName = toTitleCase(member.fullName);
       const lastSeen = member.lastAttendanceDate
         ? format(member.lastAttendanceDate, "dd MMM")
         : "a while";
@@ -209,7 +209,7 @@ export async function runRenewalReminders(): Promise<{
 
     processed++;
     try {
-      const firstName = getFirstName(member.fullName);
+      const firstName = toTitleCase(member.fullName);
       const label = years === 1 ? "1 year" : `${years} years`;
       const message = `🎉 Happy ${label} at Yos, ${firstName}!\n\nThank you for being part of our community. Here's to many more sessions together! 💪\n\n– Team Yos Fitness Studio`;
       const rawPhone = member.whatsapp ?? member.phone!;
@@ -260,7 +260,7 @@ export async function runRenewalReminders(): Promise<{
 
     processed++;
     try {
-      const firstName = getFirstName(member.fullName);
+      const firstName = toTitleCase(member.fullName);
       const message = `🎂 Happy Birthday, ${firstName}!\n\nWishing you a wonderful day! Keep crushing those fitness goals — the whole Yos team is cheering for you! 🎉💪\n\n– Team Yos Fitness Studio`;
       const rawPhone = member.whatsapp ?? member.phone!;
       const phone = cleanPhone(rawPhone);

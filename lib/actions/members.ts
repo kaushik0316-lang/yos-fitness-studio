@@ -140,7 +140,7 @@ export async function createMember(input: z.infer<typeof createMemberSchema>) {
   try {
     const { getActiveProvider } = await import("@/lib/messaging/provider");
     const phone = (data.whatsapp || data.phone).replace(/\D/g, "");
-    const firstName = getFirstName(member.fullName);
+    const firstName = toTitleCase(member.fullName);
     const portalLink = `https://yosfitnessstudio.in/member-portal?id=${member.memberId}`;
     await getActiveProvider().send({
       to: phone.startsWith("91") || phone.length === 10 ? `+91${phone.slice(-10)}` : `+${phone}`,

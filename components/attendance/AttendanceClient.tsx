@@ -598,7 +598,7 @@ export function AttendanceClient({
                     {(() => {
                       const phone = (m.phone ?? "").replace(/\D/g, "").slice(-10);
                       if (!phone) return null;
-                      const firstName = getFirstName(m.fullName);
+                      const firstName = toTitleCase(m.fullName);
                       const nudge = expiringSoon
                         ? `Hi ${firstName}! Your Yos membership expires in ${expDays} day${expDays === 1 ? "" : "s"}. Come renew today and keep your streak going!`
                         : expired

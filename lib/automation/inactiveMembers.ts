@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getFirstName } from "@/lib/utils/titleCase";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import { MemberStatus, AutomationTrigger, MessageChannel, MessageStatus } from "@prisma/client";
 import { format } from "date-fns";
 import { getActiveProvider } from "@/lib/messaging/provider";
@@ -90,7 +90,7 @@ export async function runInactiveMembersCheck(): Promise<{
         });
 
         const bodyTemplate = dbTemplate?.body ?? DEFAULT_TEMPLATES[rule.trigger as keyof typeof DEFAULT_TEMPLATES] ?? "";
-        const firstName    = getFirstName(member.fullName);
+        const firstName    = toTitleCase(member.fullName);
         const expiryDate   = member.expiryDate ? format(member.expiryDate, "dd MMM yyyy") : "—";
         const trainerName  = member.trainer?.fullName ?? "your trainer";
 

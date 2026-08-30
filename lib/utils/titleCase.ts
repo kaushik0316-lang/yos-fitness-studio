@@ -27,6 +27,7 @@ export function getFirstName(fullName: string | null | undefined): string {
   return meaningful ?? words[0] ?? "";
 }
 
+
 /** Normalise a person's name before saving to DB. */
 export function normalizeName(name: string): string {
   return name

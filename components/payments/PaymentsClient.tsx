@@ -404,7 +404,7 @@ export function PaymentsClient({
                           {(() => {
                             const phone = (p.member.phone ?? "").replace(/\D/g, "").slice(-10);
                             if (!phone) return null;
-                            const firstName = getFirstName(p.member.fullName);
+                            const firstName = toTitleCase(p.member.fullName);
                             const msg = `Hi ${firstName}! Thanks for your payment at Yos Fitness Studio. See you at your next session! 💪`;
                             return (
                               <WaConfirmButton

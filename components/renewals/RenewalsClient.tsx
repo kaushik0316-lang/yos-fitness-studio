@@ -145,7 +145,7 @@ function waLink(phone: string, message?: string) {
 }
 
 function buildRenewalTemplate(member: { fullName: string }, expiryDate: Date | null, pkgName: string | null, isExpired: boolean): string {
-  const firstName = getFirstName(member.fullName);
+  const firstName = toTitleCase(member.fullName);
   const expStr = expiryDate
     ? new Date(expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
     : null;

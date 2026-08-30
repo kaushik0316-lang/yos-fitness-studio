@@ -1,6 +1,6 @@
 "use client";
 
-import { getFirstName } from "@/lib/utils/titleCase";
+import { toTitleCase } from "@/lib/utils/titleCase";
 import { WaConfirmButton } from "@/components/whatsapp/WaConfirmButton";
 
 type Props = {
@@ -25,7 +25,7 @@ export function WhatsAppButton({ memberId, phone, memberName, amount, receiptNo,
   if (!digits || digits.length < 9 || new Set(digits.split("")).size === 1) return null;
 
   const companyName = company === "YOS_FITNESS_STUDIO" ? "Yos Fitness Studio" : "Yos Fitness";
-  const firstName = getFirstName(memberName);
+  const firstName = toTitleCase(memberName);
   const periodLine =
     startDate && expiryDate
       ? `\nValidity: ${formatDate(startDate)} → ${formatDate(expiryDate)}`

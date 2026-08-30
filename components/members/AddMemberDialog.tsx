@@ -88,7 +88,7 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
     const termsLink = `https://yosfitnessstudio.in/terms-accept?id=${newMember.memberId}`;
     const digits = newMember.phone.replace(/\D/g, "").slice(-10);
     const waMsg = encodeURIComponent(
-      `Hi ${getFirstName(newMember.fullName)}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${newMember.memberId}*.\n\nPlease accept your membership terms (takes 1 minute):\n👉 ${termsLink}\n\nSee you at the gym! 💪`
+      `Hi ${toTitleCase(newMember.fullName)}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${newMember.memberId}*.\n\nPlease accept your membership terms (takes 1 minute):\n👉 ${termsLink}\n\nSee you at the gym! 💪`
     );
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4"

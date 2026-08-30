@@ -108,7 +108,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId, waL
             <WaConfirmButton
               memberId={member.id}
               phone={member.phone}
-              message={`Hi ${getFirstName(member.fullName)}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${member.memberId}*.\n\nSet up your member portal to view attendance and membership details:\n👉 https://yosfitnessstudio.in/member-portal?setup=1\n\nSee you at the gym! 💪`}
+              message={`Hi ${toTitleCase(member.fullName)}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${member.memberId}*.\n\nSet up your member portal to view attendance and membership details:\n👉 https://yosfitnessstudio.in/member-portal?setup=1\n\nSee you at the gym! 💪`}
               waType="WELCOME"
               label="Send Welcome"
               className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
@@ -464,7 +464,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId, waL
                     <WaConfirmButton
                       memberId={member.id}
                       phone={member.phone}
-                      message={`Hi ${getFirstName(member.fullName)}! Please accept your Yos Fitness membership terms (takes 1 minute):\n👉 https://yosfitnessstudio.in/terms-accept?id=${member.memberId}`}
+                      message={`Hi ${toTitleCase(member.fullName)}! Please accept your Yos Fitness membership terms (takes 1 minute):\n👉 https://yosfitnessstudio.in/terms-accept?id=${member.memberId}`}
                       waType="TERMS"
                       label="Send"
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0 transition-colors"
@@ -528,7 +528,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId, waL
                           </Link>
                         )}
                         {member.phone && (() => {
-                          const firstName = getFirstName(member.fullName);
+                          const firstName = toTitleCase(member.fullName);
                           const expStr = member.expiryDate
                             ? new Date(member.expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
                             : null;
@@ -596,7 +596,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId, waL
                           </Link>
                         )}
                         {member.phone && (() => {
-                          const firstName = getFirstName(member.fullName);
+                          const firstName = toTitleCase(member.fullName);
                           const expStr = member.expiryDate
                             ? new Date(member.expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
                             : null;
