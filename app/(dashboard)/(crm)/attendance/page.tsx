@@ -168,7 +168,6 @@ export default async function AttendancePage({ searchParams }: { searchParams: S
     };
   }
   const isToday = format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
-
   return (
     <>
       <Header

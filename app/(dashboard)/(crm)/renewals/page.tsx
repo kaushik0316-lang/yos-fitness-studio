@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { RenewalsClient } from "@/components/renewals/RenewalsClient";
+import { getWaLogsByType } from "@/lib/actions/whatsapp";
 import { MemberStatus } from "@prisma/client";
 import { addDays, startOfDay, endOfDay, subDays } from "date-fns";
 
@@ -187,6 +188,8 @@ export default async function RenewalsPage() {
     },
   }));
 
+  const renewalWaLogs = await getWaLogsByType("RENEWAL", 30);
+
   return (
     <>
       <Header title="Renewals" subtitle="Memberships expiring soon" />
@@ -203,6 +206,7 @@ export default async function RenewalsPage() {
           trainers={trainers}
           userRole={session!.user.role}
           userId={session!.user.id}
+          renewalWaLogs={renewalWaLogs}
         />
       </div>
     </>

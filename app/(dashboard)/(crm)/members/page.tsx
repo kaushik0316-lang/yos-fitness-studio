@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { MembersClient } from "@/components/members/MembersClient";
 import { MemberStatus } from "@prisma/client";
+import { getWaLogsByType } from "@/lib/actions/whatsapp";
 import { subDays } from "date-fns";
 
 function todayMonthDay() {
@@ -113,6 +114,8 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
     `,
   ]);
 
+  const [birthdayWaLogs] = await Promise.all([getWaLogsByType("BIRTHDAY", 30)]);
+
   const countsMap: Record<string, number> = {};
   for (const row of statusCounts) countsMap[row.status] = row._count.status;
 
@@ -132,6 +135,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
           statusCounts={countsMap}
           activeStatusFilter={statusParam}
           birthdayMembers={birthdayMembers as any}
+          birthdayWaLogs={birthdayWaLogs}
         />
       </div>
     </>

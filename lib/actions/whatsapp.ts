@@ -61,3 +61,26 @@ export async function getMemberWaLogs(memberId: string) {
     },
   });
 }
+
+export async function getWaLogsByType(waType: WaType, days = 30) {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  const rows = await prisma.messageLog.findMany({
+    where: { isManual: true, channel: "MANUAL", waType, createdAt: { gte: since } },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      sentByName: true,
+      sentAt: true,
+      createdAt: true,
+      member: { select: { fullName: true } },
+    },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    memberName: r.member.fullName,
+    sentByName: r.sentByName,
+    sentAt: r.sentAt,
+    createdAt: r.createdAt,
+  }));
+}

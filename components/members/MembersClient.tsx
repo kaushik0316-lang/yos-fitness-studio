@@ -13,6 +13,7 @@ import { MoveMembershipButton } from "@/components/members/MoveMembershipButton"
 import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
+import { WaSentSummary } from "@/components/whatsapp/WaSentSummary";
 import type { Company, MemberStatus, UserRole } from "@prisma/client";
 
 type Member = {
@@ -97,10 +98,12 @@ type BirthdayMember = {
   id: string; memberId: string; fullName: string; phone: string; whatsapp: string | null; dateOfBirth: Date | string;
 };
 
+type WaLog = { id: string; memberName: string; sentByName: string | null; sentAt: Date | null; createdAt: Date };
+
 export function MembersClient({
   members, total, page, pageSize, packages, trainers,
-  userRole, userId, statusCounts, activeStatusFilter, birthdayMembers = [],
-}: Props & { birthdayMembers?: BirthdayMember[] }) {
+  userRole, userId, statusCounts, activeStatusFilter, birthdayMembers = [], birthdayWaLogs = [],
+}: Props & { birthdayMembers?: BirthdayMember[]; birthdayWaLogs?: WaLog[] }) {
   const router   = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -232,6 +235,8 @@ export function MembersClient({
       </div>
 
       {/* ── Birthdays tab ── */}
+      {activeMainTab === "birthdays" && <WaSentSummary logs={birthdayWaLogs} waType="BIRTHDAY" />}
+
       {activeMainTab === "birthdays" && (() => {
         const now = new Date();
         const todayM = now.getMonth(), todayD = now.getDate();

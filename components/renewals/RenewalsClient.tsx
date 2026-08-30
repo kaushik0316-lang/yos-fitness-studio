@@ -7,6 +7,7 @@ import { RenewMembershipDialog } from "@/components/members/RenewMembershipDialo
 import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import { WaConfirmButton } from "@/components/whatsapp/WaConfirmButton";
+import { WaSentSummary } from "@/components/whatsapp/WaSentSummary";
 import type { UserRole } from "@prisma/client";
 
 type MemberInfo = {
@@ -25,6 +26,8 @@ type RenewalMembership = {
 
 type Trainer = { id: string; fullName: string };
 
+type WaLog = { id: string; memberName: string; sentByName: string | null; sentAt: Date | null; createdAt: Date };
+
 type Props = {
   expiredMemberships: RenewalMembership[]; expiring1: RenewalMembership[]; expiring3: RenewalMembership[];
   expiring7: RenewalMembership[]; expiring30: RenewalMembership[]; renewedToday: any[];
@@ -32,6 +35,7 @@ type Props = {
   packages: any[];
   trainers?: Trainer[];
   userRole: UserRole; userId: string;
+  renewalWaLogs?: WaLog[];
 };
 
 const TABS = [
@@ -188,7 +192,7 @@ function buildWhatsAppMessage(memberships: RenewalMembership[], tabLabel: string
   return msg.trim();
 }
 
-export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expiring7, expiring30, renewedToday, winBack, packages, trainers = [], userRole, userId }: Props) {
+export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expiring7, expiring30, renewedToday, winBack, packages, trainers = [], userRole, userId, renewalWaLogs = [] }: Props) {
   const [activeTab, setActiveTab] = useState("expired");
   const [renewFor, setRenewFor] = useState<{ id: string; memberId: string; fullName: string } | null>(null);
   const [search, setSearch] = useState("");
@@ -249,6 +253,9 @@ export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expir
 
   return (
     <div className="space-y-5 pb-28">
+      {/* ── WA Sent Summary ── */}
+      <WaSentSummary logs={renewalWaLogs} waType="RENEWAL" />
+
       {/* ── Summary cards ── */}
       <div className="grid grid-cols-4 sm:grid-cols-7 gap-3">
         {TABS.map((tab) => {
