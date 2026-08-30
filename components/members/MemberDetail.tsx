@@ -11,6 +11,8 @@ import { EditMemberButton } from "@/components/members/EditMemberButton";
 import { DeleteMemberButton } from "@/components/members/DeleteMemberButton";
 import { toggleDoNotDisturb, toggleKioskCheckin, setMemberPin } from "@/lib/actions/members";
 import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
+import { WaConfirmButton } from "@/components/whatsapp/WaConfirmButton";
+import { WaHistory } from "@/components/whatsapp/WaHistory";
 import { MemberPhotoUpload } from "@/components/members/MemberPhotoUpload";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import {
@@ -29,10 +31,13 @@ function calcAge(dateOfBirth: Date | string): number {
 import { cn } from "@/lib/utils";
 import type { UserRole, MemberStatus } from "@prisma/client";
 
+type WaLog = { id: string; waType: string | null; sentByName: string | null; sentAt: Date | null; createdAt: Date };
+
 type Props = {
   member: any; packages: any[];
   trainers: { id: string; fullName: string; role: string }[];
   userRole: UserRole; userId: string;
+  waLogs?: WaLog[];
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -44,7 +49,7 @@ const PAYMENT_TYPE_LABELS: Record<string, string> = {
   ADMISSION: "Admission", RENEWAL: "Renewal", BALANCE: "Balance",
 };
 
-export function MemberDetail({ member, packages, trainers, userRole, userId }: Props) {
+export function MemberDetail({ member, packages, trainers, userRole, userId, waLogs = [] }: Props) {
   const [showPayment, setShowPayment] = useState(false);
   const [showAttendance, setShowAttendance] = useState(false);
   const [dnd, setDnd] = useState<boolean>(member.doNotDisturb ?? false);
@@ -100,18 +105,15 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
           {(userRole === "ADMIN" || userRole === "FRONT_DESK") && member.phone && (
-            <a
-              href={`https://wa.me/91${member.phone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(
-                `Hi ${getFirstName(member.fullName)}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${member.memberId}*.\n\nSet up your member portal to view attendance and membership details:\n👉 https://yosfitnessstudio.in/member-portal?setup=1\n\nSee you at the gym! 💪`
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <WaConfirmButton
+              memberId={member.id}
+              phone={member.phone}
+              message={`Hi ${getFirstName(member.fullName)}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${member.memberId}*.\n\nSet up your member portal to view attendance and membership details:\n👉 https://yosfitnessstudio.in/member-portal?setup=1\n\nSee you at the gym! 💪`}
+              waType="WELCOME"
+              label="Send Welcome"
               className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
               style={{ background: "#25d366", color: "#fff" }}
-            >
-              <MessageSquare className="h-4 w-4" />
-              Send Welcome
-            </a>
+            />
           )}
           {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "TRAINER") && (
             <button
@@ -459,16 +461,15 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                     </div>
                   </div>
                   {!member.termsAcceptedAt && member.phone && (
-                    <a
-                      href={`https://wa.me/91${member.phone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(
-                        `Hi ${getFirstName(member.fullName)}! Please accept your Yos Fitness membership terms (takes 1 minute):\n👉 https://yosfitnessstudio.in/terms-accept?id=${member.memberId}`
-                      )}`}
-                      target="_blank" rel="noopener noreferrer"
+                    <WaConfirmButton
+                      memberId={member.id}
+                      phone={member.phone}
+                      message={`Hi ${getFirstName(member.fullName)}! Please accept your Yos Fitness membership terms (takes 1 minute):\n👉 https://yosfitnessstudio.in/terms-accept?id=${member.memberId}`}
+                      waType="TERMS"
+                      label="Send"
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0 transition-colors"
-                      style={{ background: "rgba(37,211,102,0.1)", color: "#16a34a", border: "1px solid rgba(37,211,102,0.25)" }}>
-                      <MessageSquare className="h-3.5 w-3.5" />
-                      Send
-                    </a>
+                      style={{ background: "rgba(37,211,102,0.1)", color: "#16a34a", border: "1px solid rgba(37,211,102,0.25)" }}
+                    />
                   )}
                 </div>
               )}
@@ -536,15 +537,16 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                             : expStr
                             ? `Hi ${firstName}!\n\nJust a friendly reminder that your Yos Fitness Studio membership is expiring on *${expStr}*.\n\nRenew now to keep your streak going without a break!\n\nSee you at the studio!\n– Team Yos`
                             : `Hi ${firstName}!\n\nYour Yos Fitness Studio membership is due for renewal. Come in to renew and keep training!\n\n– Team Yos`;
-                          const phone = member.phone.replace(/\D/g, "").slice(-10);
                           return (
-                            <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`}
-                              target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs font-bold"
-                              style={{ color: "#25d366" }}>
-                              <MessageSquare className="h-3 w-3" />
-                              WA Reminder
-                            </a>
+                            <WaConfirmButton
+                              memberId={member.id}
+                              phone={member.phone}
+                              message={msg}
+                              waType="RENEWAL"
+                              label="WA Reminder"
+                              className="inline-flex items-center gap-1 text-xs font-bold bg-transparent border-0 p-0 cursor-pointer"
+                              style={{ color: "#25d366" }}
+                            />
                           );
                         })()}
                       </div>
@@ -603,15 +605,16 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                             : expStr
                             ? `Hi ${firstName}!\n\nJust a friendly reminder that your Yos Fitness Studio membership is expiring on *${expStr}*.\n\nRenew now to keep your streak going without a break!\n\nSee you at the studio!\n– Team Yos`
                             : `Hi ${firstName}!\n\nYour Yos Fitness Studio membership is due for renewal. Come in to renew and keep training!\n\n– Team Yos`;
-                          const phone = member.phone.replace(/\D/g, "").slice(-10);
                           return (
-                            <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`}
-                              target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs font-bold"
-                              style={{ color: "#25d366" }}>
-                              <MessageSquare className="h-3 w-3" />
-                              WA Reminder
-                            </a>
+                            <WaConfirmButton
+                              memberId={member.id}
+                              phone={member.phone}
+                              message={msg}
+                              waType="RENEWAL"
+                              label="WA Reminder"
+                              className="inline-flex items-center gap-1 text-xs font-bold bg-transparent border-0 p-0 cursor-pointer"
+                              style={{ color: "#25d366" }}
+                            />
                           );
                         })()}
                       </div>
@@ -876,6 +879,18 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
             )}
           </div>
         </div>
+      </div>
+
+      {/* WA History */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mt-6 mx-0">
+        <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-4">
+          <div className="bg-green-50 rounded-xl p-1.5">
+            <MessageSquare className="h-4 w-4 text-green-600" />
+          </div>
+          WhatsApp History
+          <span className="text-xs text-gray-400 font-normal ml-1">({waLogs.length})</span>
+        </h3>
+        <WaHistory logs={waLogs} />
       </div>
 
       {/* Dialogs */}

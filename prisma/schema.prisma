@@ -567,6 +567,8 @@ model MessageLog {
   failureReason String?
   trigger       AutomationTrigger?
   isManual      Boolean        @default(false)
+  waType        String?        // BIRTHDAY | RENEWAL | WELCOME | PAYMENT | ENQUIRY | TERMS | GENERAL
+  sentByName    String?        // display name of staff who confirmed send
 
   createdAt DateTime @default(now())
 

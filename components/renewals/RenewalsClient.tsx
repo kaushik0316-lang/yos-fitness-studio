@@ -6,6 +6,7 @@ import { RotateCcw, Phone, AlertTriangle, CheckCircle2, MessageCircle, Clock, Se
 import { RenewMembershipDialog } from "@/components/members/RenewMembershipDialog";
 import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
+import { WaConfirmButton } from "@/components/whatsapp/WaConfirmButton";
 import type { UserRole } from "@prisma/client";
 
 type MemberInfo = {
@@ -338,14 +339,15 @@ export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expir
                             <Phone className="h-3 w-3" />
                             {ms.member.phone}
                           </a>
-                          <a href={waLink(waNumber, buildRenewalTemplate(ms.member, ms.expiryDate, pkgName, isExpired))}
-                            target="_blank" rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
+                          <WaConfirmButton
+                            memberId={ms.member.id}
+                            phone={waNumber}
+                            message={buildRenewalTemplate(ms.member, ms.expiryDate, pkgName, isExpired)}
+                            waType="RENEWAL"
+                            label="WhatsApp"
                             className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors"
-                            style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}>
-                            <MessageCircle className="h-3 w-3" />
-                            WhatsApp
-                          </a>
+                            style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}
+                          />
                           {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
                             <button onClick={(e) => { e.stopPropagation(); setRenewFor({ id: ms.member.id, memberId: ms.member.memberId, fullName: ms.member.fullName }); }}
                               className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-xs font-bold transition-all ml-auto"

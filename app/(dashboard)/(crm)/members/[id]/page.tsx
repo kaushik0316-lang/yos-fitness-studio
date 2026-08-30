@@ -40,11 +40,17 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
 
   if (!member) notFound();
 
-  const [packages, trainers] = await Promise.all([
+  const [packages, trainers, waLogs] = await Promise.all([
     prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.employee.findMany({
       where: { isActive: true, role: { in: ["TRAINER", "MANAGER"] } },
       select: { id: true, fullName: true, role: true },
+    }),
+    prisma.messageLog.findMany({
+      where: { memberId: member.id, isManual: true, channel: "MANUAL" },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: { id: true, waType: true, sentByName: true, sentAt: true, createdAt: true },
     }),
   ]);
 
@@ -61,6 +67,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
           trainers={trainers}
           userRole={session!.user.role}
           userId={session!.user.id}
+          waLogs={waLogs as any}
         />
       </div>
     </>
