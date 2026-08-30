@@ -70,6 +70,7 @@ export async function getWaLogsByType(waType: WaType, days = 30) {
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
+      memberId: true,
       sentByName: true,
       sentAt: true,
       createdAt: true,
@@ -78,6 +79,7 @@ export async function getWaLogsByType(waType: WaType, days = 30) {
   });
   return rows.map((r) => ({
     id: r.id,
+    memberId: r.memberId,
     memberName: r.member.fullName,
     sentByName: r.sentByName,
     sentAt: r.sentAt,

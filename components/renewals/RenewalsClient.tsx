@@ -26,7 +26,7 @@ type RenewalMembership = {
 
 type Trainer = { id: string; fullName: string };
 
-type WaLog = { id: string; memberName: string; sentByName: string | null; sentAt: Date | null; createdAt: Date };
+type WaLog = { id: string; memberId: string; memberName: string; sentByName: string | null; sentAt: Date | null; createdAt: Date };
 
 type Props = {
   expiredMemberships: RenewalMembership[]; expiring1: RenewalMembership[]; expiring3: RenewalMembership[];
@@ -193,6 +193,16 @@ function buildWhatsAppMessage(memberships: RenewalMembership[], tabLabel: string
 }
 
 export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expiring7, expiring30, renewedToday, winBack, packages, trainers = [], userRole, userId, renewalWaLogs = [] }: Props) {
+  // Build per-member sent count from page-level logs
+  const waSentByMember = renewalWaLogs.reduce<Record<string, { count: number; lastAt: Date | null }>>((acc, log) => {
+    if (!log.memberId) return acc;
+    const prev = acc[log.memberId];
+    const logDate = log.sentAt ?? log.createdAt;
+    if (!prev) { acc[log.memberId] = { count: 1, lastAt: logDate }; }
+    else { prev.count++; if (logDate && (!prev.lastAt || logDate > prev.lastAt)) prev.lastAt = logDate; }
+    return acc;
+  }, {});
+
   const [activeTab, setActiveTab] = useState("expired");
   const [renewFor, setRenewFor] = useState<{ id: string; memberId: string; fullName: string } | null>(null);
   const [search, setSearch] = useState("");
@@ -447,6 +457,16 @@ export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expir
                             className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors"
                             style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}
                           />
+                          {waSentByMember[ms.member.id] && (() => {
+                            const { count, lastAt } = waSentByMember[ms.member.id];
+                            const dateStr = lastAt ? new Date(lastAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "";
+                            return (
+                              <span title={`Last sent: ${dateStr}`} className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg font-medium"
+                                style={{ background: "rgba(37,211,102,0.08)", color: "#25d366", border: "1px solid rgba(37,211,102,0.2)" }}>
+                                ✓ {count}× {dateStr && <span className="text-gray-500">{dateStr}</span>}
+                              </span>
+                            );
+                          })()}
                           {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
                             <button onClick={(e) => { e.stopPropagation(); setRenewFor({ id: ms.member.id, memberId: ms.member.memberId, fullName: ms.member.fullName }); }}
                               className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-xs font-bold transition-all ml-auto"
