@@ -12,7 +12,7 @@ import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog"
 import { MoveMembershipButton } from "@/components/members/MoveMembershipButton";
 import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { toTitleCase } from "@/lib/utils/titleCase";
+import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import type { Company, MemberStatus, UserRole } from "@prisma/client";
 
 type Member = {
@@ -280,7 +280,7 @@ export function MembersClient({
                     const dob = new Date(m.dateOfBirth);
                     const dobStr = dob.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
                     const phone = (m.whatsapp ?? m.phone ?? "").replace(/\D/g, "").slice(-10);
-                    const firstName = m.fullName.split(" ")[0];
+                    const firstName = getFirstName(m.fullName);
                     const bdayMsg = `Happy Birthday, ${firstName}!\n\nWishing you a wonderful day filled with joy! Keep crushing those fitness goals — the whole Yos team is cheering for you!\n\n– Team Yos Fitness Studio`;
                     return (
                       <div key={m.id} className="flex items-center gap-4 px-5 py-3.5">
@@ -504,7 +504,7 @@ export function MembersClient({
             <div className="max-h-[60vh] overflow-y-auto">
               {members.filter((m) => selected.has(m.id)).map((m) => {
                 const waMsg = encodeURIComponent(
-                  `Hi ${m.fullName.split(" ")[0]}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${m.memberId}*.\n\nSet up your member portal to view attendance and membership details:\n👉 https://yosfitnessstudio.in/member-portal?setup=1\n\nSee you at the gym! 💪`
+                  `Hi ${getFirstName(m.fullName)}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${m.memberId}*.\n\nSet up your member portal to view attendance and membership details:\n👉 https://yosfitnessstudio.in/member-portal?setup=1\n\nSee you at the gym! 💪`
                 );
                 const digits = m.phone.replace(/\D/g, "").slice(-10);
                 return (

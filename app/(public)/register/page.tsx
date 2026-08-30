@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { getFirstName } from "@/lib/utils/titleCase";
 import Image from "next/image";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
@@ -86,7 +87,7 @@ export default function RegisterPage() {
           </div>
           <h2 className="text-2xl font-extrabold text-gray-900">You're all set!</h2>
           <p className="text-gray-500 text-sm mt-2 leading-relaxed">
-            Thank you for registering, {result.fullName.split(" ")[0]}.<br />
+            Thank you for registering, {getFirstName(result.fullName)}.<br />
             Please show this to the front desk.
           </p>
           <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">

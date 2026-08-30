@@ -3,7 +3,7 @@
 import { useState, useTransition, useRef, useEffect } from "react";
 import { Plus, Phone, MessageCircle, Search, X, ChevronDown, UserCircle, Calendar, StickyNote, Trash2, ChevronRight } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import { toTitleCase } from "@/lib/utils/titleCase";
+import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import { createEnquiry, updateEnquiry, deleteEnquiry } from "@/lib/actions/enquiries";
 import type { UserRole } from "@prisma/client";
 
@@ -49,7 +49,7 @@ function waLink(phone: string, message?: string) {
 }
 
 function buildEnquiryTemplate(name: string, status: string, interest: string | null): string {
-  const firstName = name.split(" ")[0];
+  const firstName = getFirstName(name);
   const pkg = interest ? ` for ${interest}` : "";
   if (status === "NEW" || status === "CONTACTED") {
     return `Hi ${firstName}! Thank you for your interest in Yos Fitness Studio${pkg}.\n\nWe'd love to have you visit us and experience our facility. Would you like to schedule a free trial session?\n\nLet us know a convenient time and we'll set it up for you!\n\n– Team Yos`;

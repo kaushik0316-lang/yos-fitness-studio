@@ -5,7 +5,7 @@ import Link from "next/link";
 import { RotateCcw, Phone, AlertTriangle, CheckCircle2, MessageCircle, Clock, Search, X, Share2, CheckSquare, Square, ExternalLink } from "lucide-react";
 import { RenewMembershipDialog } from "@/components/members/RenewMembershipDialog";
 import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
-import { toTitleCase } from "@/lib/utils/titleCase";
+import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import type { UserRole } from "@prisma/client";
 
 type MemberInfo = {
@@ -52,7 +52,7 @@ function waLink(phone: string, message?: string) {
 }
 
 function buildRenewalTemplate(member: { fullName: string }, expiryDate: Date | null, pkgName: string | null, isExpired: boolean): string {
-  const firstName = member.fullName.split(" ")[0];
+  const firstName = getFirstName(member.fullName);
   const expStr = expiryDate
     ? new Date(expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
     : null;

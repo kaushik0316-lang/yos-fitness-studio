@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getFirstName } from "@/lib/utils/titleCase";
 
 async function verifyPin(pin: string) {
   if (!pin) return null;
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
   try {
     const { getActiveProvider } = await import("@/lib/messaging/provider");
     const phone = enquiry.phone.replace(/\D/g, "").slice(-10);
-    const firstName = enquiry.name.split(" ")[0];
+    const firstName = getFirstName(enquiry.name);
     await getActiveProvider().send({
       to: `+91${phone}`,
       channel: "WHATSAPP",

@@ -12,7 +12,7 @@ import { ManualAttendanceDialog } from "@/components/attendance/ManualAttendance
 import { CheckOutDialog } from "@/components/attendance/CheckOutDialog";
 import { EditAttendanceDialog } from "@/components/attendance/EditAttendanceDialog";
 import { formatTime, daysAgo } from "@/lib/utils";
-import { toTitleCase } from "@/lib/utils/titleCase";
+import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import { format, addDays, subDays, differenceInMinutes, parseISO } from "date-fns";
 import type { UserRole } from "@prisma/client";
 
@@ -598,7 +598,7 @@ export function AttendanceClient({
                     {(() => {
                       const phone = (m.phone ?? "").replace(/\D/g, "").slice(-10);
                       if (!phone) return null;
-                      const firstName = m.fullName.split(" ")[0];
+                      const firstName = getFirstName(m.fullName);
                       const nudge = expiringSoon
                         ? `Hi ${firstName}! Your Yos membership expires in ${expDays} day${expDays === 1 ? "" : "s"}. Come renew today and keep your streak going!`
                         : expired

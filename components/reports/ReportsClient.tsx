@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { getFirstName } from "@/lib/utils/titleCase";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Users, TrendingUp, RotateCcw, UserPlus, Zap } from "lucide-react";
 import {
@@ -275,7 +276,7 @@ export function ReportsClient({
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-sm font-bold" style={{ color: "#f59e0b" }}>{m.checkIns} visits</span>
-                  <a href={`https://wa.me/91${m.phone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(`Hi ${m.fullName.split(" ")[0]}! We noticed you've been crushing it at Yos 💪 Would you be interested in Personal Training for faster results? Reply here and we'll tell you more!`)}`}
+                  <a href={`https://wa.me/91${m.phone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(`Hi ${getFirstName(m.fullName)}! We noticed you've been crushing it at Yos 💪 Would you be interested in Personal Training for faster results? Reply here and we'll tell you more!`)}`}
                     target="_blank" rel="noopener noreferrer"
                     className="text-xs font-semibold px-3 py-1.5 rounded-lg"
                     style={{ background: "rgba(37,211,102,0.12)", color: "#25d366", border: "1px solid rgba(37,211,102,0.2)" }}>

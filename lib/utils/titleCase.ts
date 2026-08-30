@@ -16,6 +16,17 @@ export function toTitleCase(str: string | null | undefined): string {
     .trim();
 }
 
+/**
+ * Extract a usable first name, skipping single-letter initials.
+ * "T Badhma Prakash" → "Badhma", "M A Rajasekaran" → "Rajasekaran", "Gopala Krishnan" → "Gopala"
+ */
+export function getFirstName(fullName: string | null | undefined): string {
+  if (!fullName) return "";
+  const words = fullName.trim().split(/\s+/);
+  const meaningful = words.find((w) => w.length > 1);
+  return meaningful ?? words[0] ?? "";
+}
+
 /** Normalise a person's name before saving to DB. */
 export function normalizeName(name: string): string {
   return name

@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { addDays } from "date-fns";
 import { Company, MemberStatus, PaymentMode } from "@prisma/client";
 import { generateMemberId, ucaseReq, ucase } from "@/lib/utils";
-import { normalizeName, toTitleCase } from "@/lib/utils/titleCase";
+import { normalizeName, toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import { z } from "zod";
 
 const createMemberSchema = z.object({
@@ -140,7 +140,7 @@ export async function createMember(input: z.infer<typeof createMemberSchema>) {
   try {
     const { getActiveProvider } = await import("@/lib/messaging/provider");
     const phone = (data.whatsapp || data.phone).replace(/\D/g, "");
-    const firstName = member.fullName.split(" ")[0];
+    const firstName = getFirstName(member.fullName);
     const portalLink = `https://yosfitnessstudio.in/member-portal?id=${member.memberId}`;
     await getActiveProvider().send({
       to: phone.startsWith("91") || phone.length === 10 ? `+91${phone.slice(-10)}` : `+${phone}`,

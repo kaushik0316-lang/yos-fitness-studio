@@ -1,5 +1,7 @@
 "use client";
 
+import { getFirstName } from "@/lib/utils/titleCase";
+
 type Props = {
   phone: string;
   memberName: string;
@@ -25,7 +27,7 @@ export function WhatsAppButton({ phone, memberName, amount, receiptNo, company, 
   const wa = digits.startsWith("91") && digits.length === 12 ? digits : `91${digits.slice(-10)}`;
 
   const companyName = company === "YOS_FITNESS_STUDIO" ? "Yos Fitness Studio" : "Yos Fitness";
-  const firstName = memberName.split(" ")[0];
+  const firstName = getFirstName(memberName);
   const periodLine =
     startDate && expiryDate
       ? `\nValidity: ${formatDate(startDate)} → ${formatDate(expiryDate)}`

@@ -7,7 +7,7 @@ import { CreditCard, IndianRupee, TrendingUp, Search, ArrowUpDown, ArrowUp, Arro
 import { RecordPaymentDialog } from "@/components/payments/RecordPaymentDialog";
 import { reconcilePendingAmounts, clearPendingAmount } from "@/lib/actions/admin";
 import { formatDate, formatCurrency, cn } from "@/lib/utils";
-import { toTitleCase } from "@/lib/utils/titleCase";
+import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import type { Company, UserRole } from "@prisma/client";
 
 type Payment = {
@@ -403,7 +403,7 @@ export function PaymentsClient({
                           {(() => {
                             const phone = (p.member.phone ?? "").replace(/\D/g, "").slice(-10);
                             if (!phone) return null;
-                            const firstName = p.member.fullName.split(" ")[0];
+                            const firstName = getFirstName(p.member.fullName);
                             const msg = `Hi ${firstName}! Thanks for your payment at Yos Fitness Studio. See you at your next session! 💪`;
                             return (
                               <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`}

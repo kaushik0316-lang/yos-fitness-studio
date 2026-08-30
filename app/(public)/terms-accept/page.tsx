@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getFirstName } from "@/lib/utils/titleCase";
 import Image from "next/image";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 
@@ -64,7 +65,7 @@ export default function TermsAcceptPage() {
         <ShieldCheck className="h-16 w-16 text-green-500 mb-4" />
         <h2 className="text-2xl font-extrabold text-gray-900">Already Accepted</h2>
         <p className="text-gray-500 text-sm mt-2">
-          {fullName.split(" ")[0]}, you&apos;ve already accepted the Yos Fitness membership terms. You&apos;re all set!
+          {getFirstName(fullName)}, you&apos;ve already accepted the Yos Fitness membership terms. You&apos;re all set!
         </p>
       </div>
     );
@@ -79,7 +80,7 @@ export default function TermsAcceptPage() {
         </div>
         <h2 className="text-2xl font-extrabold text-gray-900">Terms Accepted!</h2>
         <p className="text-gray-500 text-sm mt-2 leading-relaxed">
-          Thank you, {fullName.split(" ")[0]}.<br />
+          Thank you, {getFirstName(fullName)}.<br />
           Your acceptance has been recorded. Welcome to Yos Fitness Studio!
         </p>
         <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-4">
@@ -118,7 +119,7 @@ export default function TermsAcceptPage() {
         </div>
         <h1 className="text-2xl font-extrabold text-white">Membership Terms</h1>
         <p className="text-gray-400 text-sm mt-1.5">
-          Hi {fullName.split(" ")[0]}! Please read and accept the terms below.
+          Hi {getFirstName(fullName)}! Please read and accept the terms below.
         </p>
       </div>
 

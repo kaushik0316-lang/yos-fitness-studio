@@ -10,7 +10,7 @@ import {
 import { EditMemberButton } from "@/components/members/EditMemberButton";
 import { DeleteMemberButton } from "@/components/members/DeleteMemberButton";
 import { toggleDoNotDisturb, toggleKioskCheckin, setMemberPin } from "@/lib/actions/members";
-import { toTitleCase } from "@/lib/utils/titleCase";
+import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import { MemberPhotoUpload } from "@/components/members/MemberPhotoUpload";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import {
@@ -102,7 +102,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
           {(userRole === "ADMIN" || userRole === "FRONT_DESK") && member.phone && (
             <a
               href={`https://wa.me/91${member.phone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(
-                `Hi ${member.fullName.split(" ")[0]}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${member.memberId}*.\n\nSet up your member portal to view attendance and membership details:\n👉 https://yosfitnessstudio.in/member-portal?setup=1\n\nSee you at the gym! 💪`
+                `Hi ${getFirstName(member.fullName)}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${member.memberId}*.\n\nSet up your member portal to view attendance and membership details:\n👉 https://yosfitnessstudio.in/member-portal?setup=1\n\nSee you at the gym! 💪`
               )}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -461,7 +461,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                   {!member.termsAcceptedAt && member.phone && (
                     <a
                       href={`https://wa.me/91${member.phone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(
-                        `Hi ${member.fullName.split(" ")[0]}! Please accept your Yos Fitness membership terms (takes 1 minute):\n👉 https://yosfitnessstudio.in/terms-accept?id=${member.memberId}`
+                        `Hi ${getFirstName(member.fullName)}! Please accept your Yos Fitness membership terms (takes 1 minute):\n👉 https://yosfitnessstudio.in/terms-accept?id=${member.memberId}`
                       )}`}
                       target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0 transition-colors"
@@ -527,7 +527,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                           </Link>
                         )}
                         {member.phone && (() => {
-                          const firstName = member.fullName.split(" ")[0];
+                          const firstName = getFirstName(member.fullName);
                           const expStr = member.expiryDate
                             ? new Date(member.expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
                             : null;
@@ -594,7 +594,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId }: P
                           </Link>
                         )}
                         {member.phone && (() => {
-                          const firstName = member.fullName.split(" ")[0];
+                          const firstName = getFirstName(member.fullName);
                           const expStr = member.expiryDate
                             ? new Date(member.expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
                             : null;
