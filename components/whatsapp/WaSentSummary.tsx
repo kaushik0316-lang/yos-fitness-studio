@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { WA_TYPE_LABELS, WaType } from "@/lib/actions/whatsapp";
+import { WA_TYPE_LABELS, WaType } from "@/lib/utils/waTypes";
 
 type Log = {
   id: string;

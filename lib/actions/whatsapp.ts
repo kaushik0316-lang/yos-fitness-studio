@@ -3,25 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-
-export type WaType =
-  | "BIRTHDAY"
-  | "RENEWAL"
-  | "WELCOME"
-  | "PAYMENT"
-  | "ENQUIRY"
-  | "TERMS"
-  | "GENERAL";
-
-export const WA_TYPE_LABELS: Record<WaType, string> = {
-  BIRTHDAY: "Birthday Wish",
-  RENEWAL:  "Renewal Reminder",
-  WELCOME:  "Welcome Message",
-  PAYMENT:  "Payment Receipt",
-  ENQUIRY:  "Enquiry Follow-up",
-  TERMS:    "Terms & Conditions",
-  GENERAL:  "General Message",
-};
+import type { WaType } from "@/lib/utils/waTypes";
 
 export async function logManualWA(
   memberId: string,

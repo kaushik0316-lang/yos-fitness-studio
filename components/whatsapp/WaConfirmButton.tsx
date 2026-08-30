@@ -2,7 +2,8 @@
 
 import { useState, useRef } from "react";
 import { MessageCircle, Check, X } from "lucide-react";
-import { logManualWA, WaType, WA_TYPE_LABELS } from "@/lib/actions/whatsapp";
+import { logManualWA } from "@/lib/actions/whatsapp";
+import { WaType, WA_TYPE_LABELS } from "@/lib/utils/waTypes";
 
 type Props = {
   memberId: string;
