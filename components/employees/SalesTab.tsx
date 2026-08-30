@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, ArrowRightLeft, Loader2, TrendingUp, IndianRupee, ShoppingBag, Users } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import { toTitleCase } from "@/lib/utils/titleCase";
+import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -249,7 +249,7 @@ export function SalesTab({ allEmployees, initMonth, initYear }: {
                     ? { background: ac.bg, color: ac.color, border: `1px solid ${ac.color}44` }
                     : { background: "rgba(255,255,255,0.05)", color: "#6b7280", border: "1px solid transparent" }}
                 >
-                  {toTitleCase(emp.fullName.split(" ")[0])}
+                  {toTitleCase(getFirstName(emp.fullName))}
                   <span className="opacity-60">{ge.length}</span>
                 </button>
               );
