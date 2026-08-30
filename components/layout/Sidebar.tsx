@@ -6,7 +6,7 @@ import { signOut } from "next-auth/react";
 import {
   Users, CalendarCheck, RotateCcw, CreditCard,
   ClipboardList, DollarSign, BarChart3,
-  Settings, LogOut, Dumbbell, Wrench, FileUp, UserSearch, TrendingUp, Trophy,
+  Settings, LogOut, Dumbbell, Wrench, FileUp, UserSearch, TrendingUp, Trophy, Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@prisma/client";
@@ -77,6 +77,21 @@ export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onM
             </svg>
           </button>
         )}
+      </div>
+
+      {/* Search shortcut */}
+      <div className="px-2.5 pt-2 pb-1">
+        <button
+          onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs transition-colors"
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "#4b5563" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#9ca3af"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#4b5563"; }}
+        >
+          <Search className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="flex-1 text-left">Search members…</span>
+          <kbd className="px-1.5 py-0.5 rounded text-[9px] font-mono" style={{ background: "rgba(255,255,255,0.06)" }}>⌘K</kbd>
+        </button>
       </div>
 
       {/* Navigation */}

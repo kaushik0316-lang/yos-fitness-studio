@@ -125,8 +125,11 @@ export function ReportsClient({
               <div className="flex items-end gap-2 mt-1">
                 <p className="text-xl font-extrabold text-white">{item.current}</p>
                 {item.d && (
-                  <p className="text-xs font-bold mb-0.5" style={{ color: item.d.up ? "#4ade80" : "#f87171" }}>
+                  <p className="text-xs font-bold mb-0.5" style={{ color: item.d.up ? "#4ade80" : item.d.pct > 30 ? "#fb923c" : "#f87171" }}>
                     {item.d.up ? "▲" : "▼"} {Math.abs(item.d.pct)}%
+                    {!item.d.up && item.d.pct > 30 && (
+                      <span className="ml-1 font-normal text-gray-500">vs last month</span>
+                    )}
                   </p>
                 )}
               </div>
@@ -149,7 +152,7 @@ export function ReportsClient({
           </p>
         </div>
         {/* Discount leakage */}
-        {totalDiscountsThisMonth > 0 && (
+        {totalDiscountsThisMonth > 0 ? (
           <div className="rounded-2xl p-4" style={{ ...CARD, borderLeft: "3px solid #f59e0b" }}>
             <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Discounts Given This Month</p>
             <p className="text-2xl font-extrabold mt-1" style={{ color: "#f59e0b", fontVariantNumeric: "tabular-nums" }}>
@@ -158,6 +161,12 @@ export function ReportsClient({
             <p className="text-xs text-gray-600 mt-1">
               {totalCollections > 0 ? `${Math.round((totalDiscountsThisMonth / (totalCollections + totalDiscountsThisMonth)) * 100)}% of gross revenue waived` : "Review discount approvals"}
             </p>
+          </div>
+        ) : (
+          <div className="rounded-2xl p-4 flex flex-col justify-center" style={{ ...CARD, borderLeft: "3px solid #4ade80" }}>
+            <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Discounts This Month</p>
+            <p className="text-2xl font-extrabold text-emerald-400 mt-1">₹0</p>
+            <p className="text-xs text-gray-600 mt-1">No discounts given — full revenue collected</p>
           </div>
         )}
       </div>

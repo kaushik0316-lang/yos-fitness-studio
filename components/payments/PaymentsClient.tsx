@@ -196,6 +196,36 @@ export function PaymentsClient({
         <p className="text-xl font-extrabold text-white shrink-0">{formatCurrency(selMonthTotal)}</p>
       </div>
 
+      {/* ── Payment mode breakdown ── */}
+      {(() => {
+        const modeMap = payments.filter(p => !p.isVoided).reduce<Record<string, number>>((acc, p) => {
+          const mode = p.paymentMode ?? "CASH";
+          acc[mode] = (acc[mode] ?? 0) + Number(p.amount ?? 0);
+          return acc;
+        }, {});
+        const modes = Object.entries(modeMap).sort((a, b) => b[1] - a[1]);
+        if (modes.length === 0) return null;
+        return (
+          <div className="rounded-2xl px-4 py-3 flex flex-wrap gap-2 items-center"
+            style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest mr-1">Mode Split</span>
+            {modes.map(([mode, amt]) => {
+              const s = MODE_STYLES[mode] ?? { bg: "rgba(255,255,255,0.06)", color: "#9ca3af" };
+              const label = MODE_LABELS[mode] ?? mode;
+              const icon = MODE_ICONS[mode] ?? "💰";
+              return (
+                <span key={mode} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
+                  style={{ background: s.bg, color: s.color }}>
+                  <span>{icon}</span>
+                  <span>{label}</span>
+                  <span className="opacity-80">{formatCurrency(amt)}</span>
+                </span>
+              );
+            })}
+          </div>
+        );
+      })()}
+
       {/* ── Toolbar ── */}
       <div className="rounded-2xl px-4 py-3 space-y-3"
         style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
@@ -254,7 +284,7 @@ export function PaymentsClient({
             style={pendingOnly
               ? { background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.35)" }
               : { background: "rgba(255,255,255,0.04)", color: "#6b7280", border: "1px solid rgba(255,255,255,0.08)" }}>
-            Balance Pending
+            <span title="Members who made a partial payment and still owe a balance">Balance Pending</span>
             {pendingCount > 0 && (
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
                 style={pendingOnly

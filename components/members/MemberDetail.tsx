@@ -157,6 +157,23 @@ export function MemberDetail({ member, packages, trainers, userRole, userId, waL
           </div>
         </div>
 
+        {/* Package name */}
+        {(() => {
+          const pkgName = (() => {
+            if (member.expiryDate && member.memberships?.length) {
+              const exp = new Date(member.expiryDate).toDateString();
+              const match = member.memberships.find((ms: any) => ms.expiryDate && new Date(ms.expiryDate).toDateString() === exp);
+              if (match?.package?.name) return match.package.name;
+            }
+            return member.memberships?.[0]?.package?.name ?? member.currentPackage?.name ?? null;
+          })();
+          return pkgName ? (
+            <p className="text-xs text-gray-400 mt-2 font-medium">
+              <span className="text-gray-600">Package:</span> {pkgName}
+            </p>
+          ) : null;
+        })()}
+
         {/* 3 key stats inline */}
         <div className="grid grid-cols-3 gap-2 mt-4">
           {/* Expiry */}

@@ -77,6 +77,12 @@ export function MemberPhotoUpload({ memberId, fullName, photoUrl }: Props) {
             : <Camera className="h-6 w-6 text-white" />
           }
         </div>
+        {/* Camera badge — always visible when no photo */}
+        {!preview && !uploading && (
+          <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-md">
+            <Camera className="h-3 w-3 text-orange-500" />
+          </div>
+        )}
       </button>
 
       {error && <p className="text-xs text-red-500 font-medium text-center max-w-[120px]">{error}</p>}

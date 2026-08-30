@@ -281,7 +281,7 @@ export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expir
               }}>
               <div className="absolute inset-x-0 top-0 h-[3px] rounded-t-2xl" style={{ background: tab.accent }} />
               <div className="flex items-center gap-1.5 mt-1">
-                <p className="text-[11px] font-bold text-gray-600 uppercase tracking-widest truncate">{tab.shortLabel}</p>
+                <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest leading-tight">{tab.shortLabel}</p>
                 {hasUrgent && (
                   <span className="relative flex h-2 w-2 flex-shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: tab.accent }} />

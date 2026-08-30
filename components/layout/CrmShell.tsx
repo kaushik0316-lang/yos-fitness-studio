@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { TitleCaseInput } from "./TitleCaseInput";
+import { GlobalSearch } from "./GlobalSearch";
 import type { UserRole } from "@prisma/client";
 
 type Props = {
@@ -40,6 +41,8 @@ export function CrmShell({ userRole, userName, userEmail, children }: Props) {
         mobileOpen={sidebarOpen}
         onMobileClose={() => setSidebarOpen(false)}
       />
+
+      <GlobalSearch />
 
       {/* Main area */}
       <div className="flex-1 flex flex-col overflow-hidden md:ml-60">

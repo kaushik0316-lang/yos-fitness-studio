@@ -604,9 +604,17 @@ export function MembersClient({
                       {/* Member */}
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-extrabold flex-shrink-0"
-                            style={{ background: "rgba(249,115,22,0.15)", color: "#fb923c" }}>
-                            {m.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                          <div className="relative w-9 h-9 flex-shrink-0">
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-extrabold"
+                              style={{ background: "rgba(249,115,22,0.15)", color: "#fb923c" }}>
+                              {m.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                            </div>
+                            {isInactive && lastVisit !== null && lastVisit >= 7 && (
+                              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-[#161616]" title={`${lastVisit}d since last visit`} />
+                            )}
+                            {isInactive && lastVisit !== null && lastVisit >= 4 && lastVisit < 7 && (
+                              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-orange-400 border-2 border-[#161616]" title={`${lastVisit}d since last visit`} />
+                            )}
                           </div>
                           <div>
                             <Link href={`/members/${m.id}`} className="font-semibold text-white hover:text-orange-400 transition-colors">
@@ -694,26 +702,26 @@ export function MembersClient({
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-1">
                           <Link href={`/members/${m.id}`}
-                            className="p-2.5 rounded-xl text-gray-600 hover:text-white transition-colors"
-                            style={{ background: "rgba(255,255,255,0.04)" }} title="View profile">
-                            <Eye className="h-4 w-4" />
+                            className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-gray-500 hover:text-white transition-colors"
+                            style={{ background: "rgba(255,255,255,0.04)" }}>
+                            <Eye className="h-3.5 w-3.5" />
+                            <span className="text-[9px] font-semibold leading-none">View</span>
                           </Link>
                           {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "TRAINER") && (
                             <button onClick={() => setMarkFor(m)}
-                              className="p-2.5 rounded-xl text-gray-600 hover:text-emerald-400 transition-colors"
-                              style={{ background: "rgba(255,255,255,0.04)" }} title="Check in">
-                              <CheckCircle className="h-4 w-4" />
+                              className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-gray-500 hover:text-emerald-400 transition-colors"
+                              style={{ background: "rgba(255,255,255,0.04)" }}>
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              <span className="text-[9px] font-semibold leading-none">Check In</span>
                             </button>
                           )}
                           {/* Quick Renew for expired members */}
                           {isExpired && (userRole === "ADMIN" || userRole === "FRONT_DESK") && (
-                            <Link
-                              href={`/payments/new?memberId=${m.id}`}
-                              className="p-2.5 rounded-xl text-gray-600 hover:text-orange-400 transition-colors"
-                              style={{ background: "rgba(255,255,255,0.04)" }}
-                              title="Quick renew"
-                            >
-                              <RefreshCw className="h-4 w-4" />
+                            <Link href={`/payments/new?memberId=${m.id}`}
+                              className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-gray-500 hover:text-orange-400 transition-colors"
+                              style={{ background: "rgba(255,255,255,0.04)" }}>
+                              <RefreshCw className="h-3.5 w-3.5" />
+                              <span className="text-[9px] font-semibold leading-none">Renew</span>
                             </Link>
                           )}
                           {/* Move Membership — admin only */}
