@@ -151,7 +151,7 @@ export function StaffToolsClient({
       </div>
 
       {/* ── Stat cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {statCards.map((s) => (
           <Link key={s.label} href={s.href}
             className="group rounded-2xl p-4 relative overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
