@@ -354,7 +354,7 @@ export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expir
                 const daysExpired = daysLeft !== null && daysLeft < 0 ? Math.abs(daysLeft) : null;
                 const lastVisit   = ms.member.lastAttendanceDate ? daysAgo(ms.member.lastAttendanceDate) : null;
                 const waNumber    = ms.member.whatsapp || ms.member.phone;
-                const isExpired   = activeTab === "expired";
+                const isExpired   = daysLeft !== null && daysLeft < 0;
                 const isSelected  = selected.has(ms.id);
                 const net         = getNetAmount(ms);
                 const pkgName     = packageName(ms);
