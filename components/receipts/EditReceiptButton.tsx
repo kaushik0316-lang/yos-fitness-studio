@@ -353,7 +353,7 @@ export function EditReceiptButton({ paymentId, employees, current }: Props) {
                     >
                       <option value="">— None —</option>
                       {employees.map((emp) => (
-                        <option key={emp.id} value={emp.id}>{emp.fullName}</option>
+                        <option key={emp.id} value={emp.id}>{toTitleCase(emp.fullName)}</option>
                       ))}
                     </select>
                   </div>
@@ -374,8 +374,8 @@ export function EditReceiptButton({ paymentId, employees, current }: Props) {
                       {/* Slider */}
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#374151", fontWeight: 600 }}>
-                          <span>{employees.find(e => e.id === soldById)?.fullName ?? "Primary"} {soldByPct}%</span>
-                          <span>{employees.find(e => e.id === soldById2)?.fullName ?? "Secondary"} {100 - soldByPct}%</span>
+                          <span>{toTitleCase(employees.find(e => e.id === soldById)?.fullName ?? "Primary")} {soldByPct}%</span>
+                          <span>{toTitleCase(employees.find(e => e.id === soldById2)?.fullName ?? "Secondary")} {100 - soldByPct}%</span>
                         </div>
                         <input
                           type="range"
@@ -395,7 +395,7 @@ export function EditReceiptButton({ paymentId, employees, current }: Props) {
                         >
                           <option value="">— None —</option>
                           {employees.filter(e => e.id !== soldById).map((emp) => (
-                            <option key={emp.id} value={emp.id}>{emp.fullName}</option>
+                            <option key={emp.id} value={emp.id}>{toTitleCase(emp.fullName)}</option>
                           ))}
                         </select>
                       </div>
@@ -418,7 +418,7 @@ export function EditReceiptButton({ paymentId, employees, current }: Props) {
                       >
                         <option value="">— Pick a person —</option>
                         {employees.filter(e => e.id !== soldById).map((emp) => (
-                          <option key={emp.id} value={emp.id}>{emp.fullName}</option>
+                          <option key={emp.id} value={emp.id}>{toTitleCase(emp.fullName)}</option>
                         ))}
                       </select>
                     </div>

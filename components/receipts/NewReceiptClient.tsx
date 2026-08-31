@@ -872,7 +872,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
                   : "bg-white border-gray-200 text-gray-500 hover:border-orange-300"
               }`}
             >
-              {emp.fullName}
+              {toTitleCase(emp.fullName)}
             </button>
           ))}
         </div>
