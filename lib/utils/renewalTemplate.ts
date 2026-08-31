@@ -28,11 +28,27 @@ export function buildRenewalMessage(
   expiryDate: Date | string | null,
   pkgName: string | null | undefined,
   isExpired: boolean,
+  isWinBack = false,
 ): string {
   const name = toTitleCase(fullName);
   const expStr = fmtDate(expiryDate);
   const type = detectPkgType(pkgName);
   const expiresTODAY = !isExpired && isExpiringToday(expiryDate);
+
+  // Win-back: lapsed 31–90 days — warmer, re-engagement focused
+  if (isWinBack) {
+    if (type === "pt") {
+      return `Hi ${name}! 👋 We miss you at Yos!\n\nIt's been a while since your Personal Training sessions. Your trainer misses working with you — come back and pick up where you left off!\n\nDo drop in at the earliest. We'd love to have you back! 😊\n– Team Yos`;
+    }
+    if (type === "semi") {
+      return `Hi ${name}! 👋 We miss you at Yos!\n\nIt's been a while since your Semi-Private Coaching sessions. The group isn't the same without you — come back and join us!\n\nDo drop in at the earliest. We'd love to have you back! 😊\n– Team Yos`;
+    }
+    if (type === "hiit") {
+      return `Hi ${name}! 👋 We miss you at Yos!\n\nIt's been a while since your last HIIT class. Come back and get those endorphins going again!\n\nDo drop in at the earliest. We'd love to have you back! 😊\n– Team Yos`;
+    }
+    // General win-back
+    return `Hi ${name}! 👋\n\nWe miss you at Yos Fitness Studio! It's been a while and we'd love to have you back.\n\nCome in, renew your membership, and get back on track with your fitness journey. We're here for you!\n\nSee you soon!\n– Team Yos`;
+  }
 
   if (type === "pt") {
     if (isExpired && expStr) {

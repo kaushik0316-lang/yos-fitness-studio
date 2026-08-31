@@ -58,11 +58,12 @@ function BulkWaPanel({
 }: {
   filteredList: any[]; selected: Set<string>; activeTab: string;
   packageName: (ms: any) => string | null;
-  buildRenewalTemplate: (member: any, expiryDate: Date | null, pkgName: string | null, isExpired: boolean) => string;
+  buildRenewalTemplate: (member: any, expiryDate: Date | null, pkgName: string | null, isExpired: boolean, isWinBack?: boolean) => string;
   onClose: () => void;
 }) {
   const [rowState, setRowState] = useState<Record<string, "idle" | "opened" | "sent">>({});
-  const isExp = activeTab === "expired";
+  const isExp = activeTab === "expired" || activeTab === "winback";
+  const isWB  = activeTab === "winback";
   const selectedList = filteredList.filter((ms) => selected.has(ms.id));
   const sentCount = Object.values(rowState).filter((s) => s === "sent").length;
 
@@ -98,7 +99,7 @@ function BulkWaPanel({
           {selectedList.map((ms) => {
             const phone = (ms.member.whatsapp || ms.member.phone || "").replace(/\D/g, "").slice(-10);
             const pkgName = packageName(ms);
-            const msg = buildRenewalTemplate(ms.member, ms.expiryDate, pkgName, isExp);
+            const msg = buildRenewalTemplate(ms.member, ms.expiryDate, pkgName, isExp, isWB);
             const expStr = ms.expiryDate ? new Date(ms.expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
             const state = rowState[ms.id] ?? "idle";
 
@@ -150,8 +151,8 @@ function waLink(phone: string, message?: string) {
   return message ? `https://wa.me/${num}?text=${encodeURIComponent(message)}` : `https://wa.me/${num}`;
 }
 
-function buildRenewalTemplate(member: { fullName: string }, expiryDate: Date | null, pkgName: string | null, isExpired: boolean): string {
-  return buildRenewalMessage(member.fullName, expiryDate, pkgName, isExpired);
+function buildRenewalTemplate(member: { fullName: string }, expiryDate: Date | null, pkgName: string | null, isExpired: boolean, isWinBack = false): string {
+  return buildRenewalMessage(member.fullName, expiryDate, pkgName, isExpired, isWinBack);
 }
 
 function getInitials(name: string) {
@@ -442,7 +443,7 @@ export function RenewalsClient({ expiredMemberships, expiringToday, expiringTomo
                           <WaConfirmButton
                             memberId={ms.member.id}
                             phone={waNumber}
-                            message={buildRenewalTemplate(ms.member, ms.expiryDate, pkgName, isExpired)}
+                            message={buildRenewalTemplate(ms.member, ms.expiryDate, pkgName, isExpired, activeTab === "winback")}
                             waType="RENEWAL"
                             label="WhatsApp"
                             className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors"
