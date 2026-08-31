@@ -58,7 +58,7 @@ export function SendPDFButton({ phone, memberName, receiptNo }: Props) {
 
       // Try Web Share API (works on Android/iOS Chrome/Safari)
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: `Receipt #${receiptNo}`, text: `Receipt for ${memberName}` });
+        await navigator.share({ files: [file], title: `Receipt #${receiptNo}` });
         setStatus("shared");
       } else {
         // Desktop fallback: download PDF
