@@ -538,8 +538,102 @@ export function MembersClient({
         </div>
       )}
 
-      {/* ── Table ── */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
+      {/* ── Mobile card list (hidden on md+) ── */}
+      <div className="md:hidden rounded-2xl overflow-hidden divide-y divide-white/[0.04]" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
+        {members.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <Users className="h-10 w-10 text-gray-700" />
+            <p className="text-sm text-gray-500 font-medium">No members found</p>
+          </div>
+        ) : members.map((m) => {
+          const daysLeft  = m.expiryDate ? daysUntil(m.expiryDate) : null;
+          const lastVisit = m.lastAttendanceDate ? daysAgo(m.lastAttendanceDate) : null;
+          const isInactive = lastVisit !== null && lastVisit >= 4;
+          const sc = STATUS_CONFIG[m.status] ?? STATUS_CONFIG.INACTIVE;
+          const isExpired = m.status === "EXPIRED";
+          const label = (() => {
+            const matchedMembership = m.expiryDate && m.memberships?.find(
+              (ms) => ms.expiryDate && new Date(ms.expiryDate).toDateString() === new Date(m.expiryDate!).toDateString()
+            );
+            return cleanPackageLabel(m.payments?.[0]?.categoryLabel) ?? cleanPackageLabel(matchedMembership ? matchedMembership.package?.name : m.memberships?.[0]?.package?.name) ?? cleanPackageLabel(m.currentPackage?.name);
+          })();
+          return (
+            <div key={m.id} className="flex items-center gap-3 px-4 py-3.5">
+              {/* Avatar */}
+              <div className="relative w-10 h-10 flex-shrink-0">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-extrabold"
+                  style={{ background: "rgba(249,115,22,0.15)", color: "#fb923c" }}>
+                  {m.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                </div>
+                {isInactive && lastVisit !== null && lastVisit >= 7 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-[#161616]" />
+                )}
+                {isInactive && lastVisit !== null && lastVisit >= 4 && lastVisit < 7 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-orange-400 border-2 border-[#161616]" />
+                )}
+              </div>
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Link href={`/members/${m.id}`} className="font-semibold text-white text-sm leading-tight hover:text-orange-400 transition-colors">
+                    {toTitleCase(m.fullName)}
+                  </Link>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md"
+                    style={{ background: sc.bg, color: sc.color }}>
+                    {sc.label}
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-600 mt-0.5">{m.memberId} · {m.phone}</p>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  {label && <span className="text-[11px] text-gray-500">{label}</span>}
+                  {m.expiryDate && (
+                    <span className={cn("text-[11px] font-medium",
+                      daysLeft !== null && daysLeft < 0 ? "text-red-400"
+                      : daysLeft !== null && daysLeft <= 7 ? "text-amber-400"
+                      : "text-gray-600"
+                    )}>
+                      {daysLeft !== null && daysLeft < 0 ? `Exp ${Math.abs(daysLeft)}d ago`
+                        : daysLeft === 0 ? "Exp today"
+                        : daysLeft !== null && daysLeft <= 7 ? `${daysLeft}d left`
+                        : `Exp ${formatDate(m.expiryDate)}`}
+                    </span>
+                  )}
+                  {lastVisit !== null && (
+                    <span className={cn("text-[11px]", isInactive ? "text-orange-400" : "text-gray-600")}>
+                      {lastVisit === 0 ? "Today" : lastVisit === 1 ? "Yesterday" : `${lastVisit}d ago`}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {/* Actions */}
+              <div className="flex flex-col gap-1 flex-shrink-0">
+                <Link href={`/members/${m.id}`}
+                  className="flex items-center justify-center w-8 h-8 rounded-xl text-gray-500 hover:text-white transition-colors"
+                  style={{ background: "rgba(255,255,255,0.06)" }}>
+                  <Eye className="h-4 w-4" />
+                </Link>
+                {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "TRAINER") && (
+                  <button onClick={() => setMarkFor(m)}
+                    className="flex items-center justify-center w-8 h-8 rounded-xl text-gray-500 hover:text-emerald-400 transition-colors"
+                    style={{ background: "rgba(255,255,255,0.06)" }}>
+                    <CheckCircle className="h-4 w-4" />
+                  </button>
+                )}
+                {isExpired && (userRole === "ADMIN" || userRole === "FRONT_DESK") && (
+                  <Link href={`/payments/new?memberId=${m.id}`}
+                    className="flex items-center justify-center w-8 h-8 rounded-xl text-gray-500 hover:text-orange-400 transition-colors"
+                    style={{ background: "rgba(255,255,255,0.06)" }}>
+                    <RefreshCw className="h-4 w-4" />
+                  </Link>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Table (hidden on mobile) ── */}
+      <div className="hidden md:block rounded-2xl overflow-hidden" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

@@ -343,8 +343,77 @@ export function PaymentsClient({
         )}
       </div>
 
-      {/* ── Table ── */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
+      {/* ── Mobile card list (hidden on md+) ── */}
+      <div className="md:hidden rounded-2xl overflow-hidden divide-y divide-white/[0.04]" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
+        {payments.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <CreditCard className="h-10 w-10 text-gray-700" />
+            <p className="text-sm text-gray-500 font-medium">No payments found</p>
+          </div>
+        ) : payments.map((p) => {
+          const mode    = MODE_STYLES[p.paymentMode] ?? { bg: "rgba(255,255,255,0.06)", color: "#9ca3af" };
+          const co      = COMPANY_STYLES[p.company]  ?? { bg: "rgba(255,255,255,0.06)", color: "#9ca3af", label: p.company };
+          const type    = p.paymentType ? TYPE_STYLES[p.paymentType] : null;
+          const pending = Number(p.pendingAmount ?? 0);
+          return (
+            <div key={p.id}
+              onClick={() => p.receiptNumber && router.push(`/payments/${p.id}/receipt`)}
+              className={cn("px-4 py-3.5 space-y-2", p.receiptNumber ? "cursor-pointer active:bg-white/[0.04]" : "")}
+              style={{ opacity: p.isVoided ? 0.55 : 1 }}>
+              {/* Row 1: member + amount */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Link href={`/members/${p.member.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="font-semibold text-white text-sm hover:text-orange-400 transition-colors">
+                      {toTitleCase(p.member.fullName)}
+                    </Link>
+                    {p.isVoided && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                        style={{ background: "rgba(239,68,68,0.15)", color: "#f87171", border: "1px solid rgba(239,68,68,0.25)" }}>VOID</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-600 mt-0.5">{p.member.memberId} · {formatDate(p.date)}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className={cn("font-bold text-base", p.isVoided ? "text-gray-600 line-through" : "text-white")}>
+                    {formatCurrency(Number(p.amount))}
+                  </p>
+                  {Number(p.discount) > 0 && (
+                    <p className="text-[11px] text-emerald-500">−{formatCurrency(Number(p.discount))}</p>
+                  )}
+                  {pending > 0 && !p.isVoided && (
+                    <p className="text-[11px] font-semibold text-red-400">⚠ ₹{Number(pending).toLocaleString("en-IN")} due</p>
+                  )}
+                </div>
+              </div>
+              {/* Row 2: receipt # + mode + type + company */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {p.receiptNumber && (
+                  <span className={cn("font-mono text-xs font-bold", p.isVoided ? "text-gray-600" : "text-orange-400")}>
+                    #{p.receiptNumber}
+                  </span>
+                )}
+                <span className="px-2 py-0.5 rounded-lg text-[11px] font-semibold" style={{ background: mode.bg, color: mode.color }}>
+                  {MODE_ICONS[p.paymentMode]} {MODE_LABELS[p.paymentMode] ?? p.paymentMode}
+                </span>
+                {type && (
+                  <span className="px-2 py-0.5 rounded-lg text-[11px] font-semibold" style={{ background: type.bg, color: type.color }}>
+                    {type.label}
+                  </span>
+                )}
+                <span className="px-2 py-0.5 rounded-lg text-[11px] font-semibold" style={{ background: co.bg, color: co.color }}>
+                  {co.label}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Table (hidden on mobile) ── */}
+      <div className="hidden md:block rounded-2xl overflow-hidden" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
