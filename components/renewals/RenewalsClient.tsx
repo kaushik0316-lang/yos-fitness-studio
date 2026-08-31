@@ -30,9 +30,9 @@ type Trainer = { id: string; fullName: string };
 type WaLog = { id: string; memberId: string; memberName: string; sentByName: string | null; sentAt: Date | null; createdAt: Date };
 
 type Props = {
-  expiredMemberships: RenewalMembership[]; expiring1: RenewalMembership[]; expiring3: RenewalMembership[];
-  expiring7: RenewalMembership[]; expiring30: RenewalMembership[]; renewedToday: any[];
-  winBack: RenewalMembership[];
+  expiredMemberships: RenewalMembership[]; expiringToday: RenewalMembership[]; expiringTomorrow: RenewalMembership[];
+  expiring3: RenewalMembership[]; expiring7: RenewalMembership[]; expiring30: RenewalMembership[];
+  renewedToday: any[]; winBack: RenewalMembership[];
   packages: any[];
   trainers?: Trainer[];
   userRole: UserRole; userId: string;
@@ -40,13 +40,14 @@ type Props = {
 };
 
 const TABS = [
-  { key: "expired",  label: "Expired",             shortLabel: "Expired",   accent: "#ef4444", badgeBg: "rgba(239,68,68,0.12)",   badgeColor: "#f87171", urgent: false },
-  { key: "1day",     label: "Due Today / Tomorrow", shortLabel: "Tomorrow",  accent: "#f97316", badgeBg: "rgba(249,115,22,0.12)",  badgeColor: "#fb923c", urgent: true  },
-  { key: "3days",    label: "In 3 Days",            shortLabel: "3 Days",    accent: "#f59e0b", badgeBg: "rgba(245,158,11,0.12)",  badgeColor: "#fbbf24", urgent: false },
-  { key: "7days",    label: "In 7 Days",            shortLabel: "7 Days",    accent: "#eab308", badgeBg: "rgba(234,179,8,0.12)",   badgeColor: "#facc15", urgent: false },
-  { key: "30days",   label: "This Month",           shortLabel: "Month",     accent: "#3b82f6", badgeBg: "rgba(59,130,246,0.12)",  badgeColor: "#60a5fa", urgent: false },
-  { key: "renewed",  label: "Renewed Today",        shortLabel: "Renewed",   accent: "#10b981", badgeBg: "rgba(16,185,129,0.12)",  badgeColor: "#34d399", urgent: false },
-  { key: "winback",  label: "Win Back (31–90 days)", shortLabel: "Win Back", accent: "#a855f7", badgeBg: "rgba(168,85,247,0.12)",  badgeColor: "#c084fc", urgent: false },
+  { key: "expired",   label: "Expired",              shortLabel: "Expired",   accent: "#ef4444", badgeBg: "rgba(239,68,68,0.12)",   badgeColor: "#f87171", urgent: false },
+  { key: "today",     label: "Expires Today",         shortLabel: "Today",     accent: "#f97316", badgeBg: "rgba(249,115,22,0.15)",  badgeColor: "#fb923c", urgent: true  },
+  { key: "tomorrow",  label: "Due Tomorrow",          shortLabel: "Tomorrow",  accent: "#f97316", badgeBg: "rgba(249,115,22,0.12)",  badgeColor: "#fb923c", urgent: true  },
+  { key: "3days",     label: "In 3 Days",             shortLabel: "3 Days",    accent: "#f59e0b", badgeBg: "rgba(245,158,11,0.12)",  badgeColor: "#fbbf24", urgent: false },
+  { key: "7days",     label: "In 7 Days",             shortLabel: "7 Days",    accent: "#eab308", badgeBg: "rgba(234,179,8,0.12)",   badgeColor: "#facc15", urgent: false },
+  { key: "30days",    label: "This Month",            shortLabel: "Month",     accent: "#3b82f6", badgeBg: "rgba(59,130,246,0.12)",  badgeColor: "#60a5fa", urgent: false },
+  { key: "renewed",   label: "Renewed Today",         shortLabel: "Renewed",   accent: "#10b981", badgeBg: "rgba(16,185,129,0.12)",  badgeColor: "#34d399", urgent: false },
+  { key: "winback",   label: "Win Back (31–90 days)", shortLabel: "Win Back",  accent: "#a855f7", badgeBg: "rgba(168,85,247,0.12)",  badgeColor: "#c084fc", urgent: false },
 ];
 
 const PAGE_SIZE = 50;
@@ -181,7 +182,7 @@ function buildWhatsAppMessage(memberships: RenewalMembership[], tabLabel: string
   return msg.trim();
 }
 
-export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expiring7, expiring30, renewedToday, winBack, packages, trainers = [], userRole, userId, renewalWaLogs = [] }: Props) {
+export function RenewalsClient({ expiredMemberships, expiringToday, expiringTomorrow, expiring3, expiring7, expiring30, renewedToday, winBack, packages, trainers = [], userRole, userId, renewalWaLogs = [] }: Props) {
   // Build per-member sent count from page-level logs
   const waSentByMember = renewalWaLogs.reduce<Record<string, { count: number; lastAt: Date | null }>>((acc, log) => {
     if (!log.memberId) return acc;
@@ -200,19 +201,20 @@ export function RenewalsClient({ expiredMemberships, expiring1, expiring3, expir
   const [showBulkPanel, setShowBulkPanel] = useState(false);
 
   const counts: Record<string, number> = {
-    expired: expiredMemberships.length, "1day": expiring1.length,
-    "3days": expiring3.length, "7days": expiring7.length,
-    "30days": expiring30.length, renewed: renewedToday.length,
-    winback: winBack.length,
+    expired: expiredMemberships.length, today: expiringToday.length,
+    tomorrow: expiringTomorrow.length, "3days": expiring3.length,
+    "7days": expiring7.length, "30days": expiring30.length,
+    renewed: renewedToday.length, winback: winBack.length,
   };
 
   const rawList: RenewalMembership[] =
-    activeTab === "expired"  ? expiredMemberships :
-    activeTab === "1day"     ? expiring1 :
-    activeTab === "3days"    ? expiring3 :
-    activeTab === "7days"    ? expiring7 :
-    activeTab === "30days"   ? expiring30 :
-    activeTab === "winback"  ? winBack : [];
+    activeTab === "expired"   ? expiredMemberships :
+    activeTab === "today"     ? expiringToday :
+    activeTab === "tomorrow"  ? expiringTomorrow :
+    activeTab === "3days"     ? expiring3 :
+    activeTab === "7days"     ? expiring7 :
+    activeTab === "30days"    ? expiring30 :
+    activeTab === "winback"   ? winBack : [];
 
   const q = search.trim().toLowerCase();
   const filteredList = q

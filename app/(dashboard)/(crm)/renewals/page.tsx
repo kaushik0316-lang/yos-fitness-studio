@@ -13,6 +13,8 @@ export default async function RenewalsPage() {
   const session = await auth();
   const today      = startOfDay(new Date());
   const in1Day     = endOfDay(addDays(today, 1));
+  const endToday   = endOfDay(today);
+  const startTomorrow = startOfDay(addDays(today, 1));
   const in3Days    = endOfDay(addDays(today, 3));
   const in7Days    = endOfDay(addDays(today, 7));
   const in30Days   = endOfDay(addDays(today, 30));
@@ -158,8 +160,12 @@ export default async function RenewalsPage() {
     .filter((r) => inRange(r, past30Days, endOfToday))
     .sort((a, b) => new Date(b.expiryDate!).getTime() - new Date(a.expiryDate!).getTime());
 
-  const expiring1 = rows
-    .filter((r) => inRange(r, today, in1Day))
+  const expiringToday = rows
+    .filter((r) => inRange(r, today, endToday))
+    .sort((a, b) => new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime());
+
+  const expiringTomorrow = rows
+    .filter((r) => inRange(r, startTomorrow, in1Day))
     .sort((a, b) => new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime());
 
   const expiring3 = rows
@@ -196,7 +202,8 @@ export default async function RenewalsPage() {
       <div className="flex-1 overflow-y-auto p-6">
         <RenewalsClient
           expiredMemberships={expiredMemberships as any}
-          expiring1={expiring1 as any}
+          expiringToday={expiringToday as any}
+          expiringTomorrow={expiringTomorrow as any}
           expiring3={expiring3 as any}
           expiring7={expiring7 as any}
           expiring30={expiring30 as any}
