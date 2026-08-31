@@ -538,6 +538,18 @@ model TrainerCommission {
 // MESSAGING
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Manual WA message templates — editable by admin via Settings > Templates
+model WaTemplate {
+  id        String   @id @default(cuid())
+  key       String   @unique  // e.g. "renewal_pt_expired"
+  label     String            // Human-readable name shown in UI
+  category  String            // "renewal" | "winback" | "upsell"
+  body      String   @db.Text // Supports {{name}} and {{date}}
+  updatedAt DateTime @updatedAt
+
+  @@map("wa_templates")
+}
+
 model MessageTemplate {
   id        String            @id @default(cuid())
   name      String

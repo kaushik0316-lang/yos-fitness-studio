@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { RenewalsClient } from "@/components/renewals/RenewalsClient";
 import { getWaLogsByType } from "@/lib/actions/whatsapp";
+import { getWaTemplates } from "@/lib/actions/waTemplates";
 import { MemberStatus } from "@prisma/client";
 import { addDays, startOfDay, endOfDay, subDays } from "date-fns";
 
@@ -194,7 +195,10 @@ export default async function RenewalsPage() {
     },
   }));
 
-  const renewalWaLogs = await getWaLogsByType("RENEWAL", 30);
+  const [renewalWaLogs, waTemplates] = await Promise.all([
+    getWaLogsByType("RENEWAL", 30),
+    getWaTemplates(),
+  ]);
 
   return (
     <>
@@ -214,6 +218,7 @@ export default async function RenewalsPage() {
           userRole={session!.user.role}
           userId={session!.user.id}
           renewalWaLogs={renewalWaLogs}
+          waTemplates={waTemplates}
         />
       </div>
     </>

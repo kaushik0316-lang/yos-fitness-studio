@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { MemberDetail } from "@/components/members/MemberDetail";
+import { getWaTemplates } from "@/lib/actions/waTemplates";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
 
   if (!member) notFound();
 
-  const [packages, trainers, waLogs] = await Promise.all([
+  const [packages, trainers, waLogs, waTemplates] = await Promise.all([
     prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.employee.findMany({
       where: { isActive: true, role: { in: ["TRAINER", "MANAGER"] } },
@@ -52,6 +53,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
       take: 50,
       select: { id: true, waType: true, sentByName: true, sentAt: true, createdAt: true },
     }),
+    getWaTemplates(),
   ]);
 
   return (
@@ -68,6 +70,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
           userRole={session!.user.role}
           userId={session!.user.id}
           waLogs={waLogs as any}
+          waTemplates={waTemplates}
         />
       </div>
     </>

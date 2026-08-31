@@ -37,6 +37,7 @@ type Props = {
   trainers?: Trainer[];
   userRole: UserRole; userId: string;
   renewalWaLogs?: WaLog[];
+  waTemplates?: Record<string, string>;
 };
 
 const TABS = [
@@ -54,11 +55,12 @@ const PAGE_SIZE = 50;
 
 // ── Bulk WA Panel ─────────────────────────────────────────────────────────────
 function BulkWaPanel({
-  filteredList, selected, activeTab, packageName, buildRenewalTemplate, onClose,
+  filteredList, selected, activeTab, packageName, buildRenewalTemplate, onClose, waTemplates,
 }: {
   filteredList: any[]; selected: Set<string>; activeTab: string;
   packageName: (ms: any) => string | null;
-  buildRenewalTemplate: (member: any, expiryDate: Date | null, pkgName: string | null, isExpired: boolean, isWinBack?: boolean) => string;
+  buildRenewalTemplate: (member: any, expiryDate: Date | null, pkgName: string | null, isExpired: boolean, isWinBack?: boolean, templates?: Record<string, string>) => string;
+  waTemplates?: Record<string, string>;
   onClose: () => void;
 }) {
   const [rowState, setRowState] = useState<Record<string, "idle" | "opened" | "sent">>({});
@@ -99,7 +101,7 @@ function BulkWaPanel({
           {selectedList.map((ms) => {
             const phone = (ms.member.whatsapp || ms.member.phone || "").replace(/\D/g, "").slice(-10);
             const pkgName = packageName(ms);
-            const msg = buildRenewalTemplate(ms.member, ms.expiryDate, pkgName, isExp, isWB);
+            const msg = buildRenewalTemplate(ms.member, ms.expiryDate, pkgName, isExp, isWB, waTemplates ?? undefined);
             const expStr = ms.expiryDate ? new Date(ms.expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
             const state = rowState[ms.id] ?? "idle";
 
@@ -151,8 +153,8 @@ function waLink(phone: string, message?: string) {
   return message ? `https://wa.me/${num}?text=${encodeURIComponent(message)}` : `https://wa.me/${num}`;
 }
 
-function buildRenewalTemplate(member: { fullName: string }, expiryDate: Date | null, pkgName: string | null, isExpired: boolean, isWinBack = false): string {
-  return buildRenewalMessage(member.fullName, expiryDate, pkgName, isExpired, isWinBack);
+function buildRenewalTemplate(member: { fullName: string }, expiryDate: Date | null, pkgName: string | null, isExpired: boolean, isWinBack = false, templates?: Record<string, string>): string {
+  return buildRenewalMessage(member.fullName, expiryDate, pkgName, isExpired, isWinBack, templates);
 }
 
 function getInitials(name: string) {
@@ -183,7 +185,7 @@ function buildWhatsAppMessage(memberships: RenewalMembership[], tabLabel: string
   return msg.trim();
 }
 
-export function RenewalsClient({ expiredMemberships, expiringToday, expiringTomorrow, expiring3, expiring7, expiring30, renewedToday, winBack, packages, trainers = [], userRole, userId, renewalWaLogs = [] }: Props) {
+export function RenewalsClient({ expiredMemberships, expiringToday, expiringTomorrow, expiring3, expiring7, expiring30, renewedToday, winBack, packages, trainers = [], userRole, userId, renewalWaLogs = [], waTemplates }: Props) {
   // Build per-member sent count from page-level logs
   const waSentByMember = renewalWaLogs.reduce<Record<string, { count: number; lastAt: Date | null }>>((acc, log) => {
     if (!log.memberId) return acc;
@@ -443,7 +445,7 @@ export function RenewalsClient({ expiredMemberships, expiringToday, expiringTomo
                           <WaConfirmButton
                             memberId={ms.member.id}
                             phone={waNumber}
-                            message={buildRenewalTemplate(ms.member, ms.expiryDate, pkgName, isExpired, activeTab === "winback")}
+                            message={buildRenewalTemplate(ms.member, ms.expiryDate, pkgName, isExpired, activeTab === "winback", waTemplates)}
                             waType="RENEWAL"
                             label="WhatsApp"
                             className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors"
@@ -521,6 +523,7 @@ export function RenewalsClient({ expiredMemberships, expiringToday, expiringTomo
           activeTab={activeTab}
           packageName={packageName}
           buildRenewalTemplate={buildRenewalTemplate}
+          waTemplates={waTemplates}
           onClose={() => setShowBulkPanel(false)}
         />
       )}

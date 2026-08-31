@@ -23,17 +23,35 @@ function isExpiringToday(d: Date | string | null): boolean {
     && exp.getDate() === today.getDate();
 }
 
+function applyVars(template: string, name: string, date: string | null): string {
+  return template.replace(/\{\{name\}\}/g, name).replace(/\{\{date\}\}/g, date ?? "");
+}
+
 export function buildRenewalMessage(
   fullName: string,
   expiryDate: Date | string | null,
   pkgName: string | null | undefined,
   isExpired: boolean,
   isWinBack = false,
+  templates?: Record<string, string>,
 ): string {
   const name = toTitleCase(fullName);
   const expStr = fmtDate(expiryDate);
   const type = detectPkgType(pkgName);
   const expiresTODAY = !isExpired && isExpiringToday(expiryDate);
+
+  // Use DB template if available
+  if (templates) {
+    const key = isWinBack
+      ? `winback_${type}`
+      : isExpired
+        ? `renewal_${type}_expired`
+        : expiresTODAY
+          ? `renewal_${type}_today`
+          : `renewal_${type}_upcoming`;
+    const override = templates[key] ?? (type !== "general" ? null : templates[`renewal_general_upcoming`]);
+    if (override) return applyVars(override, name, expStr);
+  }
 
   // Win-back: lapsed 31–90 days — warmer, re-engagement focused
   if (isWinBack) {

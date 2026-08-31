@@ -36,6 +36,7 @@ type Props = {
   trainers: { id: string; fullName: string; role: string }[];
   userRole: UserRole; userId: string;
   waLogs?: WaLog[];
+  waTemplates?: Record<string, string>;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -49,7 +50,7 @@ const PAYMENT_TYPE_LABELS: Record<string, string> = {
 
 type Tab = "overview" | "attendance" | "history" | "settings";
 
-export function MemberDetail({ member, packages, trainers, userRole, userId, waLogs = [] }: Props) {
+export function MemberDetail({ member, packages, trainers, userRole, userId, waLogs = [], waTemplates }: Props) {
   const [tab, setTab] = useState<Tab>("overview");
   const [showAttendance, setShowAttendance] = useState(false);
   const [dnd, setDnd] = useState<boolean>(member.doNotDisturb ?? false);
@@ -85,6 +86,8 @@ export function MemberDetail({ member, packages, trainers, userRole, userId, waL
     member.expiryDate,
     currentPkgName,
     expiryStatus === "expired",
+    false,
+    waTemplates,
   );
 
   // Merged payment+membership rows: all payments, with date range from membership data
