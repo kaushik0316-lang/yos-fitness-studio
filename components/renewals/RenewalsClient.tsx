@@ -6,6 +6,7 @@ import { RotateCcw, Phone, AlertTriangle, CheckCircle2, MessageCircle, Clock, Se
 import { RenewMembershipDialog } from "@/components/members/RenewMembershipDialog";
 import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
+import { buildRenewalMessage } from "@/lib/utils/renewalTemplate";
 import { WaConfirmButton } from "@/components/whatsapp/WaConfirmButton";
 import { WaSentSummary } from "@/components/whatsapp/WaSentSummary";
 import type { UserRole } from "@prisma/client";
@@ -149,19 +150,7 @@ function waLink(phone: string, message?: string) {
 }
 
 function buildRenewalTemplate(member: { fullName: string }, expiryDate: Date | null, pkgName: string | null, isExpired: boolean): string {
-  const firstName = toTitleCase(member.fullName);
-  const expStr = expiryDate
-    ? new Date(expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
-    : null;
-  const pkg = pkgName ? ` (${pkgName})` : "";
-
-  if (isExpired && expStr) {
-    return `Hi ${firstName}!\n\nYour Yos Fitness Studio membership expired on *${expStr}*.\n\nWe'd love to have you back — come in to renew and keep your fitness journey going!\n\nSee you soon!\n– Team Yos`;
-  }
-  if (expStr) {
-    return `Hi ${firstName}!\n\nJust a friendly reminder that your Yos Fitness Studio membership is expiring on *${expStr}*.\n\nRenew now to keep your streak going without a break!\n\nSee you at the studio!\n– Team Yos`;
-  }
-  return `Hi ${firstName}!\n\nYour Yos Fitness Studio membership is due for renewal. Come in to renew and keep training!\n\n– Team Yos`;
+  return buildRenewalMessage(member.fullName, expiryDate, pkgName, isExpired);
 }
 
 function getInitials(name: string) {

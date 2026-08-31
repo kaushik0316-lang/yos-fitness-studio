@@ -13,6 +13,7 @@ import { toggleDoNotDisturb, toggleKioskCheckin, setMemberPin } from "@/lib/acti
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { WaConfirmButton } from "@/components/whatsapp/WaConfirmButton";
 import { WaHistory } from "@/components/whatsapp/WaHistory";
+import { buildRenewalMessage } from "@/lib/utils/renewalTemplate";
 import { MemberPhotoUpload } from "@/components/members/MemberPhotoUpload";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import { formatDate, formatCurrency, daysUntil, daysAgo, MEMBER_STATUS_COLORS } from "@/lib/utils";
@@ -70,17 +71,21 @@ export function MemberDetail({ member, packages, trainers, userRole, userId, waL
     daysLeft <= 3 ? "critical" :
     daysLeft <= 7 ? "soon" : "ok";
 
-  const renewalMsg = (() => {
-    const firstName = toTitleCase(member.fullName);
-    const expStr = member.expiryDate
-      ? new Date(member.expiryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
-      : null;
-    if (expiryStatus === "expired" && expStr)
-      return `Hi ${firstName}!\n\nYour Yos Fitness Studio membership expired on *${expStr}*.\n\nWe'd love to have you back — come in to renew and keep your fitness journey going!\n\nSee you soon!\n– Team Yos`;
-    if (expStr)
-      return `Hi ${firstName}!\n\nJust a friendly reminder that your Yos Fitness Studio membership is expiring on *${expStr}*.\n\nRenew now to keep your streak going without a break!\n\nSee you at the studio!\n– Team Yos`;
-    return `Hi ${firstName}!\n\nYour Yos Fitness Studio membership is due for renewal. Come in to renew and keep training!\n\n– Team Yos`;
+  const currentPkgName = (() => {
+    if (member.expiryDate && member.memberships?.length) {
+      const exp = new Date(member.expiryDate).toDateString();
+      const match = member.memberships.find((ms: any) => ms.expiryDate && new Date(ms.expiryDate).toDateString() === exp);
+      if (match?.package?.name) return match.package.name as string;
+    }
+    return (member.memberships?.[0]?.package?.name ?? member.currentPackage?.name ?? null) as string | null;
   })();
+
+  const renewalMsg = buildRenewalMessage(
+    member.fullName,
+    member.expiryDate,
+    currentPkgName,
+    expiryStatus === "expired",
+  );
 
   // Merged payment+membership rows: all payments, with date range from membership data
   const mergedPayments = member.payments.map((p: any) => {
@@ -159,14 +164,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId, waL
 
         {/* Package name */}
         {(() => {
-          const pkgName = (() => {
-            if (member.expiryDate && member.memberships?.length) {
-              const exp = new Date(member.expiryDate).toDateString();
-              const match = member.memberships.find((ms: any) => ms.expiryDate && new Date(ms.expiryDate).toDateString() === exp);
-              if (match?.package?.name) return match.package.name;
-            }
-            return member.memberships?.[0]?.package?.name ?? member.currentPackage?.name ?? null;
-          })();
+          const pkgName = currentPkgName;
           return pkgName ? (
             <p className="text-xs text-gray-400 mt-2 font-medium">
               <span className="text-gray-600">Package:</span> {pkgName}
