@@ -14,6 +14,15 @@ function fmtDate(d: Date | string | null): string | null {
   return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
 }
 
+function isExpiringToday(d: Date | string | null): boolean {
+  if (!d) return false;
+  const exp = new Date(d);
+  const today = new Date();
+  return exp.getFullYear() === today.getFullYear()
+    && exp.getMonth() === today.getMonth()
+    && exp.getDate() === today.getDate();
+}
+
 export function buildRenewalMessage(
   fullName: string,
   expiryDate: Date | string | null,
@@ -23,10 +32,14 @@ export function buildRenewalMessage(
   const name = toTitleCase(fullName);
   const expStr = fmtDate(expiryDate);
   const type = detectPkgType(pkgName);
+  const expiresTODAY = !isExpired && isExpiringToday(expiryDate);
 
   if (type === "pt") {
     if (isExpired && expStr) {
       return `Hi ${name}! Your Personal Training package expired on *${expStr}*. We'd love to have you back — do renew at the earliest!\n– Team Yos`;
+    }
+    if (expiresTODAY) {
+      return `Hi ${name}! Your Personal Training package expires *today*. Do renew at the earliest — we enjoy having you here! 😊\n– Team Yos`;
     }
     if (expStr) {
       return `Hi ${name}! Just a quick note that your Personal Training package is expiring on *${expStr}*. Do renew at the earliest — we enjoy having you here! 😊\n– Team Yos`;
@@ -38,6 +51,9 @@ export function buildRenewalMessage(
     if (isExpired && expStr) {
       return `Hi ${name}! Your Semi-Private Coaching membership expired on *${expStr}*. We'd love to have you back — do renew at the earliest!\n– Team Yos`;
     }
+    if (expiresTODAY) {
+      return `Hi ${name}! Your Semi-Private Coaching membership expires *today*. Do renew at the earliest — we enjoy having you here! 😊\n– Team Yos`;
+    }
     if (expStr) {
       return `Hi ${name}! Just a heads-up that your Semi-Private Coaching membership is expiring on *${expStr}*. Do renew at the earliest — we enjoy having you here! 😊\n– Team Yos`;
     }
@@ -47,6 +63,9 @@ export function buildRenewalMessage(
   if (type === "hiit") {
     if (isExpired && expStr) {
       return `Hi ${name}! Your HIIT Classes membership expired on *${expStr}*. We'd love to have you back — do renew at the earliest!\n– Team Yos`;
+    }
+    if (expiresTODAY) {
+      return `Hi ${name}! Your HIIT Classes membership expires *today*. Do renew at the earliest — we enjoy having you here! 😊\n– Team Yos`;
     }
     if (expStr) {
       return `Hi ${name}! Just a heads-up that your HIIT Classes membership is expiring on *${expStr}*. Do renew at the earliest — we enjoy having you here! 😊\n– Team Yos`;
