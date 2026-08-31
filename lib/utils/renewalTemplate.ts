@@ -26,32 +26,32 @@ export function buildRenewalMessage(
 
   if (type === "pt") {
     if (isExpired && expStr) {
-      return `Hi ${name}!\n\nYour *Personal Training* sessions with us expired on *${expStr}*.\n\nYour trainer misses working with you! Come back in to renew your PT package and continue making progress towards your goals.\n\nSee you soon!\n– Team Yos`;
+      return `Hi ${name}! Your Personal Training package expired on *${expStr}*. We'd love to have you back — do renew at the earliest!\n– Team Yos`;
     }
     if (expStr) {
-      return `Hi ${name}!\n\nJust a heads-up — your *Personal Training* package is expiring on *${expStr}*.\n\nRenew now to keep your sessions going and stay on track with your trainer!\n\nSee you at the studio!\n– Team Yos`;
+      return `Hi ${name}! Just a quick note that your Personal Training package is expiring on *${expStr}*. Do renew at the earliest — we enjoy having you here! 😊\n– Team Yos`;
     }
-    return `Hi ${name}!\n\nYour *Personal Training* package is due for renewal. Reach out to us to continue your sessions!\n\n– Team Yos`;
+    return `Hi ${name}! Your Personal Training package is due for renewal. Do renew at the earliest — we enjoy having you here! 😊\n– Team Yos`;
   }
 
   if (type === "semi") {
     if (isExpired && expStr) {
-      return `Hi ${name}!\n\nYour *Semi-Private Coaching* membership expired on *${expStr}*.\n\nYour training group misses you! Come back to renew and keep training alongside your team.\n\nSee you soon!\n– Team Yos`;
+      return `Hi ${name}! Your Semi-Private Coaching membership expired on *${expStr}*. We'd love to have you back — do renew at the earliest!\n– Team Yos`;
     }
     if (expStr) {
-      return `Hi ${name}!\n\nA quick reminder — your *Semi-Private Coaching* membership is expiring on *${expStr}*.\n\nRenew early to secure your spot with your group and keep the momentum going!\n\nSee you at the studio!\n– Team Yos`;
+      return `Hi ${name}! Just a heads-up that your Semi-Private Coaching membership is expiring on *${expStr}*. Do renew at the earliest — we enjoy having you here! 😊\n– Team Yos`;
     }
-    return `Hi ${name}!\n\nYour *Semi-Private Coaching* membership is due for renewal. Contact us to lock in your spot!\n\n– Team Yos`;
+    return `Hi ${name}! Your Semi-Private Coaching membership is due for renewal. Do renew at the earliest — we enjoy having you here! 😊\n– Team Yos`;
   }
 
   if (type === "hiit") {
     if (isExpired && expStr) {
-      return `Hi ${name}!\n\nYour *HIIT Classes* membership expired on *${expStr}*.\n\nDon't lose your fitness momentum — renew now and get back to burning those calories with the group! 🔥\n\nSee you soon!\n– Team Yos`;
+      return `Hi ${name}! Your HIIT Classes membership expired on *${expStr}*. We'd love to have you back — do renew at the earliest!\n– Team Yos`;
     }
     if (expStr) {
-      return `Hi ${name}!\n\nHeads up — your *HIIT Classes* membership is expiring on *${expStr}*.\n\nRenew now and keep crushing those workouts without missing a beat! 🔥\n\nSee you at the studio!\n– Team Yos`;
+      return `Hi ${name}! Just a heads-up that your HIIT Classes membership is expiring on *${expStr}*. Do renew at the earliest — we enjoy having you here! 😊\n– Team Yos`;
     }
-    return `Hi ${name}!\n\nYour *HIIT Classes* membership is due for renewal. Come in and keep the energy going!\n\n– Team Yos`;
+    return `Hi ${name}! Your HIIT Classes membership is due for renewal. Do renew at the earliest — we enjoy having you here! 😊\n– Team Yos`;
   }
 
   // General gym membership
