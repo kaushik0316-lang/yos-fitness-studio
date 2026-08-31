@@ -47,7 +47,7 @@ export function buildRenewalMessage(
       return `Hi ${name}! We miss you at Yos!\n\nIt's been a while since your last HIIT class. Come back and get those endorphins going again!\n\nDo drop in at the earliest. We'd love to have you back!\n– Team Yos`;
     }
     // General win-back
-    return `Hi ${name}!\n\nWe miss you at Yos Fitness Studio! It's been a while and we'd love to have you back.\n\nCome in, renew your membership, and get back on track with your fitness journey. We're here for you!\n\nSee you soon!\n– Team Yos`;
+    return `Hi ${name}!\n\nWe miss you at Yos Fitness Studio! It's been a while and we'd love to have you back.\n\nCome in and get back on track with your fitness journey. We're here for you!\n\nSee you soon!\n– Team Yos`;
   }
 
   if (type === "pt") {
