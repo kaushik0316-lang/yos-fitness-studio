@@ -164,7 +164,7 @@ export function MemberAttendanceDetail({ member, records, month, year, isAugust,
             const ds        = format(day, "yyyy-MM-dd");
             const visited   = recordMap.has(ds);
             const rec       = recordMap.get(ds);
-            const counts    = visited && (rec?.durationMins ?? 0) >= MIN_CHALLENGE_MINS;
+            const counts    = isAugust && visited && (rec?.durationMins ?? 0) >= MIN_CHALLENGE_MINS;
             const isToday   = ds === todayStr;
             return (
               <div key={ds}
@@ -182,10 +182,12 @@ export function MemberAttendanceDetail({ member, records, month, year, isAugust,
           })}
         </div>
         <div className="flex items-center gap-4 mt-3">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: "rgba(234,179,8,0.25)", border: "1px solid rgba(234,179,8,0.4)" }} />
-            <span className="text-[10px] text-gray-600">≥ 50 min (challenge)</span>
-          </div>
+          {isAugust && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-sm" style={{ background: "rgba(234,179,8,0.25)", border: "1px solid rgba(234,179,8,0.4)" }} />
+              <span className="text-[10px] text-gray-600">≥ 50 min (challenge)</span>
+            </div>
+          )}
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-sm" style={{ background: "rgba(34,197,94,0.2)", border: "1px solid rgba(34,197,94,0.3)" }} />
             <span className="text-[10px] text-gray-600">Visited</span>
@@ -221,7 +223,7 @@ export function MemberAttendanceDetail({ member, records, month, year, isAugust,
                 const ds  = format(day, "yyyy-MM-dd");
                 const rec = recordMap.get(ds);
                 if (!rec) return null;
-                const counts = (rec.durationMins ?? 0) >= MIN_CHALLENGE_MINS;
+                const counts = isAugust && (rec.durationMins ?? 0) >= MIN_CHALLENGE_MINS;
                 const isToday = ds === todayStr;
 
                 return (
