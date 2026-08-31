@@ -38,16 +38,16 @@ export function buildRenewalMessage(
   // Win-back: lapsed 31–90 days — warmer, re-engagement focused
   if (isWinBack) {
     if (type === "pt") {
-      return `Hi ${name}! We miss you at Yos!\n\nIt's been a while since your Personal Training sessions. Your trainer misses working with you — come back and pick up where you left off!\n\nDo drop in at the earliest. We'd love to have you back!\n– Team Yos`;
+      return `Hi ${name}! We miss you at Yos!\n\nIt's been a while since your Personal Training sessions. Your trainer misses working with you — whenever you're ready, we're here!\n\nWould love to have you back!\n– Team Yos`;
     }
     if (type === "semi") {
-      return `Hi ${name}! We miss you at Yos!\n\nIt's been a while since your Semi-Private Coaching sessions. The group isn't the same without you — come back and join us!\n\nDo drop in at the earliest. We'd love to have you back!\n– Team Yos`;
+      return `Hi ${name}! We miss you at Yos!\n\nIt's been a while since your Semi-Private Coaching sessions. The group isn't the same without you — come back whenever you're ready!\n\nWould love to have you back!\n– Team Yos`;
     }
     if (type === "hiit") {
-      return `Hi ${name}! We miss you at Yos!\n\nIt's been a while since your last HIIT class. Come back and get those endorphins going again!\n\nDo drop in at the earliest. We'd love to have you back!\n– Team Yos`;
+      return `Hi ${name}! We miss you at Yos!\n\nIt's been a while since your last HIIT class. Whenever you're ready to get back at it, we're here!\n\nWould love to have you back!\n– Team Yos`;
     }
     // General win-back
-    return `Hi ${name}!\n\nWe miss you at Yos Fitness Studio! It's been a while and we'd love to have you back.\n\nCome in and get back on track with your fitness journey. We're here for you!\n\nSee you soon!\n– Team Yos`;
+    return `Hi ${name}!\n\nWe miss you at Yos! It's been a while — hope you're doing well.\n\nWhenever you're ready to get back, we're here for you!\n\nSee you soon!\n– Team Yos`;
   }
 
   if (type === "pt") {
@@ -91,10 +91,10 @@ export function buildRenewalMessage(
 
   // General gym membership
   if (isExpired && expStr) {
-    return `Hi ${name}!\n\nYour Yos Fitness Studio membership expired on *${expStr}*.\n\nWe'd love to have you back — come in to renew and keep your fitness journey going!\n\nSee you soon!\n– Team Yos`;
+    return `Hi ${name}!\n\nYour Yos Fitness Studio membership expired on *${expStr}*. We'd love to have you back whenever you're ready!\n\nSee you soon!\n– Team Yos`;
   }
   if (expStr) {
-    return `Hi ${name}!\n\nJust a friendly reminder that your Yos Fitness Studio membership is expiring on *${expStr}*.\n\nRenew now to keep your streak going without a break!\n\nSee you at the studio!\n– Team Yos`;
+    return `Hi ${name}!\n\nJust a heads-up — your Yos Fitness Studio membership is expiring on *${expStr}*. No rush, but we'd love to keep seeing you here!\n\nSee you at the studio!\n– Team Yos`;
   }
-  return `Hi ${name}!\n\nYour Yos Fitness Studio membership is due for renewal. Come in to renew and keep training!\n\n– Team Yos`;
+  return `Hi ${name}!\n\nYour Yos Fitness Studio membership is up for renewal soon. We'd love to keep seeing you here!\n\n– Team Yos`;
 }
