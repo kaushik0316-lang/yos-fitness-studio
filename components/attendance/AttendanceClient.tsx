@@ -195,21 +195,22 @@ export function AttendanceClient({
           <ChevronLeft className="h-4 w-4 text-gray-400" />
         </button>
         <div className="relative text-center">
-          <label className="cursor-pointer group">
+          <input
+            key={selectedDate}
+            type="date"
+            max={format(new Date(), "yyyy-MM-dd")}
+            defaultValue={selectedDate}
+            onChange={(e) => { if (e.target.value) goDate(parseISO(e.target.value)); }}
+            className="sr-only"
+            id="attendance-date-picker"
+          />
+          <label htmlFor="attendance-date-picker" className="cursor-pointer group">
             <p className="text-white font-bold text-sm group-hover:text-orange-400 transition-colors">
               {isToday ? "Today" : format(dateObj, "EEEE, d MMMM")}
             </p>
             <p className="text-gray-600 text-[11px] mt-0.5 group-hover:text-gray-500 transition-colors">
               {format(dateObj, "yyyy")} · tap to jump
             </p>
-            <input
-              key={selectedDate}
-              type="date"
-              max={format(new Date(), "yyyy-MM-dd")}
-              defaultValue={selectedDate}
-              onChange={(e) => { if (e.target.value) goDate(parseISO(e.target.value)); }}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full"
-            />
           </label>
         </div>
         <button onClick={() => goDate(addDays(dateObj, 1))} disabled={isFuture}
