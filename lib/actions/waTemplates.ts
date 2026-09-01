@@ -63,17 +63,22 @@ const DEFAULTS: Omit<WaTemplateRow, "id" | "updatedAt">[] = [
     body: "Hi {{name}}! Welcome to Yos Fitness Studio!\n\nWe're so happy to have you with us — this is the start of something great, and we mean that!\n\nYour Member ID is *{{memberId}}*. Keep it handy for check-ins and anything membership related.\n\nIf you haven't set up your member portal yet, you can do it here:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nIf you ever need anything — guidance, schedule info, or just a push to show up — we're right here for you. See you at the studio!\n\n– Team Yos" },
 ];
 
+const OBSOLETE_KEYS = ["onboarding_pt", "onboarding_semi", "onboarding_hiit"];
+
 // Seed any missing templates (safe to call on every page load — upserts only missing keys)
 export async function seedWaTemplates() {
-  await Promise.all(
-    DEFAULTS.map((t) =>
+  await Promise.all([
+    // Remove obsolete keys
+    prisma.waTemplate.deleteMany({ where: { key: { in: OBSOLETE_KEYS } } }),
+    // Upsert current defaults
+    ...DEFAULTS.map((t) =>
       prisma.waTemplate.upsert({
         where: { key: t.key },
         update: {},
         create: t,
       })
-    )
-  );
+    ),
+  ]);
 }
 
 export async function getWaTemplates(): Promise<Record<string, string>> {
