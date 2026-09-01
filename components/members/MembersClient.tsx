@@ -14,6 +14,7 @@ import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import { buildOnboardingMessage } from "@/lib/utils/renewalTemplate";
+import { WaConfirmButton } from "@/components/whatsapp/WaConfirmButton";
 import { WaSentSummary } from "@/components/whatsapp/WaSentSummary";
 import type { Company, MemberStatus, UserRole } from "@prisma/client";
 
@@ -615,16 +616,14 @@ export function MembersClient({
                 </Link>
                 {(userRole === "ADMIN" || userRole === "FRONT_DESK") && m.phone && (() => {
                   const pkgName = label ?? m.currentPackage?.name ?? m.memberships?.[0]?.package?.name ?? null;
-                  const phone = (m.whatsapp ?? m.phone).replace(/\D/g, "").slice(-10);
                   const msg = buildOnboardingMessage(m.fullName, m.memberId, pkgName, waTemplates);
                   return (
-                    <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`}
-                      target="_blank" rel="noopener noreferrer"
+                    <WaConfirmButton
+                      memberId={m.id} phone={m.whatsapp ?? m.phone} message={msg}
+                      waType="WELCOME" iconOnly
                       className="flex items-center justify-center w-8 h-8 rounded-xl transition-colors"
                       style={{ background: "rgba(37,211,102,0.1)", color: "#25d366" }}
-                      title="Send Welcome Message">
-                      <MessageSquare className="h-4 w-4" />
-                    </a>
+                    />
                   );
                 })()}
                 {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "TRAINER") && (
@@ -818,17 +817,14 @@ export function MembersClient({
                           </Link>
                           {(userRole === "ADMIN" || userRole === "FRONT_DESK") && m.phone && (() => {
                             const pkgName = cleanPackageLabel(m.payments?.[0]?.categoryLabel) ?? cleanPackageLabel(m.memberships?.[0]?.package?.name) ?? cleanPackageLabel(m.currentPackage?.name);
-                            const phone = (m.whatsapp ?? m.phone).replace(/\D/g, "").slice(-10);
                             const msg = buildOnboardingMessage(m.fullName, m.memberId, pkgName, waTemplates);
                             return (
-                              <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`}
-                                target="_blank" rel="noopener noreferrer"
-                                className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors"
+                              <WaConfirmButton
+                                memberId={m.id} phone={m.whatsapp ?? m.phone} message={msg}
+                                waType="WELCOME" label="Welcome"
+                                className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors text-[9px] font-semibold"
                                 style={{ background: "rgba(37,211,102,0.1)", color: "#25d366" }}
-                                title="Send Welcome Message">
-                                <MessageSquare className="h-3.5 w-3.5" />
-                                <span className="text-[9px] font-semibold leading-none">Welcome</span>
-                              </a>
+                              />
                             );
                           })()}
                           {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "TRAINER") && (
