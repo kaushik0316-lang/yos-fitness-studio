@@ -16,6 +16,7 @@ import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import { buildOnboardingMessage } from "@/lib/utils/renewalTemplate";
 import { WaConfirmButton } from "@/components/whatsapp/WaConfirmButton";
 import { WaSentSummary } from "@/components/whatsapp/WaSentSummary";
+import { logManualWA } from "@/lib/actions/whatsapp";
 import type { Company, MemberStatus, UserRole } from "@prisma/client";
 
 type Member = {
@@ -102,6 +103,53 @@ type BirthdayMember = {
 };
 
 type WaLog = { id: string; memberName: string; sentByName: string | null; sentAt: Date | null; createdAt: Date };
+
+function BulkWelcomeList({ members, waTemplates }: { members: Member[]; waTemplates?: Record<string, string> }) {
+  const [sent, setSent] = useState<Set<string>>(new Set());
+
+  async function handleSend(m: Member) {
+    const msg = buildOnboardingMessage(m.fullName, m.memberId, null, waTemplates);
+    const digits = (m.whatsapp ?? m.phone).replace(/\D/g, "").slice(-10);
+    window.open(`https://wa.me/91${digits}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+    try {
+      await logManualWA(m.id, "WELCOME", msg);
+      setSent((s) => new Set(s).add(m.id));
+    } catch {}
+  }
+
+  return (
+    <>
+      <div className="max-h-[60vh] overflow-y-auto">
+        {members.map((m) => (
+          <div key={m.id}
+            className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-white/[0.02]"
+            style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-white font-semibold text-sm">{toTitleCase(m.fullName)}</p>
+                {sent.has(m.id) && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "rgba(16,185,129,0.15)", color: "#34d399" }}>Sent</span>
+                )}
+              </div>
+              <p className="text-xs text-gray-600 mt-0.5">{m.memberId} · {m.phone}</p>
+            </div>
+            <button
+              onClick={() => handleSend(m)}
+              disabled={sent.has(m.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0 transition-all disabled:opacity-50"
+              style={{ background: sent.has(m.id) ? "rgba(16,185,129,0.15)" : "rgba(37,211,102,0.15)", color: sent.has(m.id) ? "#34d399" : "#25d366" }}>
+              <MessageSquare className="h-3.5 w-3.5" />
+              {sent.has(m.id) ? "Sent" : "Send"}
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="px-5 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        <p className="text-xs text-gray-600">Opens WhatsApp for each member · sends are logged to their WA history</p>
+      </div>
+    </>
+  );
+}
 
 export function MembersClient({
   members, total, page, pageSize, packages, trainers,
@@ -509,33 +557,10 @@ export function MembersClient({
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="max-h-[60vh] overflow-y-auto">
-              {members.filter((m) => selected.has(m.id)).map((m) => {
-                const pkgName = cleanPackageLabel(m.payments?.[0]?.categoryLabel) ?? cleanPackageLabel(m.memberships?.[0]?.package?.name) ?? cleanPackageLabel(m.currentPackage?.name);
-                const waMsg = encodeURIComponent(buildOnboardingMessage(m.fullName, m.memberId, pkgName, waTemplates));
-                const digits = (m.whatsapp ?? m.phone).replace(/\D/g, "").slice(-10);
-                return (
-                  <a key={m.id}
-                    href={`https://wa.me/91${digits}?text=${waMsg}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-white/[0.03]"
-                    style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                    <div>
-                      <p className="text-white font-semibold text-sm">{toTitleCase(m.fullName)}</p>
-                      <p className="text-xs text-gray-600 mt-0.5">{m.memberId} · {m.phone}</p>
-                    </div>
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
-                      style={{ background: "rgba(37,211,102,0.15)", color: "#25d366" }}>
-                      <MessageSquare className="h-3.5 w-3.5" />
-                      Open
-                    </div>
-                  </a>
-                );
-              })}
-            </div>
-            <div className="px-5 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-              <p className="text-xs text-gray-600">Each link opens WhatsApp with a pre-filled welcome message including the member portal setup link.</p>
-            </div>
+            <BulkWelcomeList
+              members={members.filter((m) => selected.has(m.id))}
+              waTemplates={waTemplates}
+            />
           </div>
         </div>
       )}
