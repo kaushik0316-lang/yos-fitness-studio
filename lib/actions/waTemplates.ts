@@ -57,6 +57,16 @@ const DEFAULTS: Omit<WaTemplateRow, "id" | "updatedAt">[] = [
   // ── PT Upsell ────────────────────────────────────────────────────────────────
   { key: "upsell_pt", label: "PT Upsell", category: "upsell",
     body: "Hi {{name}}! We've noticed you've been super consistent at Yos — that's amazing!\n\nWe'd love to help you take it to the next level. With Personal Training or Semi-Private Coaching, you get a structured plan built around your goals, proper form guidance to avoid injuries, and a trainer who tracks your progress every session.\n\nMost members see better results in 4-6 weeks compared to months of solo training.\n\nInterested? Come chat with us at the studio or just reply here — we'll walk you through the options!\n\n– Team Yos" },
+
+  // ── Onboarding ───────────────────────────────────────────────────────────────
+  { key: "onboarding_general", label: "Welcome — General", category: "onboarding",
+    body: "Hi {{name}}! Welcome to Yos Fitness Studio!\n\nYour Member ID is *{{memberId}}*.\n\nSet up your member portal to view attendance and membership details:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nSee you at the gym!\n– Team Yos" },
+  { key: "onboarding_pt",      label: "Welcome — PT",      category: "onboarding",
+    body: "Hi {{name}}! Welcome to Yos Fitness Studio!\n\nYour Member ID is *{{memberId}}*. Your Personal Training sessions are all set — your trainer will be in touch to schedule your first session.\n\nTrack your attendance and membership here:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nSee you soon!\n– Team Yos" },
+  { key: "onboarding_semi",    label: "Welcome — Semi-Private", category: "onboarding",
+    body: "Hi {{name}}! Welcome to Yos Fitness Studio!\n\nYour Member ID is *{{memberId}}*. Your Semi-Private Coaching sessions are all set — we'll keep you updated on your schedule.\n\nTrack your attendance and membership here:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nSee you soon!\n– Team Yos" },
+  { key: "onboarding_hiit",    label: "Welcome — HIIT",    category: "onboarding",
+    body: "Hi {{name}}! Welcome to Yos Fitness Studio!\n\nYour Member ID is *{{memberId}}*. Your HIIT Classes membership is active — check the schedule and come in whenever you're ready!\n\nTrack your attendance and membership here:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nSee you soon!\n– Team Yos" },
 ];
 
 // Seed any missing templates (safe to call on every page load — upserts only missing keys)

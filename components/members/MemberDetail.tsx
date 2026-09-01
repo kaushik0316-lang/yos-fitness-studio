@@ -13,7 +13,7 @@ import { toggleDoNotDisturb, toggleKioskCheckin, setMemberPin } from "@/lib/acti
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { WaConfirmButton } from "@/components/whatsapp/WaConfirmButton";
 import { WaHistory } from "@/components/whatsapp/WaHistory";
-import { buildRenewalMessage } from "@/lib/utils/renewalTemplate";
+import { buildRenewalMessage, buildOnboardingMessage } from "@/lib/utils/renewalTemplate";
 import { MemberPhotoUpload } from "@/components/members/MemberPhotoUpload";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import { formatDate, formatCurrency, daysUntil, daysAgo, MEMBER_STATUS_COLORS } from "@/lib/utils";
@@ -127,7 +127,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId, waL
             <WaConfirmButton
               memberId={member.id}
               phone={member.phone}
-              message={`Hi ${toTitleCase(member.fullName)}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${member.memberId}*.\n\nSet up your member portal to view attendance and membership details:\n👉 https://yosfitnessstudio.in/member-portal?setup=1\n\nSee you at the gym! 💪`}
+              message={buildOnboardingMessage(member.fullName, member.memberId, currentPkgName, waTemplates)}
               waType="WELCOME"
               label="Send Welcome"
               className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors shadow-sm"

@@ -9,15 +9,17 @@ type Template = {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  renewal: "Renewal Reminders",
-  winback: "Win-Back (31–90 days lapsed)",
-  upsell:  "PT Upsell",
+  renewal:    "Renewal Reminders",
+  winback:    "Win-Back (31–90 days lapsed)",
+  upsell:     "PT Upsell",
+  onboarding: "Onboarding (Welcome Messages)",
 };
 
 const VARIABLE_HINTS: Record<string, string[]> = {
-  renewal: ["{{name}}", "{{date}}"],
-  winback: ["{{name}}"],
-  upsell:  ["{{name}}"],
+  renewal:    ["{{name}}", "{{date}}"],
+  winback:    ["{{name}}"],
+  upsell:     ["{{name}}"],
+  onboarding: ["{{name}}", "{{memberId}}"],
 };
 
 export function WaTemplatesClient({ templates }: { templates: Template[] }) {
@@ -28,7 +30,7 @@ export function WaTemplatesClient({ templates }: { templates: Template[] }) {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [isPending, startTransition] = useTransition();
 
-  const categories = ["renewal", "winback", "upsell"];
+  const categories = ["renewal", "winback", "upsell", "onboarding"];
 
   function toggleOpen(key: string) {
     setOpen((o) => ({ ...o, [key]: !o[key] }));

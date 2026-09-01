@@ -27,6 +27,35 @@ function applyVars(template: string, name: string, date: string | null): string 
   return template.replace(/\{\{name\}\}/g, name).replace(/\{\{date\}\}/g, date ?? "");
 }
 
+export function buildOnboardingMessage(
+  fullName: string,
+  memberId: string,
+  pkgName: string | null | undefined,
+  templates?: Record<string, string>,
+): string {
+  const name = toTitleCase(fullName);
+  const type = detectPkgType(pkgName);
+  const key = `onboarding_${type}`;
+
+  if (templates) {
+    const override = templates[key] ?? templates["onboarding_general"];
+    if (override) return applyVars(override, name, null).replace(/\{\{memberId\}\}/g, memberId);
+  }
+
+  const portal = `https://yosfitnessstudio.in/member-portal?setup=1`;
+
+  if (type === "pt") {
+    return `Hi ${name}! Welcome to Yos Fitness Studio!\n\nYour Member ID is *${memberId}*. Your Personal Training sessions are all set — your trainer will be in touch to schedule your first session.\n\nTrack your attendance and membership here:\n${portal}\n\nSee you soon!\n– Team Yos`;
+  }
+  if (type === "semi") {
+    return `Hi ${name}! Welcome to Yos Fitness Studio!\n\nYour Member ID is *${memberId}*. Your Semi-Private Coaching sessions are all set — we'll keep you updated on your schedule.\n\nTrack your attendance and membership here:\n${portal}\n\nSee you soon!\n– Team Yos`;
+  }
+  if (type === "hiit") {
+    return `Hi ${name}! Welcome to Yos Fitness Studio!\n\nYour Member ID is *${memberId}*. Your HIIT Classes membership is active — check the schedule and come in whenever you're ready!\n\nTrack your attendance and membership here:\n${portal}\n\nSee you soon!\n– Team Yos`;
+  }
+  return `Hi ${name}! Welcome to Yos Fitness Studio!\n\nYour Member ID is *${memberId}*.\n\nSet up your member portal to view attendance and membership details:\n${portal}\n\nSee you at the gym!\n– Team Yos`;
+}
+
 export function buildRenewalMessage(
   fullName: string,
   expiryDate: Date | string | null,
