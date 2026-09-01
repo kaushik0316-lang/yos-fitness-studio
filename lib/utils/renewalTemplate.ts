@@ -43,17 +43,19 @@ export function buildOnboardingMessage(
   }
 
   const portal = `https://yosfitnessstudio.in/member-portal?setup=1`;
+  const portalLine = `If you haven't set up your member portal yet, you can do it here:\n${portal}`;
+  const warmIntro = `We're so happy to have you with us — this is the start of something great, and we mean that!`;
 
   if (type === "pt") {
-    return `Hi ${name}! Welcome to Yos Fitness Studio!\n\nYour Member ID is *${memberId}*. Your Personal Training sessions are all set — your trainer will be in touch to schedule your first session.\n\nTrack your attendance and membership here:\n${portal}\n\nSee you soon!\n– Team Yos`;
+    return `Hi ${name}! Welcome to Yos Fitness Studio!\n\n${warmIntro}\n\nYour Member ID is *${memberId}*. Your Personal Training sessions are all set — your trainer will be in touch to schedule your first session.\n\n${portalLine}\n\nSee you soon!\n– Team Yos`;
   }
   if (type === "semi") {
-    return `Hi ${name}! Welcome to Yos Fitness Studio!\n\nYour Member ID is *${memberId}*. Your Semi-Private Coaching sessions are all set — we'll keep you updated on your schedule.\n\nTrack your attendance and membership here:\n${portal}\n\nSee you soon!\n– Team Yos`;
+    return `Hi ${name}! Welcome to Yos Fitness Studio!\n\n${warmIntro}\n\nYour Member ID is *${memberId}*. Your Semi-Private Coaching sessions are all set — we'll keep you updated on your schedule.\n\n${portalLine}\n\nSee you soon!\n– Team Yos`;
   }
   if (type === "hiit") {
-    return `Hi ${name}! Welcome to Yos Fitness Studio!\n\nYour Member ID is *${memberId}*. Your HIIT Classes membership is active — check the schedule and come in whenever you're ready!\n\nTrack your attendance and membership here:\n${portal}\n\nSee you soon!\n– Team Yos`;
+    return `Hi ${name}! Welcome to Yos Fitness Studio!\n\n${warmIntro}\n\nYour Member ID is *${memberId}*. Your HIIT Classes membership is active — check the schedule and come in whenever you're ready!\n\n${portalLine}\n\nSee you soon!\n– Team Yos`;
   }
-  return `Hi ${name}! Welcome to Yos Fitness Studio!\n\nYour Member ID is *${memberId}*.\n\nSet up your member portal to view attendance and membership details:\n${portal}\n\nSee you at the gym!\n– Team Yos`;
+  return `Hi ${name}! Welcome to Yos Fitness Studio!\n\n${warmIntro}\n\nYour Member ID is *${memberId}*. Keep it handy for check-ins and anything membership related.\n\n${portalLine}\n\nIf you ever need anything — guidance, schedule info, or just a push to show up — we're right here for you. See you at the studio!\n\n– Team Yos`;
 }
 
 export function buildRenewalMessage(
