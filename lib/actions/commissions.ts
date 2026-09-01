@@ -87,9 +87,9 @@ export async function setPaymentCommissions(input: {
 
   const payment = await prisma.payment.findUnique({
     where: { id: input.paymentId },
-    select: { createdAt: true },
+    select: { date: true, createdAt: true },
   });
-  const paymentDate = payment?.createdAt ?? new Date();
+  const paymentDate = payment?.date ?? payment?.createdAt ?? new Date();
   const month = paymentDate.getMonth() + 1;
   const year  = paymentDate.getFullYear();
 
