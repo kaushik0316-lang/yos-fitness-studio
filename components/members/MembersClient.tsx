@@ -816,6 +816,21 @@ export function MembersClient({
                             <Eye className="h-3.5 w-3.5" />
                             <span className="text-[9px] font-semibold leading-none">View</span>
                           </Link>
+                          {(userRole === "ADMIN" || userRole === "FRONT_DESK") && m.phone && (() => {
+                            const pkgName = cleanPackageLabel(m.payments?.[0]?.categoryLabel) ?? cleanPackageLabel(m.memberships?.[0]?.package?.name) ?? cleanPackageLabel(m.currentPackage?.name);
+                            const phone = (m.whatsapp ?? m.phone).replace(/\D/g, "").slice(-10);
+                            const msg = buildOnboardingMessage(m.fullName, m.memberId, pkgName, waTemplates);
+                            return (
+                              <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors"
+                                style={{ background: "rgba(37,211,102,0.1)", color: "#25d366" }}
+                                title="Send Welcome Message">
+                                <MessageSquare className="h-3.5 w-3.5" />
+                                <span className="text-[9px] font-semibold leading-none">Welcome</span>
+                              </a>
+                            );
+                          })()}
                           {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "TRAINER") && (
                             <button onClick={() => setMarkFor(m)}
                               className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-gray-500 hover:text-emerald-400 transition-colors"
