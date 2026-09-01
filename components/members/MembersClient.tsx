@@ -13,6 +13,7 @@ import { MoveMembershipButton } from "@/components/members/MoveMembershipButton"
 import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
+import { buildOnboardingMessage } from "@/lib/utils/renewalTemplate";
 import { WaSentSummary } from "@/components/whatsapp/WaSentSummary";
 import type { Company, MemberStatus, UserRole } from "@prisma/client";
 
@@ -34,6 +35,7 @@ type Props = {
   userRole: UserRole; userId: string;
   statusCounts: Record<string, number>;
   activeStatusFilter: string;
+  waTemplates?: Record<string, string>;
 };
 
 const STATUS_CONFIG: Record<string, { icon: React.FC<{ className?: string }>; label: string; bg: string; color: string }> = {
@@ -102,7 +104,7 @@ type WaLog = { id: string; memberName: string; sentByName: string | null; sentAt
 
 export function MembersClient({
   members, total, page, pageSize, packages, trainers,
-  userRole, userId, statusCounts, activeStatusFilter, birthdayMembers = [], birthdayWaLogs = [],
+  userRole, userId, statusCounts, activeStatusFilter, birthdayMembers = [], birthdayWaLogs = [], waTemplates,
 }: Props & { birthdayMembers?: BirthdayMember[]; birthdayWaLogs?: WaLog[] }) {
   const router   = useRouter();
   const pathname = usePathname();
@@ -508,10 +510,9 @@ export function MembersClient({
             </div>
             <div className="max-h-[60vh] overflow-y-auto">
               {members.filter((m) => selected.has(m.id)).map((m) => {
-                const waMsg = encodeURIComponent(
-                  `Hi ${toTitleCase(m.fullName)}! 👋 Welcome to Yos Fitness Studio.\n\nYour Member ID is *${m.memberId}*.\n\nSet up your member portal to view attendance and membership details:\n👉 https://yosfitnessstudio.in/member-portal?setup=1\n\nSee you at the gym! 💪`
-                );
-                const digits = m.phone.replace(/\D/g, "").slice(-10);
+                const pkgName = cleanPackageLabel(m.payments?.[0]?.categoryLabel) ?? cleanPackageLabel(m.memberships?.[0]?.package?.name) ?? cleanPackageLabel(m.currentPackage?.name);
+                const waMsg = encodeURIComponent(buildOnboardingMessage(m.fullName, m.memberId, pkgName, waTemplates));
+                const digits = (m.whatsapp ?? m.phone).replace(/\D/g, "").slice(-10);
                 return (
                   <a key={m.id}
                     href={`https://wa.me/91${digits}?text=${waMsg}`}
@@ -612,6 +613,20 @@ export function MembersClient({
                   style={{ background: "rgba(255,255,255,0.06)" }}>
                   <Eye className="h-4 w-4" />
                 </Link>
+                {(userRole === "ADMIN" || userRole === "FRONT_DESK") && m.phone && (() => {
+                  const pkgName = label ?? m.currentPackage?.name ?? m.memberships?.[0]?.package?.name ?? null;
+                  const phone = (m.whatsapp ?? m.phone).replace(/\D/g, "").slice(-10);
+                  const msg = buildOnboardingMessage(m.fullName, m.memberId, pkgName, waTemplates);
+                  return (
+                    <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-center w-8 h-8 rounded-xl transition-colors"
+                      style={{ background: "rgba(37,211,102,0.1)", color: "#25d366" }}
+                      title="Send Welcome Message">
+                      <MessageSquare className="h-4 w-4" />
+                    </a>
+                  );
+                })()}
                 {(userRole === "ADMIN" || userRole === "FRONT_DESK" || userRole === "TRAINER") && (
                   <button onClick={() => setMarkFor(m)}
                     className="flex items-center justify-center w-8 h-8 rounded-xl text-gray-500 hover:text-emerald-400 transition-colors"
