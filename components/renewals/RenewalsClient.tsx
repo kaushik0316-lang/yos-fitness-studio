@@ -261,7 +261,7 @@ export function RenewalsClient({ expiredMemberships, expiringToday, expiringTomo
       <WaSentSummary logs={renewalWaLogs} waType="RENEWAL" />
 
       {/* ── Summary cards ── */}
-      <div className="grid grid-cols-4 sm:grid-cols-7 gap-3">
+      <div className="grid grid-cols-4 lg:grid-cols-8 gap-3">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;
           const hasUrgent = tab.urgent && counts[tab.key] > 0;
