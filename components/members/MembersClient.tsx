@@ -787,7 +787,7 @@ export function MembersClient({
                                 <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md mt-0.5 font-medium"
                                   style={{ background: "rgba(37,211,102,0.08)", color: "#25d366", border: "1px solid rgba(37,211,102,0.2)" }}
                                   title={`Welcome sent: ${dateStr}`}>
-                                  ✓ {count}× {dateStr}
+                                  ✓ W {dateStr}
                                 </span>
                               );
                             })()}
