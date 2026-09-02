@@ -133,12 +133,17 @@ export async function createReceipt(input: z.infer<typeof receiptSchema>) {
     }
 
     // Update member's last payment date, membership dates, and phone if provided
+    // PT / Semi-Private / HIIT are add-on packages — they don't own the member's expiry date.
+    // Only a general membership receipt should update expiryDate / renewalDueDate.
+    const isAddOn = /pt|personal\s*train|semi[\s-]?private|hiit/i.test(data.categoryLabel ?? "");
     const memberUpdate: Record<string, any> = {
       lastPaymentDate: new Date(),
-      startDate: new Date(data.startDate),
-      expiryDate: new Date(data.expiryDate),
-      renewalDueDate: new Date(data.expiryDate),
       status: "ACTIVE",
+      ...(!isAddOn && {
+        startDate: new Date(data.startDate),
+        expiryDate: new Date(data.expiryDate),
+        renewalDueDate: new Date(data.expiryDate),
+      }),
     };
     if (data.phoneOverride && data.phoneOverride.replace(/\D/g, "").length >= 9) {
       memberUpdate.phone = data.phoneOverride.trim();

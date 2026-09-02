@@ -92,15 +92,15 @@ export async function recordPayment(input: z.infer<typeof paymentSchema>) {
           },
         });
 
+        // PT / Semi-Private / HIIT are add-on packages — they don't own the member's expiry date.
+        const isAddOn = /pt|personal\s*train|semi[\s-]?private|hiit/i.test(pkg.name);
         await tx.member.update({
           where: { id: data.memberId },
           data: {
             status: MemberStatus.ACTIVE,
             currentPackageId: data.packageId,
-            startDate,
-            expiryDate,
-            renewalDueDate: expiryDate,
             lastPaymentDate: new Date(),
+            ...(!isAddOn && { startDate, expiryDate, renewalDueDate: expiryDate }),
           },
         });
       }
