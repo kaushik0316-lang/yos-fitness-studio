@@ -38,6 +38,7 @@ type Props = {
   statusCounts: Record<string, number>;
   activeStatusFilter: string;
   waTemplates?: Record<string, string>;
+  welcomeWaLogs?: WaLog[];
 };
 
 const STATUS_CONFIG: Record<string, { icon: React.FC<{ className?: string }>; label: string; bg: string; color: string }> = {
@@ -153,7 +154,7 @@ function BulkWelcomeList({ members, waTemplates }: { members: Member[]; waTempla
 
 export function MembersClient({
   members, total, page, pageSize, packages, trainers,
-  userRole, userId, statusCounts, activeStatusFilter, birthdayMembers = [], birthdayWaLogs = [], waTemplates,
+  userRole, userId, statusCounts, activeStatusFilter, birthdayMembers = [], birthdayWaLogs = [], waTemplates, welcomeWaLogs = [],
 }: Props & { birthdayMembers?: BirthdayMember[]; birthdayWaLogs?: WaLog[] }) {
   const router   = useRouter();
   const pathname = usePathname();
@@ -169,6 +170,16 @@ export function MembersClient({
   const [deleting, setDeleting]             = useState(false);
   const [deleteResults, setDeleteResults]   = useState<{ ok: string[]; failed: string[] } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Welcome sent map — per member
+  const welcomeSentMap = welcomeWaLogs.reduce<Record<string, { count: number; lastAt: Date | null }>>((acc, log) => {
+    const mid = (log as any).memberId;
+    if (!mid) return acc;
+    const logDate = log.sentAt ?? log.createdAt;
+    if (!acc[mid]) { acc[mid] = { count: 1, lastAt: logDate }; }
+    else { acc[mid].count++; if (logDate && (!acc[mid].lastAt || logDate > acc[mid].lastAt)) acc[mid].lastAt = logDate; }
+    return acc;
+  }, {});
 
   // Instant search — debounced 400 ms
   useEffect(() => {
@@ -769,6 +780,17 @@ export function MembersClient({
                               <MessageCircle className="h-3 w-3" />
                               {m.phone}
                             </a>
+                            {welcomeSentMap[m.id] && (() => {
+                              const { count, lastAt } = welcomeSentMap[m.id];
+                              const dateStr = lastAt ? new Date(lastAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "";
+                              return (
+                                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md mt-0.5 font-medium"
+                                  style={{ background: "rgba(37,211,102,0.08)", color: "#25d366", border: "1px solid rgba(37,211,102,0.2)" }}
+                                  title={`Welcome sent: ${dateStr}`}>
+                                  ✓ {count}× {dateStr}
+                                </span>
+                              );
+                            })()}
                           </div>
                         </div>
                       </td>

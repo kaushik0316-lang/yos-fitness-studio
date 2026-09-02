@@ -115,7 +115,11 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
     `,
   ]);
 
-  const [birthdayWaLogs, waTemplates] = await Promise.all([getWaLogsByType("BIRTHDAY", 30), getWaTemplates()]);
+  const [birthdayWaLogs, welcomeWaLogs, waTemplates] = await Promise.all([
+    getWaLogsByType("BIRTHDAY", 30),
+    getWaLogsByType("WELCOME", 90),
+    getWaTemplates(),
+  ]);
 
   const countsMap: Record<string, number> = {};
   for (const row of statusCounts) countsMap[row.status] = row._count.status;
@@ -137,6 +141,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
           activeStatusFilter={statusParam}
           birthdayMembers={birthdayMembers as any}
           birthdayWaLogs={birthdayWaLogs}
+          welcomeWaLogs={welcomeWaLogs}
           waTemplates={waTemplates}
         />
       </div>
