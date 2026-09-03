@@ -71,13 +71,13 @@ export async function GET(req: NextRequest) {
 }
 
 // ─── POST: apply correction mapping ─────────────────────────────────────────
-// Body: { corrections: [{paymentId: string, name: string, mobile: string}], confirm: boolean }
+// Body: { corrections: [{paymentId, name, mobile, crmMemberId?}], confirm }
 export async function POST(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
   const { corrections, confirm = false } = body as {
-    corrections: Array<{ paymentId: string; name: string; mobile: string }>;
+    corrections: Array<{ paymentId: string; name: string; mobile: string; crmMemberId?: string }>;
     confirm: boolean;
   };
 
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
   const results: Array<{
     paymentId: string;
     name: string;
-    mobile: string;
+    matchMethod: string;
     found: boolean;
     memberId?: string;
     memberFullName?: string;
@@ -97,32 +97,51 @@ export async function POST(req: NextRequest) {
   }> = [];
 
   for (const corr of corrections) {
-    // Try matching by mobile (last 10 digits), then by name
-    const mobile10 = corr.mobile.replace(/\D/g, "").slice(-10);
     let member = null;
+    let matchMethod = "none";
 
-    if (mobile10) {
+    // 1. Match by CRM memberId derived from APPL. NO (most reliable)
+    if (corr.crmMemberId) {
       member = await prisma.member.findFirst({
-        where: { phone: { endsWith: mobile10 } },
+        where: { memberId: corr.crmMemberId },
         select: { id: true, fullName: true, memberId: true },
       });
+      if (member) matchMethod = "memberId";
     }
 
+    // 2. Match by mobile (last 10 digits)
     if (!member) {
-      // Fallback: name match (case-insensitive contains)
-      const nameParts = corr.name.trim().toUpperCase().split(/\s+/).filter(Boolean);
-      if (nameParts.length > 0) {
+      const mobile10 = (corr.mobile || "").replace(/\D/g, "").slice(-10);
+      if (mobile10.length >= 10) {
         member = await prisma.member.findFirst({
-          where: {
-            fullName: { contains: nameParts[0], mode: "insensitive" },
-          },
+          where: { phone: { endsWith: mobile10 } },
           select: { id: true, fullName: true, memberId: true },
         });
+        if (member) matchMethod = "phone";
+      }
+    }
+
+    // 3. Name match: all tokens must appear in fullName
+    if (!member) {
+      const nameParts = corr.name.trim().toUpperCase().split(/[\s.]+/).filter((t) => t.length > 2);
+      if (nameParts.length >= 2) {
+        // Require ALL parts to match
+        const candidates = await prisma.member.findMany({
+          where: {
+            AND: nameParts.map((p) => ({ fullName: { contains: p, mode: "insensitive" as const } })),
+          },
+          select: { id: true, fullName: true, memberId: true },
+          take: 2,
+        });
+        if (candidates.length === 1) {
+          member = candidates[0];
+          matchMethod = "name-multi";
+        }
       }
     }
 
     if (!member) {
-      results.push({ paymentId: corr.paymentId, name: corr.name, mobile: corr.mobile, found: false, error: "No member match" });
+      results.push({ paymentId: corr.paymentId, name: corr.name, matchMethod, found: false, error: "No member match" });
       continue;
     }
 
@@ -132,12 +151,12 @@ export async function POST(req: NextRequest) {
           where: { id: corr.paymentId },
           data: { memberId: member.id },
         });
-        results.push({ paymentId: corr.paymentId, name: corr.name, mobile: corr.mobile, found: true, memberId: member.id, memberFullName: member.fullName, updated: true });
+        results.push({ paymentId: corr.paymentId, name: corr.name, matchMethod, found: true, memberId: member.id, memberFullName: member.fullName, updated: true });
       } catch (e: any) {
-        results.push({ paymentId: corr.paymentId, name: corr.name, mobile: corr.mobile, found: true, memberId: member.id, memberFullName: member.fullName, error: e.message });
+        results.push({ paymentId: corr.paymentId, name: corr.name, matchMethod, found: true, memberId: member.id, memberFullName: member.fullName, error: e.message });
       }
     } else {
-      results.push({ paymentId: corr.paymentId, name: corr.name, mobile: corr.mobile, found: true, memberId: member.id, memberFullName: member.fullName, updated: false });
+      results.push({ paymentId: corr.paymentId, name: corr.name, matchMethod, found: true, memberId: member.id, memberFullName: member.fullName, updated: false });
     }
   }
 
