@@ -70,12 +70,82 @@ export async function GET(req: NextRequest) {
   });
 }
 
-// ─── POST: apply correction mapping ─────────────────────────────────────────
-// Body: { corrections: [{paymentId, name, mobile, crmMemberId?}], confirm }
+// ─── POST: apply correction mapping OR move-to-historical ────────────────────
+// Body A (name matching): { corrections: [...], confirm }
+// Body B (bulk move):     { moveToHistorical: true, confirm }
 export async function POST(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
+
+  // ── Path B: bulk move all wrong payments to a historical placeholder member ─
+  if (body.moveToHistorical) {
+    const confirm: boolean = body.confirm ?? false;
+
+    const HISTORICAL_MEMBER_ID = "YF-HIST-0000";
+    const HISTORICAL_RECEIPTS = new Set([
+      "YOS_FITNESS_STUDIO_2296", "YOS_FITNESS_STUDIO_2333",
+      "YOS_FITNESS_STUDIO_2370", "YOS_FITNESS_STUDIO_2396",
+      "YOS_FITNESS_STUDIO_2435", "YOS_FITNESS_STUDIO_2462",
+      "YOS_FITNESS_STUDIO_2575", "YOS_FITNESS_4373",
+    ]);
+
+    const nithish = await prisma.member.findFirst({
+      where: { memberId: "YF-2663" },
+      select: { id: true },
+    });
+    if (!nithish) return NextResponse.json({ error: "Nithish not found" }, { status: 404 });
+
+    const allPayments = await prisma.payment.findMany({
+      where: { memberId: nithish.id, isVoided: false },
+      select: { id: true, receiptNumber: true, company: true },
+    });
+
+    const wrongPayments = allPayments.filter((p) => {
+      const key = p.receiptNumber ? `${p.company}_${p.receiptNumber}` : null;
+      return !key || !HISTORICAL_RECEIPTS.has(key);
+    });
+
+    if (!confirm) {
+      return NextResponse.json({
+        dryRun: true,
+        totalOnNithish: allPayments.length,
+        wrongPayments: wrongPayments.length,
+        willKeep: allPayments.length - wrongPayments.length,
+        historicalMemberId: HISTORICAL_MEMBER_ID,
+      });
+    }
+
+    // Create or find historical placeholder member
+    let historical = await prisma.member.findFirst({ where: { memberId: HISTORICAL_MEMBER_ID } });
+    if (!historical) {
+      historical = await prisma.member.create({
+        data: {
+          memberId: HISTORICAL_MEMBER_ID,
+          fullName: "HISTORICAL BULK IMPORT",
+          phone: "0000000000",
+          status: "INACTIVE" as any,
+          doNotDisturb: true,
+          notes: "Placeholder for payments imported in bulk that could not be matched to specific members. Do not delete.",
+        },
+      });
+    }
+
+    const wrongIds = wrongPayments.map((p) => p.id);
+    const updated = await prisma.payment.updateMany({
+      where: { id: { in: wrongIds } },
+      data: { memberId: historical.id },
+    });
+
+    return NextResponse.json({
+      dryRun: false,
+      moved: updated.count,
+      historicalMemberId: HISTORICAL_MEMBER_ID,
+      historicalId: historical.id,
+    });
+  }
+
+  // ── Path A: name-based correction mapping ────────────────────────────────
   const { corrections, confirm = false } = body as {
     corrections: Array<{ paymentId: string; name: string; mobile: string; crmMemberIds?: string[] }>;
     confirm: boolean;
