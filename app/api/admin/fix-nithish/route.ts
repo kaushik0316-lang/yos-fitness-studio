@@ -103,12 +103,7 @@ export async function POST(req: NextRequest) {
 
     if (mobile10) {
       member = await prisma.member.findFirst({
-        where: {
-          OR: [
-            { phone: { endsWith: mobile10 } },
-            { alternatePhone: { endsWith: mobile10 } },
-          ],
-        },
+        where: { phone: { endsWith: mobile10 } },
         select: { id: true, fullName: true, memberId: true },
       });
     }
