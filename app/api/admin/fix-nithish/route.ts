@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const { corrections, confirm = false } = body as {
-    corrections: Array<{ paymentId: string; name: string; mobile: string; crmMemberId?: string }>;
+    corrections: Array<{ paymentId: string; name: string; mobile: string; crmMemberIds?: string[] }>;
     confirm: boolean;
   };
 
@@ -101,12 +101,14 @@ export async function POST(req: NextRequest) {
     let matchMethod = "none";
 
     // 1. Match by CRM memberId derived from APPL. NO (most reliable)
-    if (corr.crmMemberId) {
-      member = await prisma.member.findFirst({
-        where: { memberId: corr.crmMemberId },
-        select: { id: true, fullName: true, memberId: true },
-      });
-      if (member) matchMethod = "memberId";
+    if (corr.crmMemberIds && corr.crmMemberIds.length > 0) {
+      for (const tryId of corr.crmMemberIds) {
+        member = await prisma.member.findFirst({
+          where: { memberId: tryId },
+          select: { id: true, fullName: true, memberId: true },
+        });
+        if (member) { matchMethod = "memberId"; break; }
+      }
     }
 
     // 2. Match by mobile (last 10 digits)
@@ -121,11 +123,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Name match: all tokens must appear in fullName
+    // 3a. Name match: ALL multi-char tokens must appear (e.g. "KEERTHI RAJA" → both tokens)
     if (!member) {
-      const nameParts = corr.name.trim().toUpperCase().split(/[\s.]+/).filter((t) => t.length > 2);
+      const nameParts = corr.name.trim().toUpperCase().split(/[\s./]+/).filter((t) => t.length > 2);
       if (nameParts.length >= 2) {
-        // Require ALL parts to match
         const candidates = await prisma.member.findMany({
           where: {
             AND: nameParts.map((p) => ({ fullName: { contains: p, mode: "insensitive" as const } })),
@@ -136,6 +137,23 @@ export async function POST(req: NextRequest) {
         if (candidates.length === 1) {
           member = candidates[0];
           matchMethod = "name-multi";
+        }
+      }
+    }
+
+    // 3b. Single-token name match (e.g. "JEYASEKAR", "N.PERSALIN" → "PERSALIN")
+    if (!member) {
+      const tokens = corr.name.trim().toUpperCase().split(/[\s./]+/).filter((t) => t.length > 3);
+      const longestToken = tokens.sort((a, b) => b.length - a.length)[0];
+      if (longestToken) {
+        const candidates = await prisma.member.findMany({
+          where: { fullName: { contains: longestToken, mode: "insensitive" } },
+          select: { id: true, fullName: true, memberId: true },
+          take: 2,
+        });
+        if (candidates.length === 1) {
+          member = candidates[0];
+          matchMethod = "name-single";
         }
       }
     }
