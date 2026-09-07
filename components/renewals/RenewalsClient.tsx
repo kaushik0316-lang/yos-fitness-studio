@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { RotateCcw, Phone, AlertTriangle, CheckCircle2, MessageCircle, Clock, Search, X, Share2, CheckSquare, Square, ExternalLink } from "lucide-react";
-import { RenewMembershipDialog } from "@/components/members/RenewMembershipDialog";
 import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import { buildRenewalMessage } from "@/lib/utils/renewalTemplate";
@@ -25,16 +25,12 @@ type RenewalMembership = {
   member: MemberInfo;
 };
 
-type Trainer = { id: string; fullName: string };
-
 type WaLog = { id: string; memberId: string; memberName: string; sentByName: string | null; sentAt: Date | null; createdAt: Date };
 
 type Props = {
   expiredMemberships: RenewalMembership[]; expiringToday: RenewalMembership[]; expiringTomorrow: RenewalMembership[];
   expiring3: RenewalMembership[]; expiring7: RenewalMembership[]; expiring30: RenewalMembership[];
   renewedToday: any[]; winBack: RenewalMembership[];
-  packages: any[];
-  trainers?: Trainer[];
   userRole: UserRole; userId: string;
   renewalWaLogs?: WaLog[];
   waTemplates?: Record<string, string>;
@@ -185,7 +181,7 @@ function buildWhatsAppMessage(memberships: RenewalMembership[], tabLabel: string
   return msg.trim();
 }
 
-export function RenewalsClient({ expiredMemberships, expiringToday, expiringTomorrow, expiring3, expiring7, expiring30, renewedToday, winBack, packages, trainers = [], userRole, userId, renewalWaLogs = [], waTemplates }: Props) {
+export function RenewalsClient({ expiredMemberships, expiringToday, expiringTomorrow, expiring3, expiring7, expiring30, renewedToday, winBack, userRole, userId, renewalWaLogs = [], waTemplates }: Props) {
   // Build per-member sent count from page-level logs
   const waSentByMember = renewalWaLogs.reduce<Record<string, { count: number; lastAt: Date | null }>>((acc, log) => {
     if (!log.memberId) return acc;
@@ -196,8 +192,8 @@ export function RenewalsClient({ expiredMemberships, expiringToday, expiringTomo
     return acc;
   }, {});
 
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("expired");
-  const [renewFor, setRenewFor] = useState<{ id: string; memberId: string; fullName: string } | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -462,7 +458,7 @@ export function RenewalsClient({ expiredMemberships, expiringToday, expiringTomo
                             );
                           })()}
                           {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
-                            <button onClick={(e) => { e.stopPropagation(); setRenewFor({ id: ms.member.id, memberId: ms.member.memberId, fullName: ms.member.fullName }); }}
+                            <button onClick={(e) => { e.stopPropagation(); router.push(`/payments/new?memberId=${ms.member.id}&paymentType=RENEWAL`); }}
                               className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-xs font-bold transition-all ml-auto"
                               style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}>
                               <RotateCcw className="h-3 w-3" /> Renew
@@ -528,13 +524,6 @@ export function RenewalsClient({ expiredMemberships, expiringToday, expiringTomo
         />
       )}
 
-      {renewFor && (
-        <RenewMembershipDialog
-          open={!!renewFor} onClose={() => setRenewFor(null)}
-          member={renewFor}
-          packages={packages} trainers={trainers} userId={userId} userRole={userRole}
-        />
-      )}
     </div>
   );
 }

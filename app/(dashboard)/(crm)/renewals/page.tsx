@@ -24,7 +24,7 @@ export default async function RenewalsPage() {
   const past90Days = startOfDay(addDays(today, -90));
   const endOfToday = endOfDay(today);
 
-  const [allMembers, renewedToday, packages, trainers, winBackRaw] = await Promise.all([
+  const [allMembers, renewedToday, winBackRaw] = await Promise.all([
     prisma.member.findMany({
       where: {
         status: { in: [MemberStatus.EXPIRED, MemberStatus.ACTIVE] },
@@ -64,8 +64,6 @@ export default async function RenewalsPage() {
       },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
-    prisma.employee.findMany({ where: { role: "TRAINER", isActive: true }, select: { id: true, fullName: true }, orderBy: { fullName: "asc" } }),
     // Win-back: EXPIRED members whose expiry was 31–90 days ago (haven't renewed yet)
     prisma.member.findMany({
       where: { status: MemberStatus.EXPIRED, expiryDate: { gte: past90Days, lt: past31Days } },
@@ -213,8 +211,6 @@ export default async function RenewalsPage() {
           expiring30={expiring30 as any}
           renewedToday={renewedToday as any}
           winBack={winBack as any}
-          packages={packages}
-          trainers={trainers}
           userRole={session!.user.role}
           userId={session!.user.id}
           renewalWaLogs={renewalWaLogs}
