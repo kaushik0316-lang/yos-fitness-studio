@@ -2,7 +2,8 @@
 // Two business entities: Yos Fitness + Yos Fitness Studio
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
