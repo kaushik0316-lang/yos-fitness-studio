@@ -122,12 +122,16 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
           const exp = calcExpiry(periodInput, p.startDate.slice(0, 10));
           if (exp) setExpiryDate(exp);
         }
-        // For RENEWAL: start from day after expiry
+        // For RENEWAL: start from day after expiry, recalculate expiry from that start + period
         if (paymentType === "RENEWAL") {
           if (p.expiryDate) {
             const nextDay = new Date(p.expiryDate);
             nextDay.setDate(nextDay.getDate() + 1);
-            setStartDate(nextDay.toISOString().slice(0, 10));
+            const newStart = nextDay.toISOString().slice(0, 10);
+            setStartDate(newStart);
+            const period = p.periodLabel || periodInput;
+            const exp = calcExpiry(period, newStart);
+            if (exp) setExpiryDate(exp);
           }
         }
       })
