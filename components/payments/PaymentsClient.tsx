@@ -41,6 +41,7 @@ type Props = {
   userRole: UserRole; userId: string;
   dateFilter?: string; currentSort: string;
   pendingOnly?: boolean; pendingCount?: number; pendingTotal?: number;
+  modeSplit?: { paymentMode: string; _sum: { amount: any } }[];
 };
 
 const MODE_STYLES: Record<string, { bg: string; color: string }> = {
@@ -100,6 +101,7 @@ export function PaymentsClient({
   packages, trainers = [],
   userRole, userId, dateFilter, currentSort,
   pendingOnly = false, pendingCount = 0, pendingTotal = 0,
+  modeSplit = [],
 }: Props) {
   const router   = useRouter();
   const pathname = usePathname();
@@ -198,12 +200,10 @@ export function PaymentsClient({
 
       {/* ── Payment mode breakdown ── */}
       {(() => {
-        const modeMap = payments.filter(p => !p.isVoided).reduce<Record<string, number>>((acc, p) => {
-          const mode = p.paymentMode ?? "CASH";
-          acc[mode] = (acc[mode] ?? 0) + Number(p.amount ?? 0);
-          return acc;
-        }, {});
-        const modes = Object.entries(modeMap).sort((a, b) => b[1] - a[1]);
+        const modes = modeSplit
+          .map(m => [m.paymentMode, Number(m._sum.amount ?? 0)] as [string, number])
+          .filter(([, amt]) => amt > 0)
+          .sort((a, b) => b[1] - a[1]);
         if (modes.length === 0) return null;
         return (
           <div className="rounded-2xl px-4 py-3 flex flex-wrap gap-2 items-center"

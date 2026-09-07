@@ -94,7 +94,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
   }
   selectedMonthLabel ??= today.toLocaleString("en-US", { month: "long", year: "numeric" });
 
-  const [payments, total, totalAmount, todayStats, monthStats, filteredStats, selectedMonthStats, pendingAggregate, packages, trainers] = await Promise.all([
+  const [payments, total, totalAmount, todayStats, monthStats, filteredStats, selectedMonthStats, pendingAggregate, modeSplit, packages, trainers] = await Promise.all([
     prisma.payment.findMany({
       where,
       include: {
@@ -129,6 +129,11 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
       _sum: { amount: true }, _count: true,
     }),
     prisma.payment.aggregate({ where: { pendingAmount: { gt: 0 }, isVoided: false }, _sum: { pendingAmount: true }, _count: true }),
+    prisma.payment.groupBy({
+      by: ["paymentMode"],
+      where: { ...statsWhere, date: { gte: selectedMonthStart, lte: selectedMonthEnd } },
+      _sum: { amount: true },
+    }),
     getCachedPackages(),
     getCachedTrainers(),
   ]);
@@ -156,6 +161,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
           monthStats={monthStats}
           selectedMonthStats={selectedMonthStats as any}
           selectedMonthLabel={selectedMonthLabel}
+          modeSplit={modeSplit as any}
           filteredStats={filteredStats as any}
           filteredLabel={
             searchParams.dateFilter === "today" ? "Today" :
