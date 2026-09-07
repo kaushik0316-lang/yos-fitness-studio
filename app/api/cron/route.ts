@@ -20,6 +20,14 @@ async function expireOverdueMembers() {
         select: { expiryDate: true, package: { select: { name: true } } },
         orderBy: { expiryDate: "desc" },
       },
+      // Also fetch latest non-voided payment with a future expiryDate (fallback for
+      // receipts created via category mode which don't create membership rows)
+      payments: {
+        where: { isVoided: false, expiryDate: { gte: now } },
+        select: { expiryDate: true, categoryLabel: true, package: { select: { name: true } } },
+        orderBy: { expiryDate: "desc" },
+        take: 1,
+      },
     },
   });
 
@@ -27,21 +35,34 @@ async function expireOverdueMembers() {
   const toRestore: { id: string; expiryDate: Date }[] = [];
 
   for (const m of candidates) {
-    // A general (non-add-on) membership still active means the member shouldn't expire
+    // 1. Prefer active membership record (explicit, package-based)
     const activeGeneral = m.memberships.find((ms) => !isAddOnPkg(ms.package?.name));
     if (activeGeneral?.expiryDate) {
       toRestore.push({ id: m.id, expiryDate: activeGeneral.expiryDate });
-    } else {
-      toExpire.push(m.id);
+      continue;
     }
+
+    // 2. Fallback: latest non-voided payment with future expiryDate and a general (non-add-on) category
+    //    Handles category-based receipts (createReceipt / renewMembership without packageId)
+    //    which create a payment row but no membership row.
+    const latestPayment = m.payments[0];
+    const paymentPkgName = latestPayment?.categoryLabel ?? latestPayment?.package?.name;
+    if (latestPayment?.expiryDate && !isAddOnPkg(paymentPkgName)) {
+      toRestore.push({ id: m.id, expiryDate: latestPayment.expiryDate });
+      continue;
+    }
+
+    toExpire.push(m.id);
   }
 
-  // Restore members whose expiryDate was incorrectly overridden by an add-on payment
+  // Sync expiryDate for members that have a valid future membership/payment
+  let synced = 0;
   for (const { id, expiryDate } of toRestore) {
     await prisma.member.update({
       where: { id },
-      data: { expiryDate, renewalDueDate: expiryDate },
+      data: { expiryDate, renewalDueDate: expiryDate, status: MemberStatus.ACTIVE },
     });
+    synced++;
   }
 
   let expired = 0;
@@ -53,7 +74,7 @@ async function expireOverdueMembers() {
     expired = result.count;
   }
 
-  return { expired, restored: toRestore.length };
+  return { expired, synced };
 }
 
 function isAuthorized(req: NextRequest): boolean {

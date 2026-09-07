@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_cache, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
 export type WaTemplateRow = {
@@ -81,22 +82,42 @@ export async function seedWaTemplates() {
   ]);
 }
 
+const _cachedWaTemplates = unstable_cache(
+  async () => {
+    await seedWaTemplates();
+    const rows = await prisma.waTemplate.findMany();
+    return Object.fromEntries(rows.map((r) => [r.key, r.body]));
+  },
+  ["wa-templates"],
+  { revalidate: 300, tags: ["wa-templates"] },
+);
+
 export async function getWaTemplates(): Promise<Record<string, string>> {
-  await seedWaTemplates();
-  const rows = await prisma.waTemplate.findMany();
-  return Object.fromEntries(rows.map((r) => [r.key, r.body]));
+  return _cachedWaTemplates();
 }
 
+const _cachedWaTemplateRows = unstable_cache(
+  async () => {
+    await seedWaTemplates();
+    return prisma.waTemplate.findMany({ orderBy: [{ category: "asc" }, { key: "asc" }] });
+  },
+  ["wa-template-rows"],
+  { revalidate: 300, tags: ["wa-templates"] },
+);
+
 export async function getWaTemplateRows(): Promise<WaTemplateRow[]> {
-  await seedWaTemplates();
-  return prisma.waTemplate.findMany({ orderBy: [{ category: "asc" }, { key: "asc" }] });
+  return _cachedWaTemplateRows();
 }
 
 export async function updateWaTemplate(key: string, body: string): Promise<void> {
   await prisma.waTemplate.update({ where: { key }, data: { body } });
+  revalidateTag("wa-templates");
 }
 
 export async function resetWaTemplate(key: string): Promise<void> {
   const def = DEFAULTS.find((d) => d.key === key);
-  if (def) await prisma.waTemplate.update({ where: { key }, data: { body: def.body } });
+  if (def) {
+    await prisma.waTemplate.update({ where: { key }, data: { body: def.body } });
+    revalidateTag("wa-templates");
+  }
 }

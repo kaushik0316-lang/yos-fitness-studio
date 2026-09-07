@@ -5,6 +5,7 @@ import { MembersClient } from "@/components/members/MembersClient";
 import { MemberStatus } from "@prisma/client";
 import { getWaLogsByType } from "@/lib/actions/whatsapp";
 import { getWaTemplates } from "@/lib/actions/waTemplates";
+import { getCachedPackages, getCachedTrainers } from "@/lib/cached";
 import { subDays } from "date-fns";
 
 function todayMonthDay() {
@@ -63,6 +64,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
 
   const [members, total, packages, employees, statusCounts, birthdayMembers] = await Promise.all([
     prisma.member.findMany({
+
       where,
       include: {
         currentPackage: { select: { name: true } },
@@ -96,11 +98,8 @@ export default async function MembersPage({ searchParams }: { searchParams: Sear
       take: pageSize,
     }),
     prisma.member.count({ where }),
-    prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
-    prisma.employee.findMany({
-      where: { isActive: true, role: { in: ["TRAINER", "MANAGER"] } },
-      select: { id: true, fullName: true, role: true },
-    }),
+    getCachedPackages(),
+    getCachedTrainers(),
     // Count per status (ignoring current filters for global counts)
     prisma.member.groupBy({ by: ["status"], _count: { status: true } }),
     // Birthdays this week (next 7 days by month+day)

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { MemberDetail } from "@/components/members/MemberDetail";
 import { getWaTemplates } from "@/lib/actions/waTemplates";
+import { getCachedPackages, getCachedTrainers } from "@/lib/cached";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
           collectedBy: { select: { name: true } },
         },
         orderBy: { date: "desc" },
+        take: 100,
       },
       attendances: {
         orderBy: { date: "desc" },
@@ -42,11 +44,8 @@ export default async function MemberDetailPage({ params }: { params: { id: strin
   if (!member) notFound();
 
   const [packages, trainers, waLogs, waTemplates] = await Promise.all([
-    prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
-    prisma.employee.findMany({
-      where: { isActive: true, role: { in: ["TRAINER", "MANAGER"] } },
-      select: { id: true, fullName: true, role: true },
-    }),
+    getCachedPackages(),
+    getCachedTrainers(),
     prisma.messageLog.findMany({
       where: { memberId: member.id, isManual: true, channel: "MANUAL" },
       orderBy: { createdAt: "desc" },

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { PaymentsClient } from "@/components/payments/PaymentsClient";
 import { ExportButtons } from "@/components/payments/ExportButtons";
+import { getCachedPackages, getCachedTrainers } from "@/lib/cached";
 import { Company } from "@prisma/client";
 import { startOfDay, endOfDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, parseISO } from "date-fns";
 import Link from "next/link";
@@ -128,8 +129,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Sea
       _sum: { amount: true }, _count: true,
     }),
     prisma.payment.aggregate({ where: { pendingAmount: { gt: 0 }, isVoided: false }, _sum: { pendingAmount: true }, _count: true }),
-    prisma.package.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
-    prisma.employee.findMany({ where: { role: "TRAINER", isActive: true }, select: { id: true, fullName: true }, orderBy: { fullName: "asc" } }),
+    getCachedPackages(),
+    getCachedTrainers(),
   ]);
 
   return (
