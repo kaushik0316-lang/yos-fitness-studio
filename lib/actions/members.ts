@@ -312,13 +312,22 @@ export async function renewMembership(input: {
       });
     }
 
+    // Never overwrite a later expiryDate with an earlier one (e.g. monthly receipt after a 12-month block).
+    let shouldUpdateExpiry = true;
+    if (!isPT) {
+      const currentMember = await tx.member.findUnique({
+        where: { id: input.memberId },
+        select: { expiryDate: true },
+      });
+      shouldUpdateExpiry = !currentMember?.expiryDate || expiryDate > currentMember.expiryDate;
+    }
     await tx.member.update({
       where: { id: input.memberId },
       data: {
         status: MemberStatus.ACTIVE,
         lastPaymentDate: new Date(),
         // PT packages don't own the member's expiry — only General membership does
-        ...(!isPT && {
+        ...(!isPT && shouldUpdateExpiry && {
           ...(input.packageId && { currentPackageId: input.packageId }),
           startDate,
           expiryDate,
