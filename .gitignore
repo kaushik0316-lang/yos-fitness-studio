@@ -61,3 +61,4 @@ scripts/snapshot-backup-*.json
 .env*.local
 .env.vercel.prod
 .env.production.pulled
+.env.prod.live
