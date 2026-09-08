@@ -641,6 +641,16 @@ export function MembersClient({
                       {lastVisit === 0 ? "Today" : lastVisit === 1 ? "Yesterday" : `${lastVisit}d ago`}
                     </span>
                   )}
+                  {welcomeSentMap[m.id] && (() => {
+                    const { lastAt } = welcomeSentMap[m.id];
+                    const dateStr = lastAt ? new Date(lastAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "";
+                    return (
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-medium"
+                        style={{ background: "rgba(37,211,102,0.08)", color: "#25d366", border: "1px solid rgba(37,211,102,0.2)" }}>
+                        ✓ W {dateStr}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
               {/* Actions */}
@@ -675,6 +685,11 @@ export function MembersClient({
                     style={{ background: "rgba(255,255,255,0.06)" }}>
                     <RefreshCw className="h-4 w-4" />
                   </Link>
+                )}
+                {userRole === "ADMIN" && (
+                  <MoveMembershipButton
+                    member={{ id: m.id, name: toTitleCase(m.fullName), memberId: m.memberId, phone: m.phone ?? "" }}
+                  />
                 )}
               </div>
             </div>
