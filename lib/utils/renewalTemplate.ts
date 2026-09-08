@@ -41,9 +41,9 @@ export function buildOnboardingMessage(
     const override = templates["onboarding_general"];
     base = override
       ? applyVars(override, name, null).replace(/\{\{memberId\}\}/g, memberId)
-      : `Hi ${name}! Welcome to Yos Fitness Studio!\n\nWe're so happy to have you with us — this is the start of something great, and we mean that!\n\nYour Member ID is *${memberId}*. Keep it handy for check-ins and anything membership related.\n\nIf you haven't set up your member portal yet, you can do it here:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nIf you ever need anything — guidance, schedule info, or just a push to show up — we're right here for you. See you at the studio!\n\n– Team Yos`;
+      : `Hi ${name}! Welcome to Yos Fitness Studio 🙌\n\nYour Member ID: *${memberId}*\nMember Portal: https://yosfitnessstudio.in/member-portal?setup=1\n\n– Team Yos`;
   } else {
-    base = `Hi ${name}! Welcome to Yos Fitness Studio!\n\nWe're so happy to have you with us — this is the start of something great, and we mean that!\n\nYour Member ID is *${memberId}*. Keep it handy for check-ins and anything membership related.\n\nIf you haven't set up your member portal yet, you can do it here:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nIf you ever need anything — guidance, schedule info, or just a push to show up — we're right here for you. See you at the studio!\n\n– Team Yos`;
+    base = `Hi ${name}! Welcome to Yos Fitness Studio 🙌\n\nYour Member ID: *${memberId}*\nMember Portal: https://yosfitnessstudio.in/member-portal?setup=1\n\n– Team Yos`;
   }
 
   const groupLink = gender === "FEMALE"
@@ -51,7 +51,7 @@ export function buildOnboardingMessage(
     : templates?.["wa_group_male"];
 
   if (groupLink) {
-    base += `\n\nAlso, join our members WhatsApp group to stay updated:\n${groupLink}`;
+    base += `\nMembers Group: ${groupLink}`;
   }
 
   return base;
