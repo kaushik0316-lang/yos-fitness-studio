@@ -36,14 +36,16 @@ export function buildOnboardingMessage(
 ): string {
   const name = toTitleCase(fullName);
 
+  const fallback = `Hi ${name}! Welcome to Yos Fitness Studio!\n\nWe're so happy to have you with us — this is the start of something great!\n\nYour Member ID is *${memberId}*. Keep it handy for check-ins and anything membership related.\n\nSet up your member portal to track attendance and view your membership details:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nJoin our members WhatsApp group to stay updated on schedules, events, and more:\n{{groupLink}}\n\nIf you ever need anything, we're right here for you. See you at the studio!\n\n– Team Yos`;
+
   let base: string;
   if (templates) {
     const override = templates["onboarding_general"];
     base = override
       ? applyVars(override, name, null).replace(/\{\{memberId\}\}/g, memberId)
-      : `Hi ${name}! Welcome to Yos Fitness Studio!\n\nWe're so happy to have you with us — this is the start of something great!\n\nYour Member ID is *${memberId}*. Keep it handy for check-ins and anything membership related.\n\nSet up your member portal to track attendance and view your membership details:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nIf you ever need anything, we're right here for you. See you at the studio!\n\n– Team Yos`;
+      : fallback;
   } else {
-    base = `Hi ${name}! Welcome to Yos Fitness Studio!\n\nWe're so happy to have you with us — this is the start of something great!\n\nYour Member ID is *${memberId}*. Keep it handy for check-ins and anything membership related.\n\nSet up your member portal to track attendance and view your membership details:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nIf you ever need anything, we're right here for you. See you at the studio!\n\n– Team Yos`;
+    base = fallback;
   }
 
   const groupLink = gender === "FEMALE"
@@ -51,7 +53,9 @@ export function buildOnboardingMessage(
     : templates?.["wa_group_male"];
 
   if (groupLink) {
-    base += `\n\nJoin our members WhatsApp group to stay updated on schedules, events, and more:\n${groupLink}`;
+    base = base.replace(/\{\{groupLink\}\}/g, groupLink);
+  } else {
+    base = base.replace(/\n\nJoin our members WhatsApp group[^\n]*\n\{\{groupLink\}\}/g, "");
   }
 
   return base;

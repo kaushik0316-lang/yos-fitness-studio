@@ -7,7 +7,7 @@ export async function POST() {
   if (!session?.user || session.user.role !== "ADMIN")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const newBody = "Hi {{name}}! Welcome to Yos Fitness Studio!\n\nWe're so happy to have you with us — this is the start of something great!\n\nYour Member ID is *{{memberId}}*. Keep it handy for check-ins and anything membership related.\n\nSet up your member portal to track attendance and view your membership details:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nIf you ever need anything, we're right here for you. See you at the studio!\n\n– Team Yos";
+  const newBody = "Hi {{name}}! Welcome to Yos Fitness Studio!\n\nWe're so happy to have you with us — this is the start of something great!\n\nYour Member ID is *{{memberId}}*. Keep it handy for check-ins and anything membership related.\n\nSet up your member portal to track attendance and view your membership details:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nJoin our members WhatsApp group to stay updated on schedules, events, and more:\n{{groupLink}}\n\nIf you ever need anything, we're right here for you. See you at the studio!\n\n– Team Yos";
 
   const updated = await prisma.waTemplate.update({
     where: { key: "onboarding_general" },

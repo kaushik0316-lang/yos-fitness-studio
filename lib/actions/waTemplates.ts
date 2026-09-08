@@ -61,7 +61,7 @@ const DEFAULTS: Omit<WaTemplateRow, "id" | "updatedAt">[] = [
 
   // ── Onboarding ───────────────────────────────────────────────────────────────
   { key: "onboarding_general", label: "Welcome Message", category: "onboarding",
-    body: "Hi {{name}}! Welcome to Yos Fitness Studio!\n\nWe're so happy to have you with us — this is the start of something great!\n\nYour Member ID is *{{memberId}}*. Keep it handy for check-ins and anything membership related.\n\nSet up your member portal to track attendance and view your membership details:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nIf you ever need anything, we're right here for you. See you at the studio!\n\n– Team Yos" },
+    body: "Hi {{name}}! Welcome to Yos Fitness Studio!\n\nWe're so happy to have you with us — this is the start of something great!\n\nYour Member ID is *{{memberId}}*. Keep it handy for check-ins and anything membership related.\n\nSet up your member portal to track attendance and view your membership details:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nJoin our members WhatsApp group to stay updated on schedules, events, and more:\n{{groupLink}}\n\nIf you ever need anything, we're right here for you. See you at the studio!\n\n– Team Yos" },
 
   // ── WhatsApp Group Links ──────────────────────────────────────────────────────
   { key: "wa_group_male",   label: "WhatsApp Group Link — Male",   category: "onboarding", body: "" },
