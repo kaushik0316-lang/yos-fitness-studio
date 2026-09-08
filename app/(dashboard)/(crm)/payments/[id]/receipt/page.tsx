@@ -138,7 +138,7 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
   return (
     <>
       {/* ── Toolbar ── */}
-      <div className="no-print flex items-center gap-3 px-6 py-4 bg-white border-b border-gray-100 shadow-sm flex-shrink-0">
+      <div className="no-print flex items-center gap-2 px-3 sm:px-6 py-3 sm:py-4 bg-white border-b border-gray-100 shadow-sm flex-shrink-0 overflow-x-auto">
         <Link
           href={searchParams.from === "member" ? `/members/${payment.member.id}` : "/payments"}
           className="flex items-center gap-2 px-4 py-2 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors"
@@ -207,7 +207,7 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
           memberName={payment.member.fullName}
           receiptNo={payment.receiptNumber}
         />
-        <span className="text-xs text-gray-400 ml-auto font-mono">
+        <span className="text-xs text-gray-400 ml-auto font-mono shrink-0">
           Receipt #{payment.receiptNumber ?? "—"} · {companyShort}
           {payment.isVoided && (
             <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded-lg border border-red-300 align-middle">
