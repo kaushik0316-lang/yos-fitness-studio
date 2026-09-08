@@ -1231,7 +1231,7 @@ function FixDatesPanel() {
       </div>
       {error && <ErrorBanner message={error} />}
       {result && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <StatPill icon={CheckCircle}   label="Payments fixed" value={result.paymentsFixed} color="text-green-600 bg-green-50" />
           <StatPill icon={CheckCircle}   label="Members fixed"  value={result.membersFixed}  color="text-blue-600 bg-blue-50" />
           <StatPill icon={AlertTriangle} label="Errors"         value={result.errors}         color="text-red-600 bg-red-50" />

@@ -141,7 +141,7 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
     <div className="space-y-5 pb-16">
 
       {/* ── Stats row ── */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[{ key: "ALL", label: "All" }, ...STATUSES.map((s) => ({ key: s, label: STATUS_CONFIG[s].label }))].map(({ key, label }) => {
           const cfg = key === "ALL" ? null : STATUS_CONFIG[key];
           const isActive = statusFilter === key;

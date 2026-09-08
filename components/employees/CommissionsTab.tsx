@@ -173,7 +173,7 @@ export function CommissionsTab({
               style={{ background: "#0f0f0f", border: "1px solid rgba(255,255,255,0.08)" }} />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className={labelCls}>Package Amount (₹) *</label>
               <input type="number" value={form.totalAmount} onChange={e => setForm(f => ({ ...f, totalAmount: e.target.value }))}

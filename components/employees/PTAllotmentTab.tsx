@@ -76,7 +76,7 @@ export function PTAllotmentTab({ entries }: { entries: PTAllotmentEntry[] }) {
   return (
     <div className="space-y-4">
       {/* Summary row */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { label: "Total Trainers", value: String(trainers.length), color: "#f97316" },
           { label: "Total PT Revenue", value: formatCurrency(grandRevenue), color: "#a3a3a3" },

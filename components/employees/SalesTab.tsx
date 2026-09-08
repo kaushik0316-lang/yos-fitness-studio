@@ -207,7 +207,7 @@ export function SalesTab({ allEmployees, initMonth, initYear }: {
       ) : (
         <>
           {/* Summary stat cards */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
               { icon: IndianRupee, label: "Revenue", value: formatCurrency(grandTotal), color: "#f97316" },
               { icon: ShoppingBag,  label: "Sales",  value: String(new Set(allEntries.map(e => e.paymentId)).size), color: "#a78bfa" },
