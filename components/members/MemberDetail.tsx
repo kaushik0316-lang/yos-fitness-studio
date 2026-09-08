@@ -127,7 +127,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId, waL
             <WaConfirmButton
               memberId={member.id}
               phone={member.phone}
-              message={buildOnboardingMessage(member.fullName, member.memberId, currentPkgName, waTemplates)}
+              message={buildOnboardingMessage(member.fullName, member.memberId, currentPkgName, waTemplates, member.gender)}
               waType="WELCOME"
               label="Send Welcome"
               className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-colors shadow-sm"

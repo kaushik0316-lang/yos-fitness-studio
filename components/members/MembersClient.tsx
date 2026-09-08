@@ -109,7 +109,7 @@ function BulkWelcomeList({ members, waTemplates }: { members: Member[]; waTempla
   const [sent, setSent] = useState<Set<string>>(new Set());
 
   async function handleSend(m: Member) {
-    const msg = buildOnboardingMessage(m.fullName, m.memberId, null, waTemplates);
+    const msg = buildOnboardingMessage(m.fullName, m.memberId, null, waTemplates, m.gender);
     const digits = (m.whatsapp ?? m.phone).replace(/\D/g, "").slice(-10);
     window.open(`https://wa.me/91${digits}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
     try {
@@ -652,7 +652,7 @@ export function MembersClient({
                 </Link>
                 {(userRole === "ADMIN" || userRole === "FRONT_DESK") && m.phone && (() => {
                   const pkgName = label ?? m.currentPackage?.name ?? m.memberships?.[0]?.package?.name ?? null;
-                  const msg = buildOnboardingMessage(m.fullName, m.memberId, pkgName, waTemplates);
+                  const msg = buildOnboardingMessage(m.fullName, m.memberId, pkgName, waTemplates, m.gender);
                   return (
                     <WaConfirmButton
                       memberId={m.id} phone={m.whatsapp ?? m.phone} message={msg}
@@ -864,7 +864,7 @@ export function MembersClient({
                           </Link>
                           {(userRole === "ADMIN" || userRole === "FRONT_DESK") && m.phone && (() => {
                             const pkgName = cleanPackageLabel(m.payments?.[0]?.categoryLabel) ?? cleanPackageLabel(m.memberships?.[0]?.package?.name) ?? cleanPackageLabel(m.currentPackage?.name);
-                            const msg = buildOnboardingMessage(m.fullName, m.memberId, pkgName, waTemplates);
+                            const msg = buildOnboardingMessage(m.fullName, m.memberId, pkgName, waTemplates, m.gender);
                             return (
                               <WaConfirmButton
                                 memberId={m.id} phone={m.whatsapp ?? m.phone} message={msg}

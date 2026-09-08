@@ -32,16 +32,29 @@ export function buildOnboardingMessage(
   memberId: string,
   pkgName: string | null | undefined,
   templates?: Record<string, string>,
+  gender?: string | null,
 ): string {
   const name = toTitleCase(fullName);
 
+  let base: string;
   if (templates) {
     const override = templates["onboarding_general"];
-    if (override) return applyVars(override, name, null).replace(/\{\{memberId\}\}/g, memberId);
+    base = override
+      ? applyVars(override, name, null).replace(/\{\{memberId\}\}/g, memberId)
+      : `Hi ${name}! Welcome to Yos Fitness Studio!\n\nWe're so happy to have you with us — this is the start of something great, and we mean that!\n\nYour Member ID is *${memberId}*. Keep it handy for check-ins and anything membership related.\n\nIf you haven't set up your member portal yet, you can do it here:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nIf you ever need anything — guidance, schedule info, or just a push to show up — we're right here for you. See you at the studio!\n\n– Team Yos`;
+  } else {
+    base = `Hi ${name}! Welcome to Yos Fitness Studio!\n\nWe're so happy to have you with us — this is the start of something great, and we mean that!\n\nYour Member ID is *${memberId}*. Keep it handy for check-ins and anything membership related.\n\nIf you haven't set up your member portal yet, you can do it here:\nhttps://yosfitnessstudio.in/member-portal?setup=1\n\nIf you ever need anything — guidance, schedule info, or just a push to show up — we're right here for you. See you at the studio!\n\n– Team Yos`;
   }
 
-  const portal = `https://yosfitnessstudio.in/member-portal?setup=1`;
-  return `Hi ${name}! Welcome to Yos Fitness Studio!\n\nWe're so happy to have you with us — this is the start of something great, and we mean that!\n\nYour Member ID is *${memberId}*. Keep it handy for check-ins and anything membership related.\n\nIf you haven't set up your member portal yet, you can do it here:\n${portal}\n\nIf you ever need anything — guidance, schedule info, or just a push to show up — we're right here for you. See you at the studio!\n\n– Team Yos`;
+  const groupLink = gender === "FEMALE"
+    ? templates?.["wa_group_female"]
+    : templates?.["wa_group_male"];
+
+  if (groupLink) {
+    base += `\n\nAlso, join our members WhatsApp group to stay updated:\n${groupLink}`;
+  }
+
+  return base;
 }
 
 export function buildRenewalMessage(
