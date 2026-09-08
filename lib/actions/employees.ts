@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { EmployeeRole, SalaryType } from "@prisma/client";
@@ -60,6 +60,8 @@ export async function createEmployee(input: z.infer<typeof employeeSchema>) {
   });
 
   revalidatePath("/employee-attendance");
+  revalidatePath("/payroll");
+  revalidateTag("trainers");
   return { success: true, employeeId: employee.employeeId };
 }
 
@@ -110,6 +112,8 @@ export async function updateEmployee(input: z.infer<typeof updateSchema>) {
   });
 
   revalidatePath("/employee-attendance");
+  revalidatePath("/payroll");
+  revalidateTag("trainers");
   return { success: true };
 }
 
@@ -119,6 +123,8 @@ export async function setEmployeeActive(id: string, isActive: boolean) {
 
   await prisma.employee.update({ where: { id }, data: { isActive } });
   revalidatePath("/employee-attendance");
+  revalidatePath("/payroll");
+  revalidateTag("trainers");
   return { success: true };
 }
 

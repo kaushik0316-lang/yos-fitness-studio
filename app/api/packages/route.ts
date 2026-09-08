@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
 const packageSchema = z.object({
@@ -31,6 +32,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  revalidateTag("packages");
   return NextResponse.json(pkg, { status: 201 });
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { revalidateTag } from "next/cache";
 import { z } from "zod";
 
 const patchSchema = z.object({
@@ -26,5 +27,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     data,
   });
 
+  revalidateTag("packages");
   return NextResponse.json(pkg);
 }

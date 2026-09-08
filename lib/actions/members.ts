@@ -202,6 +202,7 @@ export async function updateMember(id: string, input: Partial<z.infer<typeof cre
 
   revalidatePath(`/members/${id}`);
   revalidatePath("/members");
+  revalidatePath("/renewals");
 
   return { success: true };
 }
