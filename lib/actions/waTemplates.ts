@@ -25,11 +25,11 @@ const DEFAULTS: Omit<WaTemplateRow, "id" | "updatedAt">[] = [
 
   // ── Renewal: Semi-Private Coaching ──────────────────────────────────────────
   { key: "renewal_semi_expired",  label: "Semi-Private — Already Expired",  category: "renewal",
-    body: "Hi {{name}}! Your Semi-Private Coaching membership expired on *{{date}}*. We'd love to have you back — do renew at the earliest!\n– Team Yos" },
+    body: "Hi {{name}}!\n\nYour Semi-Private Coaching membership expired on *{{date}}*. We'd love to have you back — do renew at the earliest!\n\n– Team Yos" },
   { key: "renewal_semi_today",    label: "Semi-Private — Expires Today",    category: "renewal",
-    body: "Hi {{name}}! Your Semi-Private Coaching membership expires *today*. Do renew at the earliest — we enjoy having you here!\n– Team Yos" },
+    body: "Hi {{name}}!\n\nYour Semi-Private Coaching membership expires *today*. Do renew at the earliest — we enjoy having you here!\n\n– Team Yos" },
   { key: "renewal_semi_upcoming", label: "Semi-Private — Expiring Soon",    category: "renewal",
-    body: "Hi {{name}}! Just a heads-up that your Semi-Private Coaching membership is expiring on *{{date}}*. Do renew at the earliest — we enjoy having you here!\n– Team Yos" },
+    body: "Hi {{name}}!\n\nJust a heads-up that your Semi-Private Coaching membership is expiring on *{{date}}*. Do renew at the earliest — we enjoy having you here!\n\n– Team Yos" },
 
   // ── Renewal: HIIT Classes ────────────────────────────────────────────────────
   { key: "renewal_hiit_expired",  label: "HIIT — Already Expired",  category: "renewal",
