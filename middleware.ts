@@ -52,6 +52,7 @@ const PROTECTED_PREFIXES = [
   "/reports",
   "/settings",
   "/staff-tools",
+  "/announcements",
 ];
 
 export default auth((req) => {
