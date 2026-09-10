@@ -197,7 +197,10 @@ export default function MyMembershipPage() {
       <div className="min-h-screen flex flex-col" style={{ background: "#0a0a0a", fontFamily: "'Inter', system-ui, sans-serif" }}>
 
         {/* ── Header ── */}
-        <div className="px-4 pt-8 pb-3 flex flex-col items-center">
+        <div className="px-4 pt-8 pb-3 flex flex-col items-center relative">
+          <Link href="/member-portal" className="absolute left-0 top-6 flex items-center gap-1 text-xs text-gray-500 hover:text-white transition-colors px-2 py-1.5 rounded-lg" style={{ background: "#161616" }}>
+            ← Back
+          </Link>
           <Image src="/Logo.png" alt="Yos" width={96} height={96} className="h-9 w-auto object-contain mb-3" />
           <h1 className="text-lg font-bold text-white tracking-tight">{data.member.fullName}</h1>
           <p className="text-gray-600 text-xs mt-0.5">
