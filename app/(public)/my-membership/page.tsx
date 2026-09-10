@@ -63,9 +63,9 @@ function fmtDuration(mins: number): string {
 
 function getMotivation(rate: number, streak: number): { msg: string; emoji: string; color: string } {
   if (streak >= 7)  return { msg: `${streak} days straight — unstoppable!`,      emoji: "🏆", color: "#f59e0b" };
-  if (streak >= 5)  return { msg: `${streak} days in a row! Keep going!`,          emoji: "🔥", color: "#f97316" };
-  if (rate >= 80)   return { msg: "You're crushing it this month!",                emoji: "💪", color: "#f97316" };
-  if (rate >= 60)   return { msg: "Great work! Keep the momentum going.",           emoji: "🔥", color: "#f97316" };
+  if (streak >= 5)  return { msg: `${streak} days in a row! Keep going!`,          emoji: "🔥", color: "#22c55e" };
+  if (rate >= 80)   return { msg: "You're crushing it this month!",                emoji: "💪", color: "#22c55e" };
+  if (rate >= 60)   return { msg: "Great work! Keep the momentum going.",           emoji: "🔥", color: "#22c55e" };
   if (rate >= 40)   return { msg: "Good progress. Push a little harder!",           emoji: "⚡", color: "#fbbf24" };
   if (rate >= 20)   return { msg: "Time to pick up the pace!",                      emoji: "🎯", color: "#fbbf24" };
   return              { msg: "Let's get back on track. You got this!",              emoji: "💡", color: "#6b7280" };
@@ -73,7 +73,7 @@ function getMotivation(rate: number, streak: number): { msg: string; emoji: stri
 
 function Spinner() {
   return (
-    <svg className="animate-spin h-5 w-5" style={{ color: "#f97316" }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <svg className="animate-spin h-5 w-5" style={{ color: "#22c55e" }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
     </svg>
@@ -209,9 +209,9 @@ export default function MyMembershipPage() {
           {expiryDays !== null && (
             <div className="mt-2 px-3 py-1 rounded-full text-[11px] font-bold"
               style={{
-                background: expiryDays < 10 ? "rgba(239,68,68,0.12)" : expiryDays < 30 ? "rgba(249,115,22,0.12)" : "rgba(34,197,94,0.1)",
-                color:      expiryDays < 10 ? "#ef4444"               : expiryDays < 30 ? "#f97316"               : "#4ade80",
-                border: `1px solid ${expiryDays < 10 ? "rgba(239,68,68,0.3)" : expiryDays < 30 ? "rgba(249,115,22,0.25)" : "rgba(74,222,128,0.2)"}`,
+                background: expiryDays < 10 ? "rgba(239,68,68,0.12)" : expiryDays < 30 ? "rgba(34,197,94,0.12)" : "rgba(34,197,94,0.1)",
+                color:      expiryDays < 10 ? "#ef4444"               : expiryDays < 30 ? "#22c55e"               : "#4ade80",
+                border: `1px solid ${expiryDays < 10 ? "rgba(239,68,68,0.3)" : expiryDays < 30 ? "rgba(34,197,94,0.25)" : "rgba(74,222,128,0.2)"}`,
               }}>
               {expiryDays < 0 ? "✗ Expired" : expiryDays === 0 ? "⚠ Expires today" : expiryDays < 30 ? `⚠ ${expiryDays}d left` : `✓ ${expiryDays} days left`}
             </div>
@@ -230,7 +230,7 @@ export default function MyMembershipPage() {
         {/* ── Streak hero (shown only when streak ≥ 2) ── */}
         {streak >= 2 && (
           <div className="mx-4 mb-3 px-5 py-4 rounded-2xl flex items-center gap-4"
-            style={{ background: "linear-gradient(135deg, rgba(245,158,11,0.18), rgba(249,115,22,0.12))", border: "1px solid rgba(245,158,11,0.3)" }}>
+            style={{ background: "linear-gradient(135deg, rgba(245,158,11,0.18), rgba(34,197,94,0.12))", border: "1px solid rgba(245,158,11,0.3)" }}>
             <span className="text-4xl">🔥</span>
             <div>
               <p className="text-2xl font-black leading-none" style={{ color: "#f59e0b" }}>{streak} Day Streak</p>
@@ -244,9 +244,9 @@ export default function MyMembershipPage() {
         {/* ── Stats row: 4 compact chips ── */}
         <div className="px-4 pb-3 grid grid-cols-4 gap-2">
           {[
-            { val: String(data.daysAttended), label: "Days In",  bg: "rgba(249,115,22,0.1)",  border: "rgba(249,115,22,0.2)",  color: "#f97316" },
+            { val: String(data.daysAttended), label: "Days In",  bg: "rgba(34,197,94,0.1)",  border: "rgba(34,197,94,0.2)",  color: "#22c55e" },
             { val: streak > 0 ? `${streak}🔥` : `${totalDays - data.daysAttended}`, label: streak > 0 ? "Streak" : "Missed", bg: streak > 0 ? "rgba(245,158,11,0.1)" : "rgba(255,255,255,0.04)", border: streak > 0 ? "rgba(245,158,11,0.2)" : "rgba(255,255,255,0.06)", color: streak > 0 ? "#f59e0b" : "#4b5563" },
-            { val: `${rate}%`,              label: "Rate",     bg: rate >= 50 ? "rgba(249,115,22,0.1)" : "rgba(239,68,68,0.08)", border: rate >= 50 ? "rgba(249,115,22,0.2)" : "rgba(239,68,68,0.2)", color: rate >= 50 ? "#f97316" : "#ef4444" },
+            { val: `${rate}%`,              label: "Rate",     bg: rate >= 50 ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.08)", border: rate >= 50 ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)", color: rate >= 50 ? "#22c55e" : "#ef4444" },
             { val: avgMins ? fmtDuration(avgMins) : "–", label: "Avg Time", bg: "rgba(139,92,246,0.1)", border: "rgba(139,92,246,0.2)", color: "#a78bfa" },
           ].map(({ val, label, bg, border, color }) => (
             <div key={label} className="flex flex-col items-center py-3 rounded-xl" style={{ background: bg, border: `1px solid ${border}` }}>
@@ -261,7 +261,7 @@ export default function MyMembershipPage() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-gray-400">Monthly Goal</span>
             <div className="flex items-center gap-2">
-              <span className="text-lg font-black" style={{ color: goalPct >= 100 ? "#f97316" : "#f97316", opacity: goalPct >= 100 ? 1 : 0.7 }}>
+              <span className="text-lg font-black" style={{ color: goalPct >= 100 ? "#22c55e" : "#22c55e", opacity: goalPct >= 100 ? 1 : 0.7 }}>
                 {goalPct}%
               </span>
               <span className="text-[10px] text-gray-600 font-semibold">{data.daysAttended}/{MONTHLY_GOAL} days</span>
@@ -272,8 +272,8 @@ export default function MyMembershipPage() {
               style={{
                 width: `${goalPct}%`,
                 background: goalPct >= 100
-                  ? "linear-gradient(90deg, #f97316, #fbbf24, #f97316)"
-                  : "linear-gradient(90deg, #f97316, #fb923c)",
+                  ? "linear-gradient(90deg, #22c55e, #fbbf24, #22c55e)"
+                  : "linear-gradient(90deg, #22c55e, #4ade80)",
                 transition: "width 0.6s ease",
                 backgroundSize: "200% 100%",
               }}>
@@ -285,7 +285,7 @@ export default function MyMembershipPage() {
               )}
             </div>
           </div>
-          <p className="text-[10px] mt-1.5 font-semibold" style={{ color: goalPct >= 100 ? "#f97316" : "#4b5563" }}>
+          <p className="text-[10px] mt-1.5 font-semibold" style={{ color: goalPct >= 100 ? "#22c55e" : "#4b5563" }}>
             {goalPct >= 100
               ? "🎉 Goal achieved!"
               : isCurrentMonth
@@ -325,7 +325,7 @@ export default function MyMembershipPage() {
                 {/* Skyscraper gradient — bright amber top, deep red base */}
                 <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%"   stopColor="#fde68a" />
-                  <stop offset="25%"  stopColor="#f97316" />
+                  <stop offset="25%"  stopColor="#22c55e" />
                   <stop offset="75%"  stopColor="#c2410c" />
                   <stop offset="100%" stopColor="#431407" />
                 </linearGradient>
@@ -333,7 +333,7 @@ export default function MyMembershipPage() {
                 <linearGradient id="skyGradToday" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%"   stopColor="#ffffff" />
                   <stop offset="15%"  stopColor="#fde68a" />
-                  <stop offset="50%"  stopColor="#f97316" />
+                  <stop offset="50%"  stopColor="#22c55e" />
                   <stop offset="100%" stopColor="#9a3412" />
                 </linearGradient>
                 {/* Glow filter */}
@@ -421,7 +421,7 @@ export default function MyMembershipPage() {
                     {isToday && (
                       <rect x={x - 2} y={attended ? y - 2 : FLOOR_Y - SKY_BAR_H}
                         width={SKY_BAR_W + 4} height={attended ? barH + 4 : SKY_BAR_H}
-                        rx={6} fill="none" stroke="#f97316" strokeWidth="1.5" opacity={0.5}
+                        rx={6} fill="none" stroke="#22c55e" strokeWidth="1.5" opacity={0.5}
                         strokeDasharray="4 3"
                       />
                     )}
@@ -438,7 +438,7 @@ export default function MyMembershipPage() {
                     {/* Day number below floor */}
                     <text x={x + SKY_BAR_W / 2} y={SKY_H - 5} textAnchor="middle"
                       fontSize="7.5" fontWeight={isToday ? "800" : "500"}
-                      fill={isToday ? "#f97316" : attended ? "#9ca3af" : isFuture ? "#2a2a2a" : "#4b5563"}>
+                      fill={isToday ? "#22c55e" : attended ? "#9ca3af" : isFuture ? "#2a2a2a" : "#4b5563"}>
                       {day}
                     </text>
                   </g>
@@ -487,7 +487,7 @@ export default function MyMembershipPage() {
                       border: isSelected
                         ? attended ? "2px solid #22c55e" : "2px solid #374151"
                         : isToday
-                        ? "2px solid rgba(249,115,22,0.5)"
+                        ? "2px solid rgba(34,197,94,0.5)"
                         : attended
                         ? "2px solid rgba(34,197,94,0.4)"
                         : "2px solid transparent",
@@ -498,7 +498,7 @@ export default function MyMembershipPage() {
                       fontWeight: attended || isToday ? 800 : 500,
                       color: isSelected && attended ? "#fff"
                         : attended ? "#4ade80"
-                        : isToday ? "rgba(249,115,22,0.7)"
+                        : isToday ? "rgba(34,197,94,0.7)"
                         : isFuture ? "#1e1e1e"
                         : "#2a2a2a",
                     }}>
@@ -556,7 +556,7 @@ export default function MyMembershipPage() {
               <span className="text-[9px] font-semibold text-gray-600">Attended</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full" style={{ border: "1.5px solid rgba(249,115,22,0.5)" }} />
+              <div className="w-3 h-3 rounded-full" style={{ border: "1.5px solid rgba(34,197,94,0.5)" }} />
               <span className="text-[9px] font-semibold text-gray-600">Today</span>
             </div>
             <span className="text-[9px] text-gray-600 ml-auto">Tap a date for details</span>
@@ -573,9 +573,9 @@ export default function MyMembershipPage() {
         {/* ── Last visit nudge ── */}
         {isCurrentMonth && daysSinceLast !== null && daysSinceLast >= 3 && (
           <div className="mx-4 mb-3 px-4 py-3 rounded-xl flex items-center gap-3"
-            style={{ background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.18)" }}>
+            style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.18)" }}>
             <span className="text-lg flex-shrink-0">📅</span>
-            <p className="text-xs font-semibold leading-snug" style={{ color: "#f97316" }}>
+            <p className="text-xs font-semibold leading-snug" style={{ color: "#22c55e" }}>
               {daysSinceLast >= 10 ? `${daysSinceLast} days since your last visit. Let's get back!`
                : `${daysSinceLast} days since your last visit. Come back soon!`}
             </p>
@@ -589,7 +589,7 @@ export default function MyMembershipPage() {
           style={{ background: "linear-gradient(to top, #0a0a0a 80%, transparent)" }}>
           <Link href="/member-checkin"
             className="block w-full py-3.5 rounded-xl font-bold text-white text-base text-center"
-            style={{ background: "linear-gradient(135deg, #f97316, #ea580c)", boxShadow: "0 4px 20px rgba(249,115,22,0.35)" }}>
+            style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)", boxShadow: "0 4px 20px rgba(34,197,94,0.35)" }}>
             Check In Today
           </Link>
           <button onClick={handleSignOut}
@@ -611,7 +611,7 @@ export default function MyMembershipPage() {
         <p className="text-gray-300 text-base mb-10 text-center">{errorMsg}</p>
         <button onClick={() => { setPhase("input"); setDigits(["","","",""]); }}
           className="w-full max-w-xs py-4 rounded-xl font-semibold text-white"
-          style={{ background: "#f97316" }}>
+          style={{ background: "#22c55e" }}>
           Try Again
         </button>
       </div>
@@ -632,14 +632,14 @@ export default function MyMembershipPage() {
               onChange={(e) => handleChange(i, e)} onKeyDown={(e) => handleKeyDown(i, e)}
               disabled={phase === "loading"} autoFocus={i === 0} onFocus={(e) => e.target.select()}
               className="h-14 w-14 text-center text-2xl font-bold rounded-xl border-2 outline-none text-white transition-colors"
-              style={{ background: "#141414", borderColor: digit ? "#f97316" : "#262626", caretColor: "#f97316" }}
+              style={{ background: "#141414", borderColor: digit ? "#22c55e" : "#262626", caretColor: "#22c55e" }}
             />
           ))}
         </div>
         <button onClick={() => fetch_(digits.join(""), viewMonth, viewYear)}
           disabled={!pinComplete || phase === "loading"}
           className="w-full py-4 rounded-xl font-semibold text-white text-base flex items-center justify-center gap-3 disabled:opacity-40"
-          style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}>
+          style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)" }}>
           {phase === "loading" ? <><Spinner /> Loading…</> : "View My Attendance"}
         </button>
         <Link href="/member-checkin" className="mt-6 text-sm text-gray-600 hover:text-gray-400 transition-colors">
