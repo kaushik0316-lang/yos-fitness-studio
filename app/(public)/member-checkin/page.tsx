@@ -356,7 +356,7 @@ export default function MemberCheckinPage() {
                       {label}
                     </p>
                     <p className="text-[11px] mt-0.5" style={{ color: counts ? "#92400e" : "#4338ca" }}>
-                      {counts ? "50+ min session ✓" : "Great session today"}
+                      Great session today
                     </p>
                   </div>
                 </div>
