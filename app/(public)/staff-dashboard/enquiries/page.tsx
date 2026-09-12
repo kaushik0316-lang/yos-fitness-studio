@@ -668,10 +668,29 @@ export default function StaffEnquiriesPage() {
 
                   {/* Linked member */}
                   {e.member && (
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
-                      <UserCheck className="h-3 w-3" />
-                      Joined as {toTitleCase(e.member.fullName)}
-                      {e.convertedAt && <span className="text-gray-600 font-normal">· {formatDate(e.convertedAt)}</span>}
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400 flex-1 min-w-0">
+                        <UserCheck className="h-3 w-3 flex-shrink-0" />
+                        Joined as {toTitleCase(e.member.fullName)}
+                        {e.convertedAt && <span className="text-gray-600 font-normal">· {formatDate(e.convertedAt)}</span>}
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (!pin) return;
+                          const res = await fetch("/api/staff/enquiries", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ pin, action: "unconvert", enquiryId: e.id }),
+                          });
+                          if (res.ok) {
+                            const { enquiry: updated } = await res.json();
+                            setEnquiries((prev) => prev.map((x) => x.id === updated.id ? updated : x));
+                          }
+                        }}
+                        className="text-[10px] font-bold px-2 py-1 rounded-lg flex-shrink-0"
+                        style={{ background: "rgba(239,68,68,0.1)", color: "#f87171" }}>
+                        Undo
+                      </button>
                     </div>
                   )}
 

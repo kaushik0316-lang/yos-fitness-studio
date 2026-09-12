@@ -91,6 +91,35 @@ export async function PATCH(req: NextRequest) {
   const employee = await verifyPin(body.pin ?? "");
   if (!employee) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Unlink member — reset enquiry back to previous status and clear member link
+  if (body.action === "unconvert") {
+    const enq = await prisma.enquiry.findUnique({
+      where: { id: body.enquiryId },
+      select: { memberId: true },
+    });
+    await prisma.$transaction(async (tx) => {
+      // Clear leadSource from the linked member if we set it
+      if (enq?.memberId) {
+        await tx.member.update({
+          where: { id: enq.memberId },
+          data: { leadSource: null },
+        });
+      }
+      await tx.enquiry.update({
+        where: { id: body.enquiryId },
+        data: { status: "NEW", convertedAt: null, memberId: null },
+      });
+    });
+    const updated = await prisma.enquiry.findUnique({
+      where: { id: body.enquiryId },
+      include: {
+        assignedTo: { select: { id: true, fullName: true } },
+        member: { select: { id: true, memberId: true, fullName: true } },
+      },
+    });
+    return NextResponse.json({ enquiry: updated });
+  }
+
   // Convert action: mark CONVERTED and optionally link member
   if (body.action === "convert") {
     const { enquiryId, memberId } = body;
