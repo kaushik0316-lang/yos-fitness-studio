@@ -6,6 +6,7 @@ import Image from "next/image";
 import {
   ArrowLeft, Plus, Phone, MessageCircle, ChevronDown,
   Calendar, StickyNote, X, UserCircle, Search, User, UserCheck,
+  CreditCard, CheckCircle2,
 } from "lucide-react";
 
 type Employee = { id: string; fullName: string };
@@ -261,6 +262,7 @@ export default function StaffEnquiriesPage() {
   const [employees, setEmployees]   = useState<Employee[]>([]);
   const [convertTarget, setConvertTarget] = useState<Enquiry | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [paymentsTarget, setPaymentsTarget] = useState<LinkedMember | null>(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("staff_pin");
@@ -617,11 +619,14 @@ export default function StaffEnquiriesPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-bold text-white">{toTitleCase(e.name)}</p>
                         {e.member && (
-                          <span className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                          <button
+                            onClick={(ev) => { ev.stopPropagation(); setPaymentsTarget(e.member!); }}
+                            className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md"
                             style={{ background: "rgba(16,185,129,0.12)", color: "#34d399" }}>
                             <UserCheck className="h-2.5 w-2.5" />
                             {e.member.memberId}
-                          </span>
+                            <CreditCard className="h-2.5 w-2.5 ml-0.5 opacity-70" />
+                          </button>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -736,6 +741,189 @@ export default function StaffEnquiriesPage() {
           }}
         />
       )}
+
+      {paymentsTarget && pin && (
+        <MemberPaymentsSheet
+          member={paymentsTarget}
+          pin={pin}
+          employees={employees}
+          onClose={() => setPaymentsTarget(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+type Payment = {
+  id: string;
+  date: string;
+  amount: string;
+  discount: string;
+  paymentMode: string;
+  paymentType: string;
+  categoryLabel: string | null;
+  periodLabel: string | null;
+  receiptNumber: number | null;
+  soldById: string | null;
+  soldById2: string | null;
+  soldByPct: number;
+  soldBy: { id: string; fullName: string } | null;
+  soldBy2: { id: string; fullName: string } | null;
+  package: { name: string } | null;
+};
+
+const PAYMENT_MODE_LABELS: Record<string, string> = {
+  CASH: "Cash", CARD: "Card", UPI: "UPI", BANK_TRANSFER: "Bank Transfer",
+  CHEQUE: "Cheque", OTHER: "Other",
+};
+
+function MemberPaymentsSheet({ member, pin, employees, onClose }: {
+  member: LinkedMember;
+  pin: string;
+  employees: Employee[];
+  onClose: () => void;
+}) {
+  const [payments, setPayments]   = useState<Payment[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [saving, setSaving]       = useState<string | null>(null); // paymentId being saved
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const res = await fetch(`/api/staff/members/${member.id}/payments?pin=${encodeURIComponent(pin)}`);
+      if (res.ok) setPayments(await res.json());
+      setLoading(false);
+    })();
+  }, [member.id, pin]);
+
+  async function assignSoldBy(paymentId: string, soldById: string) {
+    setSaving(paymentId);
+    const res = await fetch(`/api/staff/members/${member.id}/payments`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin, paymentId, soldById }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setPayments((prev) => prev.map((p) => p.id === paymentId ? { ...p, ...updated } : p));
+    }
+    setSaving(null);
+  }
+
+  const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ background: "rgba(0,0,0,0.75)" }}
+      onClick={onClose}>
+      <div className="rounded-t-3xl overflow-hidden max-h-[88vh] flex flex-col"
+        style={{ background: "#1c1c1c", border: "1px solid rgba(255,255,255,0.08)" }}
+        onClick={(e) => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 flex-shrink-0"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <div>
+            <p className="font-bold text-white">{toTitleCase(member.fullName)}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{member.memberId} · Payments</p>
+          </div>
+          <button onClick={onClose} className="text-gray-600"><X className="h-5 w-5" /></button>
+        </div>
+
+        {/* Summary */}
+        {!loading && payments.length > 0 && (
+          <div className="flex items-center gap-4 px-5 py-3 flex-shrink-0"
+            style={{ background: "rgba(249,115,22,0.06)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Total Paid</p>
+              <p className="text-lg font-extrabold text-orange-400">₹{totalPaid.toLocaleString("en-IN")}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Payments</p>
+              <p className="text-lg font-extrabold text-white">{payments.length}</p>
+            </div>
+          </div>
+        )}
+
+        {/* List */}
+        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-7 h-7 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />
+            </div>
+          ) : payments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <CreditCard className="h-10 w-10 text-gray-700" />
+              <p className="text-sm text-gray-500">No payments found</p>
+            </div>
+          ) : (
+            payments.map((p) => {
+              const label = p.categoryLabel ?? p.package?.name ?? p.paymentType;
+              const net   = Number(p.amount) - Number(p.discount);
+              const isSaving = saving === p.id;
+
+              return (
+                <div key={p.id} className="rounded-2xl p-4 space-y-3"
+                  style={{ background: "#242424", border: "1px solid rgba(255,255,255,0.06)" }}>
+
+                  {/* Payment info row */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-bold text-white text-sm">{label}</p>
+                      {p.periodLabel && <p className="text-xs text-gray-500 mt-0.5">{p.periodLabel}</p>}
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                          style={{ background: "rgba(255,255,255,0.06)", color: "#6b7280" }}>
+                          {PAYMENT_MODE_LABELS[p.paymentMode] ?? p.paymentMode}
+                        </span>
+                        {p.receiptNumber && (
+                          <span className="text-[10px] text-gray-600">#{p.receiptNumber}</span>
+                        )}
+                        <span className="text-[10px] text-gray-600">
+                          {new Date(p.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-extrabold text-white">₹{net.toLocaleString("en-IN")}</p>
+                      {Number(p.discount) > 0 && (
+                        <p className="text-[10px] text-gray-600 line-through">₹{Number(p.amount).toLocaleString("en-IN")}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Sale attribution */}
+                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "0.75rem" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Closed by</p>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={p.soldById ?? ""}
+                        disabled={isSaving}
+                        onChange={(e) => assignSoldBy(p.id, e.target.value)}
+                        className="flex-1 text-sm font-semibold rounded-xl px-3 py-2 outline-none disabled:opacity-50"
+                        style={{
+                          background: "#2a2a2a",
+                          border: `1px solid ${p.soldById ? "rgba(16,185,129,0.3)" : "rgba(255,255,255,0.1)"}`,
+                          color: p.soldById ? "#34d399" : "#6b7280",
+                        }}>
+                        <option value="">— Unassigned —</option>
+                        {employees.map((emp) => (
+                          <option key={emp.id} value={emp.id}>{toTitleCase(emp.fullName)}</option>
+                        ))}
+                      </select>
+                      {isSaving && (
+                        <div className="w-4 h-4 rounded-full border-2 border-orange-500 border-t-transparent animate-spin flex-shrink-0" />
+                      )}
+                      {!isSaving && p.soldBy && (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
     </div>
   );
 }
