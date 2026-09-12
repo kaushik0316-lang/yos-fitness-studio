@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Image from "next/image";
 import {
-  Dumbbell, Eye, EyeOff, Loader2, ArrowRight,
+  Eye, EyeOff, Loader2, ArrowRight,
   Users, CalendarCheck, TrendingUp, Mail, Lock, Zap,
 } from "lucide-react";
 
@@ -85,12 +85,8 @@ export default function LoginPage() {
           <div className="flex items-center gap-3">
             <div
               className="rounded-2xl p-2.5 shadow-2xl ring-1 ring-orange-400/20"
-              style={{
-                background: "linear-gradient(135deg, #f97316, #ea580c)",
-                boxShadow: "0 8px 32px -4px rgba(249,115,22,0.5)",
-              }}
             >
-              <Dumbbell className="h-7 w-7 text-white" />
+              <Image src="/Logo.png" alt="Yos Fitness" width={44} height={44} className="rounded-xl" />
             </div>
             <div>
               <p className="text-white font-extrabold text-xl leading-none uppercase tracking-wide">

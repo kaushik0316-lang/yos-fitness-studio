@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
-import { Dumbbell, Delete, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Delete, ArrowLeft, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
 
 type Phase = "input" | "locating" | "loading" | "success" | "checkoutSuccess" | "error";
 
@@ -78,10 +79,7 @@ function LogoBar() {
   return (
     <div className="flex items-center justify-center pt-10 pb-2">
       <div className="flex items-center gap-3">
-        <div className="rounded-2xl p-2.5 shadow-xl"
-          style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)", boxShadow: "0 6px 24px -4px rgba(34,197,94,0.5)" }}>
-          <Dumbbell className="h-6 w-6 text-white" />
-        </div>
+        <Image src="/Logo.png" alt="Yos Fitness" width={40} height={40} className="rounded-2xl shadow-xl" />
         <div>
           <p className="text-white font-extrabold text-lg leading-none uppercase tracking-wide">Yos Fitness Studio</p>
           <p className="text-green-400/50 text-[10px] mt-0.5 uppercase tracking-[0.2em]">Mylapore, Chennai</p>

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import {
-  Dumbbell, LogOut, ChevronRight, CalendarCheck,
+  LogOut, ChevronRight, CalendarCheck,
   CheckCircle2, Clock, Delete, AlertCircle, Phone, TrendingUp, Receipt,
 } from "lucide-react";
 
@@ -294,10 +295,7 @@ export default function MemberPortalPage() {
       <Screen green>
         <div className="flex items-center justify-center pt-10 pb-2">
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl p-2.5 shadow-xl"
-              style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)", boxShadow: "0 6px 24px -4px rgba(34,197,94,0.5)" }}>
-              <Dumbbell className="h-6 w-6 text-white" />
-            </div>
+            <Image src="/Logo.png" alt="Yos Fitness" width={40} height={40} className="rounded-2xl shadow-xl" />
             <div>
               <p className="text-white font-extrabold text-lg leading-none uppercase tracking-wide">Yos Fitness Studio</p>
               <p className="text-green-400/50 text-[10px] mt-0.5 uppercase tracking-[0.2em]">Member Portal</p>
@@ -457,10 +455,7 @@ export default function MemberPortalPage() {
       <Screen green>
         <div className="flex items-center justify-center pt-10 pb-2">
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl p-2.5 shadow-xl"
-              style={{ background: "linear-gradient(135deg, #22c55e, #16a34a)", boxShadow: "0 6px 24px -4px rgba(34,197,94,0.5)" }}>
-              <Dumbbell className="h-6 w-6 text-white" />
-            </div>
+            <Image src="/Logo.png" alt="Yos Fitness" width={40} height={40} className="rounded-2xl shadow-xl" />
             <div>
               <p className="text-white font-extrabold text-lg leading-none uppercase tracking-wide">Yos Fitness Studio</p>
               <p className="text-green-400/50 text-[10px] mt-0.5 uppercase tracking-[0.2em]">Member Portal</p>
@@ -561,9 +556,7 @@ export default function MemberPortalPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "#1c1c1c" }}>
         <div className="flex items-center gap-2">
-          <div className="rounded-lg p-1.5" style={{ background: "#22c55e" }}>
-            <Dumbbell className="h-4 w-4 text-white" />
-          </div>
+          <Image src="/Logo.png" alt="Yos Fitness" width={28} height={28} className="rounded-lg" />
           <span className="text-white font-bold text-sm uppercase tracking-wide">Yos Fitness</span>
         </div>
         <button onClick={signOut}

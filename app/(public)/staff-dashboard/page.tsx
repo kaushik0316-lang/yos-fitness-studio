@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import QRCode from "react-qr-code";
 import { useState, useEffect, useRef } from "react";
 import {
   Copy, Check, MessageCircle, Printer,
   Receipt, CalendarCheck, LogOut, ChevronRight,
-  Delete, Dumbbell, UserSearch,
+  Delete, UserSearch,
 } from "lucide-react";
 import { REGISTRATION_FORM_URL } from "@/lib/site-config";
 
@@ -184,15 +185,7 @@ export default function StaffDashboardPage() {
         {/* Logo bar */}
         <div className="relative flex items-center justify-center pt-10 pb-2">
           <div className="flex items-center gap-3">
-            <div
-              className="rounded-2xl p-2.5 shadow-xl"
-              style={{
-                background: "linear-gradient(135deg, #f97316, #ea580c)",
-                boxShadow: "0 6px 24px -4px rgba(249,115,22,0.5)",
-              }}
-            >
-              <Dumbbell className="h-6 w-6 text-white" />
-            </div>
+            <Image src="/Logo.png" alt="Yos Fitness" width={40} height={40} className="rounded-2xl shadow-xl" />
             <div>
               <p className="text-white font-extrabold text-lg leading-none uppercase tracking-wide">
                 Yos Fitness Studio
@@ -311,9 +304,7 @@ export default function StaffDashboardPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "#1c1c1c" }}>
         <div className="flex items-center gap-2">
-          <div className="bg-orange-500 rounded-lg p-1.5">
-            <Dumbbell className="h-4 w-4 text-white" />
-          </div>
+          <Image src="/Logo.png" alt="Yos Fitness" width={28} height={28} className="rounded-lg" />
           <span className="text-white font-bold text-sm uppercase tracking-wide">Yos Fitness</span>
         </div>
         <button

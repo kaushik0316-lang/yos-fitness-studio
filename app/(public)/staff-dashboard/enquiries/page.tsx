@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   ArrowLeft, Plus, Phone, MessageCircle, ChevronDown,
-  Calendar, StickyNote, X, UserCircle, Dumbbell, Search, User,
+  Calendar, StickyNote, X, UserCircle, Search, User,
 } from "lucide-react";
 
 type Employee = { id: string; fullName: string };
@@ -218,9 +219,7 @@ export default function StaffEnquiriesPage() {
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="bg-orange-500 rounded-lg p-1.5">
-              <Dumbbell className="h-3.5 w-3.5 text-white" />
-            </div>
+            <Image src="/Logo.png" alt="Yos Fitness" width={26} height={26} className="rounded-lg" />
             <span className="text-white font-bold text-sm">Enquiries</span>
           </div>
         </div>

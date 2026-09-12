@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { ArrowLeft, CreditCard, Dumbbell, Receipt } from "lucide-react";
+import { ArrowLeft, CreditCard, Receipt } from "lucide-react";
+import Image from "next/image";
 
 type Payment = {
   id: string;
@@ -62,9 +63,7 @@ export default function MyPaymentsPage() {
           <ArrowLeft className="h-4 w-4 text-gray-400" />
         </Link>
         <div className="flex items-center gap-2">
-          <div className="rounded-lg p-1.5" style={{ background: "#22c55e" }}>
-            <Dumbbell className="h-4 w-4 text-white" />
-          </div>
+          <Image src="/Logo.png" alt="Yos Fitness" width={28} height={28} className="rounded-lg" />
           <span className="text-white font-bold text-sm uppercase tracking-wide">Yos Fitness</span>
         </div>
       </div>
