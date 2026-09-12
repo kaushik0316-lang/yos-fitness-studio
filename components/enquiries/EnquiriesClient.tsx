@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
-import { Plus, Phone, MessageCircle, Search, X, ChevronDown, UserCircle, Calendar, StickyNote, Trash2, ChevronRight } from "lucide-react";
+import { useState, useTransition, useRef, useEffect, useCallback } from "react";
+import { Plus, Phone, MessageCircle, Search, X, ChevronDown, UserCircle, Calendar, StickyNote, Trash2, UserCheck, TrendingUp } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
-import { createEnquiry, updateEnquiry, deleteEnquiry } from "@/lib/actions/enquiries";
+import { createEnquiry, updateEnquiry, deleteEnquiry, convertEnquiry, searchMembersForLink } from "@/lib/actions/enquiries";
 import type { UserRole } from "@prisma/client";
 
 type Employee = { id: string; fullName: string; role: string };
+
+type LinkedMember = { id: string; memberId: string; fullName: string };
 
 type Enquiry = {
   id: string; name: string; phone: string;
@@ -15,12 +17,22 @@ type Enquiry = {
   assignedTo: { id: string; fullName: string } | null;
   createdBy: { id: string; name: string };
   followUpDate: Date | null; notes: string | null;
-  createdAt: Date;
+  createdAt: Date; convertedAt: Date | null;
+  member: LinkedMember | null;
+};
+
+type FunnelStats = {
+  total: number;
+  statusMap: Record<string, number>;
+  sourceMap: Record<string, number>;
+  avgDays: number | null;
+  convertedCount: number;
 };
 
 type Props = {
   enquiries: Enquiry[];
   employees: Employee[];
+  funnel: FunnelStats;
   userId: string;
   userRole: UserRole;
   userName: string;
@@ -64,7 +76,11 @@ function daysUntil(d: Date) {
   return Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
 }
 
-export function EnquiriesClient({ enquiries: initial, employees, userId, userRole, userName }: Props) {
+function pct(n: number, total: number) {
+  return total ? Math.round((n / total) * 100) : 0;
+}
+
+export function EnquiriesClient({ enquiries: initial, employees, funnel, userId, userRole, userName }: Props) {
   const [enquiries, setEnquiries] = useState<Enquiry[]>(initial);
   const [search, setSearch]       = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -72,6 +88,8 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
   const [editing, setEditing]     = useState<Enquiry | null>(null);
   const [selected, setSelected]   = useState<Enquiry | null>(null);
   const [openStatusId, setOpenStatusId] = useState<string | null>(null);
+  const [convertTarget, setConvertTarget] = useState<Enquiry | null>(null);
+  const [showFunnel, setShowFunnel] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const isAdmin = userRole === "ADMIN";
@@ -105,11 +123,25 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
   }
 
   async function handleStatusChange(id: string, status: string) {
+    if (status === "CONVERTED") {
+      const enq = enquiries.find((e) => e.id === id);
+      if (enq && !enq.member) {
+        setConvertTarget(enq);
+        setOpenStatusId(null);
+        return;
+      }
+    }
     startTransition(async () => {
       await updateEnquiry(id, { status: status as any });
       setEnquiries((prev) => prev.map((e) => e.id === id ? { ...e, status } : e));
       setSelected((prev) => prev?.id === id ? { ...prev, status } : prev);
     });
+  }
+
+  async function handleConvert(enquiryId: string, memberId: string | null) {
+    await convertEnquiry(enquiryId, memberId);
+    setConvertTarget(null);
+    refresh();
   }
 
   async function handleUpdate(form: FormData) {
@@ -137,8 +169,74 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
     return d <= 0 && e.status !== "CONVERTED" && e.status !== "LOST";
   }).length;
 
+  const conversionRate = pct(funnel.statusMap["CONVERTED"] ?? 0, funnel.total);
+
   return (
     <div className="space-y-5 pb-16">
+
+      {/* ── Funnel toggle ── */}
+      <button onClick={() => setShowFunnel((v) => !v)}
+        className="flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl transition-colors"
+        style={{ background: showFunnel ? "rgba(249,115,22,0.12)" : "rgba(255,255,255,0.05)", color: showFunnel ? "#f97316" : "#6b7280" }}>
+        <TrendingUp className="h-3.5 w-3.5" />
+        Conversion Funnel {showFunnel ? "▲" : "▼"}
+      </button>
+
+      {/* ── Funnel panel ── */}
+      {showFunnel && (
+        <div className="rounded-2xl p-5 space-y-5" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.07)" }}>
+
+          {/* KPI row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: "Total Leads", value: funnel.total, color: "#60a5fa" },
+              { label: "Converted", value: funnel.convertedCount, color: "#34d399" },
+              { label: "Conversion Rate", value: `${conversionRate}%`, color: "#f97316" },
+              { label: "Avg Days to Join", value: funnel.avgDays != null ? `${funnel.avgDays}d` : "—", color: "#a78bfa" },
+            ].map((k) => (
+              <div key={k.label} className="rounded-xl p-3" style={{ background: "#111" }}>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">{k.label}</p>
+                <p className="text-2xl font-extrabold mt-1" style={{ color: k.color }}>{k.value}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Funnel steps */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-3">Pipeline</p>
+            <div className="space-y-2">
+              {STATUSES.map((s) => {
+                const cfg = STATUS_CONFIG[s];
+                const n = funnel.statusMap[s] ?? 0;
+                const p = pct(n, funnel.total);
+                return (
+                  <div key={s} className="flex items-center gap-3">
+                    <span className="text-xs font-semibold w-20 flex-shrink-0" style={{ color: cfg.color }}>{cfg.label}</span>
+                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                      <div className="h-full rounded-full transition-all" style={{ width: `${p}%`, background: cfg.dot }} />
+                    </div>
+                    <span className="text-xs font-bold w-8 text-right" style={{ color: cfg.color }}>{n}</span>
+                    <span className="text-[10px] text-gray-600 w-8 text-right">{p}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* By source */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-3">Leads by Source</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {Object.entries(funnel.sourceMap).sort((a, b) => b[1] - a[1]).map(([src, n]) => (
+                <div key={src} className="flex items-center justify-between px-3 py-2 rounded-xl" style={{ background: "#111" }}>
+                  <span className="text-xs text-gray-400">{SOURCE_LABELS[src] ?? src}</span>
+                  <span className="text-sm font-bold text-white">{n}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Stats row ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -218,16 +316,11 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
                   style={{ background: selected?.id === e.id ? "rgba(249,115,22,0.05)" : idx % 2 === 0 ? "#161616" : "#181818" }}
                   onClick={() => setSelected(selected?.id === e.id ? null : e)}>
                   <div className="flex items-start gap-4">
-
-                    {/* Avatar */}
                     <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-extrabold flex-shrink-0 mt-0.5"
                       style={{ background: cfg.bg, color: cfg.color }}>
                       {e.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                     </div>
-
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
-                      {/* Row 1 */}
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-white text-sm">{toTitleCase(e.name)}</span>
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
@@ -240,9 +333,14 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
                             {e.interest}
                           </span>
                         )}
+                        {e.member && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1"
+                            style={{ background: "rgba(16,185,129,0.1)", color: "#34d399" }}>
+                            <UserCheck className="h-2.5 w-2.5" />
+                            {e.member.memberId}
+                          </span>
+                        )}
                       </div>
-
-                      {/* Row 2: assignee + follow-up */}
                       <div className="flex items-center gap-3 mt-1 flex-wrap text-xs text-gray-500">
                         {e.assignedTo && (
                           <span className="flex items-center gap-1">
@@ -262,17 +360,16 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
                           </span>
                         )}
                         <span className="text-gray-700">Added {formatDate(e.createdAt)}</span>
+                        {e.convertedAt && (
+                          <span className="text-emerald-700">Joined {formatDate(e.convertedAt)}</span>
+                        )}
                       </div>
-
-                      {/* Notes */}
                       {e.notes && (
                         <p className="mt-1.5 text-xs text-gray-500 flex items-start gap-1">
                           <StickyNote className="h-3 w-3 flex-shrink-0 mt-0.5 text-gray-700" />
                           {e.notes}
                         </p>
                       )}
-
-                      {/* Row 3: actions */}
                       <div className="flex items-center gap-2 mt-2.5 flex-wrap" onClick={(ev) => ev.stopPropagation()}>
                         <a href={`tel:${e.phone}`}
                           className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white transition-colors px-2.5 py-1.5 rounded-lg"
@@ -284,8 +381,6 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
                           style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}>
                           <MessageCircle className="h-3 w-3" />WhatsApp
                         </a>
-
-                        {/* Status dropdown — click-based */}
                         <StatusDropdown
                           enquiryId={e.id}
                           status={e.status}
@@ -295,7 +390,6 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
                           onClose={() => setOpenStatusId(null)}
                           onChange={(s) => { handleStatusChange(e.id, s); setOpenStatusId(null); }}
                         />
-
                         <button onClick={(ev) => { ev.stopPropagation(); setEditing(e); }}
                           className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors text-gray-400 hover:text-white ml-auto"
                           style={{ background: "rgba(255,255,255,0.06)" }}>
@@ -318,28 +412,12 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
         )}
       </div>
 
-      {/* ── Add dialog ── */}
       {showAdd && (
-        <EnquiryDialog
-          title="New Enquiry"
-          employees={employees}
-          onClose={() => setShowAdd(false)}
-          onSubmit={handleCreate}
-        />
+        <EnquiryDialog title="New Enquiry" employees={employees} onClose={() => setShowAdd(false)} onSubmit={handleCreate} />
       )}
-
-      {/* ── Edit dialog ── */}
       {editing && (
-        <EnquiryDialog
-          title="Edit Enquiry"
-          employees={employees}
-          initial={editing}
-          onClose={() => setEditing(null)}
-          onSubmit={handleUpdate}
-        />
+        <EnquiryDialog title="Edit Enquiry" employees={employees} initial={editing} onClose={() => setEditing(null)} onSubmit={handleUpdate} />
       )}
-
-      {/* ── Detail drawer ── */}
       {selected && (
         <DetailDrawer
           enquiry={selected}
@@ -347,6 +425,14 @@ export function EnquiriesClient({ enquiries: initial, employees, userId, userRol
           onEdit={() => { setEditing(selected); setSelected(null); }}
           onDelete={isAdmin ? () => { handleDelete(selected.id); setSelected(null); } : undefined}
           onStatusChange={(s) => handleStatusChange(selected.id, s)}
+          onConvert={() => { setConvertTarget(selected); setSelected(null); }}
+        />
+      )}
+      {convertTarget && (
+        <ConvertModal
+          enquiry={convertTarget}
+          onClose={() => setConvertTarget(null)}
+          onConfirm={(memberId) => handleConvert(convertTarget.id, memberId)}
         />
       )}
     </div>
@@ -371,8 +457,7 @@ function StatusDropdown({ enquiryId, status, cfg, open, onToggle, onClose, onCha
 
   return (
     <div ref={ref} className="relative">
-      <button
-        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+      <button onClick={(e) => { e.stopPropagation(); onToggle(); }}
         className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors"
         style={{ background: cfg.bg, color: cfg.color }}>
         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }} />
@@ -383,8 +468,7 @@ function StatusDropdown({ enquiryId, status, cfg, open, onToggle, onClose, onCha
         <div className="absolute left-0 top-full mt-1 z-30 rounded-xl overflow-hidden shadow-2xl"
           style={{ background: "#1e1e1e", border: "1px solid rgba(255,255,255,0.1)", minWidth: "140px" }}>
           {STATUSES.map((s) => (
-            <button key={s}
-              onClick={(e) => { e.stopPropagation(); onChange(s); }}
+            <button key={s} onClick={(e) => { e.stopPropagation(); onChange(s); }}
               className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-left hover:bg-white/[0.06] transition-colors"
               style={{ color: STATUS_CONFIG[s].color, background: s === status ? "rgba(255,255,255,0.04)" : undefined }}>
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: STATUS_CONFIG[s].dot }} />
@@ -398,12 +482,120 @@ function StatusDropdown({ enquiryId, status, cfg, open, onToggle, onClose, onCha
   );
 }
 
-function DetailDrawer({ enquiry, onClose, onEdit, onDelete, onStatusChange }: {
+function ConvertModal({ enquiry, onClose, onConfirm }: {
+  enquiry: Enquiry;
+  onClose: () => void;
+  onConfirm: (memberId: string | null) => Promise<void>;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<{ id: string; memberId: string; fullName: string; phone: string }[]>([]);
+  const [selected, setSelected] = useState<{ id: string; memberId: string; fullName: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    clearTimeout(timerRef.current);
+    if (query.trim().length < 2) { setResults([]); return; }
+    timerRef.current = setTimeout(async () => {
+      setLoading(true);
+      const res = await searchMembersForLink(query);
+      setResults(res);
+      setLoading(false);
+    }, 300);
+    return () => clearTimeout(timerRef.current);
+  }, [query]);
+
+  async function handleConfirm() {
+    setSaving(true);
+    await onConfirm(selected?.id ?? null);
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }}
+      onClick={onClose}>
+      <div className="w-full max-w-sm rounded-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}
+        style={{ background: "#1c1c1c", border: "1px solid rgba(255,255,255,0.1)" }}>
+
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          <div>
+            <h3 className="font-bold text-white text-sm">Mark as Joined</h3>
+            <p className="text-xs text-gray-500 mt-0.5">{toTitleCase(enquiry.name)}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-600 hover:text-white"><X className="h-5 w-5" /></button>
+        </div>
+
+        <div className="px-5 py-4 space-y-4">
+          <p className="text-xs text-gray-500">Link to the member record they created after joining:</p>
+
+          {!selected ? (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-600 pointer-events-none" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by name, phone, or ID…"
+                autoFocus
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none"
+                style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
+              />
+              {results.length > 0 && (
+                <div className="mt-1 rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)", background: "#111" }}>
+                  {results.map((m) => (
+                    <button key={m.id} onClick={() => setSelected(m)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-white/[0.06] transition-colors">
+                      <div>
+                        <p className="text-sm font-semibold text-white">{toTitleCase(m.fullName)}</p>
+                        <p className="text-xs text-gray-500">{m.memberId} · {m.phone}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {loading && <p className="text-xs text-gray-600 mt-2">Searching…</p>}
+              {!loading && query.length >= 2 && results.length === 0 && (
+                <p className="text-xs text-gray-600 mt-2">No unlinked members found</p>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl"
+              style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
+              <div>
+                <p className="text-sm font-bold text-emerald-400">{toTitleCase(selected.fullName)}</p>
+                <p className="text-xs text-gray-500">{selected.memberId}</p>
+              </div>
+              <button onClick={() => setSelected(null)} className="text-gray-600 hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3 px-5 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+          <button onClick={() => onConfirm(null)} disabled={saving}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+            style={{ background: "rgba(255,255,255,0.06)" }}>
+            Skip link
+          </button>
+          <button onClick={handleConfirm} disabled={saving || !selected}
+            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-40"
+            style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}>
+            {saving ? "Saving…" : "Confirm"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailDrawer({ enquiry, onClose, onEdit, onDelete, onStatusChange, onConvert }: {
   enquiry: Enquiry;
   onClose: () => void;
   onEdit: () => void;
   onDelete?: () => void;
   onStatusChange: (s: string) => void;
+  onConvert: () => void;
 }) {
   const cfg = STATUS_CONFIG[enquiry.status] ?? STATUS_CONFIG.NEW;
   const followUpDays = enquiry.followUpDate ? daysUntil(enquiry.followUpDate) : null;
@@ -428,20 +620,11 @@ function DetailDrawer({ enquiry, onClose, onEdit, onDelete, onStatusChange }: {
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end" style={{ pointerEvents: "none" }}>
-      {/* Backdrop */}
       <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.5)", pointerEvents: "auto" }} onClick={onClose} />
-
-      {/* Panel */}
       <div ref={ref} className="relative w-full max-w-sm h-full flex flex-col overflow-hidden"
-        style={{
-          background: "#141414",
-          borderLeft: "1px solid rgba(255,255,255,0.08)",
-          pointerEvents: "auto",
-          animation: "slideIn 0.2s ease-out",
-        }}>
+        style={{ background: "#141414", borderLeft: "1px solid rgba(255,255,255,0.08)", pointerEvents: "auto", animation: "slideIn 0.2s ease-out" }}>
         <style>{`@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
 
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 flex-shrink-0"
           style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
           <div className="flex items-center gap-3">
@@ -459,17 +642,14 @@ function DetailDrawer({ enquiry, onClose, onEdit, onDelete, onStatusChange }: {
           </button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-2">
-
-          {/* Status selector */}
           <div className="py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
             <p className="text-xs text-gray-600 uppercase tracking-wider font-semibold mb-2">Status</p>
             <div className="flex flex-wrap gap-1.5">
               {STATUSES.map((s) => {
                 const sc = STATUS_CONFIG[s];
                 return (
-                  <button key={s} onClick={() => onStatusChange(s)}
+                  <button key={s} onClick={() => s === "CONVERTED" && !enquiry.member ? onConvert() : onStatusChange(s)}
                     className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all border"
                     style={{
                       background: enquiry.status === s ? sc.bg : "transparent",
@@ -483,7 +663,13 @@ function DetailDrawer({ enquiry, onClose, onEdit, onDelete, onStatusChange }: {
             </div>
           </div>
 
-          {/* Details */}
+          {enquiry.member && row("Linked to", (
+            <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+              <UserCheck className="h-3.5 w-3.5" />
+              {toTitleCase(enquiry.member.fullName)} · {enquiry.member.memberId}
+            </span>
+          ))}
+          {enquiry.convertedAt && row("Joined on", formatDate(enquiry.convertedAt))}
           {row("Interest", enquiry.interest)}
           {row("Source", SOURCE_LABELS[enquiry.source] ?? enquiry.source)}
           {row("Assigned to", enquiry.assignedTo ? toTitleCase(enquiry.assignedTo.fullName) : null)}
@@ -505,7 +691,6 @@ function DetailDrawer({ enquiry, onClose, onEdit, onDelete, onStatusChange }: {
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center gap-2 px-5 py-4 flex-shrink-0"
           style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
           <a href={`tel:${enquiry.phone}`}
@@ -557,12 +742,10 @@ function EnquiryDialog({ title, employees, initial, onClose, onSubmit }: {
     borderRadius: "0.75rem", padding: "0.625rem 0.875rem",
     color: "#f9fafb", fontSize: "0.875rem", outline: "none", width: "100%",
   };
-
   const labelStyle = { color: "#9ca3af", fontSize: "0.75rem", fontWeight: 600, marginBottom: "0.375rem", display: "block" };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}
-      onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }} onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}
         style={{ background: "#1c1c1c", border: "1px solid rgba(255,255,255,0.1)" }}>
         <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>

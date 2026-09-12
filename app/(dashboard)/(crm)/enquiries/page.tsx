@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { EnquiriesClient } from "@/components/enquiries/EnquiriesClient";
+import { getFunnelStats } from "@/lib/actions/enquiries";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Enquiries" };
@@ -9,11 +10,12 @@ export const metadata = { title: "Enquiries" };
 export default async function EnquiriesPage() {
   const session = await auth();
 
-  const [enquiries, employees] = await Promise.all([
+  const [enquiries, employees, funnel] = await Promise.all([
     prisma.enquiry.findMany({
       include: {
         assignedTo: { select: { id: true, fullName: true } },
         createdBy: { select: { id: true, name: true } },
+        member: { select: { id: true, memberId: true, fullName: true } },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -22,6 +24,7 @@ export default async function EnquiriesPage() {
       select: { id: true, fullName: true, role: true },
       orderBy: { fullName: "asc" },
     }),
+    getFunnelStats(),
   ]);
 
   return (
@@ -31,6 +34,7 @@ export default async function EnquiriesPage() {
         <EnquiriesClient
           enquiries={enquiries as any}
           employees={employees}
+          funnel={funnel}
           userId={session!.user.id}
           userRole={session!.user.role}
           userName={session!.user.name ?? ""}

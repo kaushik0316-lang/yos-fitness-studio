@@ -200,6 +200,10 @@ model Member {
   allowKioskCheckin  Boolean      @default(false) // admin override: allow kiosk check-in even if EXPIRED/INACTIVE
   termsAcceptedAt    DateTime?    // timestamp when member accepted T&C via WhatsApp link
 
+  // Lead source (for members who came through enquiry or direct join)
+  leadSource   String?   // mirrors EnquirySource: WALK_IN | INSTAGRAM | REFERRAL | PHONE | WEBSITE | OTHER | DIRECT
+  enquiry      Enquiry?  @relation("EnquiryMember")
+
   // Assigned trainer
   trainerId String?
   trainer   Employee? @relation("TrainerMembers", fields: [trainerId], references: [id])
@@ -691,6 +695,11 @@ model Enquiry {
 
   followUpDate DateTime?
   notes        String?
+
+  // Conversion tracking
+  convertedAt  DateTime?
+  memberId     String?       @unique
+  member       Member?       @relation("EnquiryMember", fields: [memberId], references: [id], onDelete: SetNull)
 
   createdById  String
   createdBy    User          @relation(fields: [createdById], references: [id])

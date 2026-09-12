@@ -70,3 +70,74 @@ export async function deleteEnquiry(id: string) {
   await prisma.enquiry.delete({ where: { id } });
   revalidatePath("/enquiries");
 }
+
+export async function convertEnquiry(enquiryId: string, memberId: string | null) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.enquiry.update({
+      where: { id: enquiryId },
+      data: {
+        status: "CONVERTED",
+        convertedAt: new Date(),
+        memberId: memberId ?? null,
+      },
+    });
+    if (memberId) {
+      const enquiry = await tx.enquiry.findUnique({ where: { id: enquiryId }, select: { source: true } });
+      await tx.member.update({
+        where: { id: memberId },
+        data: { leadSource: enquiry?.source ?? "WALK_IN" },
+      });
+    }
+  });
+
+  revalidatePath("/enquiries");
+}
+
+export async function searchMembersForLink(query: string) {
+  const q = query.trim();
+  if (!q) return [];
+  return prisma.member.findMany({
+    where: {
+      enquiry: null, // not already linked to an enquiry
+      OR: [
+        { fullName: { contains: q, mode: "insensitive" } },
+        { phone: { contains: q } },
+        { memberId: { contains: q, mode: "insensitive" } },
+      ],
+    },
+    select: { id: true, fullName: true, memberId: true, phone: true },
+    take: 8,
+  });
+}
+
+export async function getFunnelStats() {
+  const [all, byStatus, bySource, converted] = await Promise.all([
+    prisma.enquiry.count(),
+    prisma.enquiry.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.enquiry.groupBy({ by: ["source"], _count: { _all: true } }),
+    prisma.enquiry.findMany({
+      where: { status: "CONVERTED", convertedAt: { not: null } },
+      select: { createdAt: true, convertedAt: true, source: true },
+    }),
+  ]);
+
+  const statusMap: Record<string, number> = {};
+  for (const r of byStatus) statusMap[r.status] = r._count._all;
+
+  const sourceMap: Record<string, number> = {};
+  for (const r of bySource) sourceMap[r.source] = r._count._all;
+
+  const avgDays = converted.length
+    ? Math.round(
+        converted.reduce((sum, r) => {
+          const days = (r.convertedAt!.getTime() - r.createdAt.getTime()) / 86400000;
+          return sum + days;
+        }, 0) / converted.length
+      )
+    : null;
+
+  return { total: all, statusMap, sourceMap, avgDays, convertedCount: converted.length };
+}
