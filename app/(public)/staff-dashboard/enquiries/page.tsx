@@ -56,21 +56,25 @@ function toTitleCase(s: string) {
   return s.toLowerCase().split(" ").map((w) => w ? w[0].toUpperCase() + w.slice(1) : w).join(" ");
 }
 
-// Returns array of { label: "Aug 2026", value: "2026-08" } for months that have enquiries
-function buildMonthOptions(enquiries: Enquiry[]) {
+// Returns { year: "2026", months: [{ value: "2026-08", label: "Aug" }, ...] }[]
+function buildMonthTree(enquiries: Enquiry[]) {
   const seen = new Set<string>();
   for (const e of enquiries) {
     const d = new Date(e.createdAt);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    seen.add(key);
+    seen.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
   }
-  return Array.from(seen)
-    .sort((a, b) => b.localeCompare(a))
-    .map((v) => {
-      const [y, m] = v.split("-");
-      const label = new Date(Number(y), Number(m) - 1).toLocaleDateString("en-IN", { month: "short", year: "numeric" });
-      return { value: v, label };
+  const byYear: Record<string, { value: string; label: string }[]> = {};
+  for (const v of Array.from(seen).sort((a, b) => b.localeCompare(a))) {
+    const [y, m] = v.split("-");
+    if (!byYear[y]) byYear[y] = [];
+    byYear[y].push({
+      value: v,
+      label: new Date(Number(y), Number(m) - 1).toLocaleDateString("en-IN", { month: "short" }),
     });
+  }
+  return Object.entries(byYear)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([year, months]) => ({ year, months }));
 }
 
 function enquiryMonth(e: Enquiry) {
@@ -349,7 +353,8 @@ export default function StaffEnquiriesPage() {
     return err.error ?? "Failed to save. Please try again.";
   }
 
-  const monthOptions = buildMonthOptions(enquiries);
+  const monthTree = buildMonthTree(enquiries);
+  const [openYear, setOpenYear] = useState<string | null>(null);
 
   const q = search.toLowerCase();
   const filtered = enquiries
@@ -436,11 +441,11 @@ export default function StaffEnquiriesPage() {
         {showFilters && (
           <div className="rounded-2xl p-4 space-y-3" style={{ background: "#1c1c1c", border: "1px solid rgba(255,255,255,0.06)" }}>
 
-            {/* Month filter */}
+            {/* Month filter — year → months two-level */}
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Month</p>
-              <div className="flex flex-wrap gap-1.5">
-                <button onClick={() => setMonthFilter("ALL")}
+              <div className="space-y-2">
+                <button onClick={() => { setMonthFilter("ALL"); setOpenYear(null); }}
                   className="px-3 py-1.5 rounded-full text-xs font-bold"
                   style={{
                     background: monthFilter === "ALL" ? "rgba(249,115,22,0.15)" : "rgba(255,255,255,0.05)",
@@ -448,16 +453,38 @@ export default function StaffEnquiriesPage() {
                   }}>
                   All time
                 </button>
-                {monthOptions.map(({ value, label }) => (
-                  <button key={value} onClick={() => setMonthFilter(value)}
-                    className="px-3 py-1.5 rounded-full text-xs font-bold"
-                    style={{
-                      background: monthFilter === value ? "rgba(249,115,22,0.15)" : "rgba(255,255,255,0.05)",
-                      color: monthFilter === value ? "#f97316" : "#6b7280",
-                    }}>
-                    {label}
-                  </button>
-                ))}
+                {monthTree.map(({ year, months }) => {
+                  const isOpen = openYear === year;
+                  const yearActive = monthFilter !== "ALL" && monthFilter.startsWith(year);
+                  return (
+                    <div key={year}>
+                      <button
+                        onClick={() => setOpenYear(isOpen ? null : year)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold w-auto"
+                        style={{
+                          background: yearActive ? "rgba(249,115,22,0.15)" : "rgba(255,255,255,0.05)",
+                          color: yearActive ? "#f97316" : "#9ca3af",
+                        }}>
+                        {year}
+                        <ChevronDown className={`h-3 w-3 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                      </button>
+                      {isOpen && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5 pl-2">
+                          {months.map(({ value, label }) => (
+                            <button key={value} onClick={() => setMonthFilter(value)}
+                              className="px-3 py-1.5 rounded-full text-xs font-bold"
+                              style={{
+                                background: monthFilter === value ? "rgba(249,115,22,0.15)" : "rgba(255,255,255,0.05)",
+                                color: monthFilter === value ? "#f97316" : "#6b7280",
+                              }}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
