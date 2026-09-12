@@ -6,8 +6,9 @@ import { signOut } from "next-auth/react";
 import {
   Users, CalendarCheck, RotateCcw, CreditCard,
   ClipboardList, DollarSign, BarChart3,
-  Settings, LogOut, Dumbbell, Wrench, FileUp, UserSearch, TrendingUp, Trophy, Search, MessageSquare, Megaphone,
+  Settings, LogOut, Wrench, FileUp, UserSearch, TrendingUp, Trophy, Search, MessageSquare, Megaphone,
 } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@prisma/client";
 
@@ -65,8 +66,8 @@ export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onM
 
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-14 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-        <div className="rounded-xl p-2 flex-shrink-0 shadow-lg" style={{ background: "linear-gradient(135deg, #f97316, #ea580c)", boxShadow: "0 4px 12px rgba(249,115,22,0.3)" }}>
-          <Dumbbell className="h-4 w-4 text-white" />
+        <div className="flex-shrink-0">
+          <Image src="/Logo.png" alt="Yos Fitness" width={36} height={36} className="rounded-xl" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-bold text-white text-sm leading-tight">Yos CRM</p>
