@@ -18,7 +18,10 @@ export async function GET(req: NextRequest) {
 
   const [enquiries, employees] = await Promise.all([
     prisma.enquiry.findMany({
-      include: { assignedTo: { select: { id: true, fullName: true } } },
+      include: {
+        assignedTo: { select: { id: true, fullName: true } },
+        member: { select: { id: true, memberId: true, fullName: true } },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.employee.findMany({
@@ -37,7 +40,6 @@ export async function POST(req: NextRequest) {
   const employee = await verifyPin(body.pin ?? "");
   if (!employee) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Prefer employee's linked CRM user; fall back to any admin
   const emp = await prisma.employee.findUnique({
     where: { id: employee.id },
     select: { userId: true },
@@ -62,7 +64,10 @@ export async function POST(req: NextRequest) {
       notes:        body.notes?.trim() || null,
       createdById,
     },
-    include: { assignedTo: { select: { id: true, fullName: true } } },
+    include: {
+      assignedTo: { select: { id: true, fullName: true } },
+      member: { select: { id: true, memberId: true, fullName: true } },
+    },
   });
 
   // Instant WhatsApp first response — fire and forget
@@ -80,12 +85,39 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ enquiry });
 }
 
-// PATCH /api/staff/enquiries — update status/notes
+// PATCH /api/staff/enquiries — update status/notes or convert
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const employee = await verifyPin(body.pin ?? "");
   if (!employee) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Convert action: mark CONVERTED and optionally link member
+  if (body.action === "convert") {
+    const { enquiryId, memberId } = body;
+    await prisma.$transaction(async (tx) => {
+      await tx.enquiry.update({
+        where: { id: enquiryId },
+        data: { status: "CONVERTED", convertedAt: new Date(), memberId: memberId ?? null },
+      });
+      if (memberId) {
+        const enq = await tx.enquiry.findUnique({ where: { id: enquiryId }, select: { source: true } });
+        await tx.member.update({
+          where: { id: memberId },
+          data: { leadSource: enq?.source ?? "WALK_IN" },
+        });
+      }
+    });
+    const updated = await prisma.enquiry.findUnique({
+      where: { id: enquiryId },
+      include: {
+        assignedTo: { select: { id: true, fullName: true } },
+        member: { select: { id: true, memberId: true, fullName: true } },
+      },
+    });
+    return NextResponse.json({ enquiry: updated });
+  }
+
+  // Regular update
   const enquiry = await prisma.enquiry.update({
     where: { id: body.id },
     data: {
@@ -94,8 +126,14 @@ export async function PATCH(req: NextRequest) {
       ...(body.followUpDate  !== undefined && { followUpDate: body.followUpDate ? new Date(body.followUpDate) : null }),
       ...(body.assignedToId  !== undefined && { assignedToId: body.assignedToId || null }),
     },
-    include: { assignedTo: { select: { id: true, fullName: true } } },
+    include: {
+      assignedTo: { select: { id: true, fullName: true } },
+      member: { select: { id: true, memberId: true, fullName: true } },
+    },
   });
 
   return NextResponse.json({ enquiry });
 }
+
+// GET /api/staff/enquiries/members?pin=xxxx&q=...
+// Searched separately via a sub-path — handled in members/route.ts
