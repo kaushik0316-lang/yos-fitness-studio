@@ -711,3 +711,12 @@ model Enquiry {
   @@index([assignedToId])
   @@map("enquiries")
 }
+
+model GymHoliday {
+  id        String   @id @default(cuid())
+  date      DateTime @unique
+  name      String
+  createdAt DateTime @default(now())
+
+  @@map("gym_holidays")
+}

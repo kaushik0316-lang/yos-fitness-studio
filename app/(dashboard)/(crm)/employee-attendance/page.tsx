@@ -23,7 +23,7 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
   const thisMonthStart = startOfMonth(today);
   const thisMonthEnd   = endOfMonth(today);
 
-  const [activeEmployeesRaw, allEmployeesRaw, attendances, salesByEmployee] = await Promise.all([
+  const [activeEmployeesRaw, allEmployeesRaw, attendances, salesByEmployee, holidaysRaw] = await Promise.all([
     prisma.employee.findMany({ where: { isActive: true }, orderBy: { fullName: "asc" } }),
     prisma.employee.findMany({ orderBy: [{ isActive: "desc" }, { fullName: "asc" }] }),
     prisma.employeeAttendance.findMany({
@@ -37,6 +37,11 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
       where: { soldById: { not: null }, date: { gte: thisMonthStart, lte: thisMonthEnd } },
       _sum: { amount: true },
     }),
+    // Holidays for the viewed month
+    prisma.gymHoliday.findMany({
+      where: { date: { gte: monthStart, lte: monthEnd } },
+      orderBy: { date: "asc" },
+    }),
   ]);
 
   // Serialize Date fields so they can be passed to Client Components
@@ -48,6 +53,12 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
   });
   const activeEmployees = activeEmployeesRaw.map(serializeEmp);
   const allEmployees    = allEmployeesRaw.map(serializeEmp);
+
+  // Build holiday map: "yyyy-MM-dd" → name
+  const holidayMap: Record<string, string> = {};
+  for (const h of holidaysRaw) {
+    holidayMap[format(h.date, "yyyy-MM-dd")] = h.name;
+  }
 
   // Map employeeId → total sales amount this month
   const salesMap: Record<string, number> = {};
@@ -61,7 +72,7 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
     if (!attendanceMap[a.employeeId]) attendanceMap[a.employeeId] = {};
     attendanceMap[a.employeeId][format(a.date, "yyyy-MM-dd")] = {
       status: a.status,
-      shifts: a.shifts.map((s) => ({
+      shifts: a.shifts.map((s: any) => ({
         id: s.id,
         shiftIndex: s.shiftIndex,
         checkInTime: s.checkInTime.toISOString(),
@@ -80,6 +91,7 @@ export default async function EmployeeAttendancePage({ searchParams }: { searchP
           allEmployees={allEmployees as any}
           attendanceMap={attendanceMap}
           salesMap={salesMap}
+          holidayMap={holidayMap}
           month={month}
           year={year}
           userId={session!.user.id}

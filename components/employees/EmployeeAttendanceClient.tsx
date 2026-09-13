@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format, eachDayOfInterval, startOfMonth, endOfMonth } from "date-fns";
 import { ChevronLeft, ChevronRight, Loader2, Save, CalendarDays, Users, Clock, Pencil } from "lucide-react";
@@ -55,11 +55,12 @@ type Props = {
   allEmployees: Employee[];
   attendanceMap: Record<string, Record<string, DayRecord>>;
   salesMap: Record<string, number>;
+  holidayMap: Record<string, string>;
   month: number; year: number;
   userId: string; userRole: UserRole;
 };
 
-export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMap, salesMap, month, year, userId, userRole }: Props) {
+export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMap, salesMap, holidayMap: initialHolidayMap, month, year, userId, userRole }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<"attendance" | "staff">("attendance");
   const [detailEmp, setDetailEmp] = useState<Employee | null>(null);
@@ -74,6 +75,19 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
   });
   const [saving, setSaving] = useState(false);
   const [, startTransition] = useTransition();
+
+  // Holiday state
+  const [holidayMap, setHolidayMap] = useState<Record<string, string>>(initialHolidayMap);
+  const [holidayPopover, setHolidayPopover] = useState<{ dateStr: string; name: string } | null>(null);
+  const [holidaySaving, setHolidaySaving] = useState(false);
+
+  // Close holiday popover on outside click
+  useEffect(() => {
+    if (!holidayPopover) return;
+    const handler = () => setHolidayPopover(null);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [holidayPopover]);
 
   const canEdit = userRole === "ADMIN" || userRole === "ACCOUNTANT";
   const monthStart = startOfMonth(new Date(year, month - 1, 1));
@@ -122,6 +136,38 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally { setSaving(false); }
+  }
+
+  async function saveHoliday(dateStr: string, name: string) {
+    setHolidaySaving(true);
+    try {
+      const res = await fetch("/api/holidays", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: dateStr, name }),
+      });
+      if (res.ok) {
+        setHolidayMap((prev) => ({ ...prev, [dateStr]: name }));
+        setHolidayPopover(null);
+        toast({ title: "Holiday saved", description: `${name} on ${dateStr}` });
+      }
+    } finally { setHolidaySaving(false); }
+  }
+
+  async function removeHoliday(dateStr: string) {
+    setHolidaySaving(true);
+    try {
+      const res = await fetch("/api/holidays", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: dateStr }),
+      });
+      if (res.ok) {
+        setHolidayMap((prev) => { const n = { ...prev }; delete n[dateStr]; return n; });
+        setHolidayPopover(null);
+        toast({ title: "Holiday removed" });
+      }
+    } finally { setHolidaySaving(false); }
   }
 
   function getSummary(empId: string) {
@@ -462,6 +508,9 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                     {s.label}
                   </span>
                 ))}
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: "rgba(234,179,8,0.15)", color: "#eab308" }}>
+                  H — Holiday
+                </span>
               </div>
               {canEdit && (
                 <button
@@ -499,7 +548,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
           )}
 
           {canEdit && (
-            <p className="text-[11px] text-gray-700">Click a cell to cycle status · Click future dates to plan leave · Click a name to see full shift detail</p>
+            <p className="text-[11px] text-gray-700">Click a cell to cycle status · Click future dates to plan leave · Click a name to see full shift detail · Click a date header to mark as holiday</p>
           )}
 
           {employees.length === 0 ? (
@@ -522,21 +571,76 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                       Month
                     </th>
                     {days.map((day) => {
-                      const isToday = format(day, "yyyy-MM-dd") === todayStr;
-                      const isSun   = day.getDay() === 0;
+                      const dateStr  = format(day, "yyyy-MM-dd");
+                      const isToday  = dateStr === todayStr;
+                      const isSun    = day.getDay() === 0;
+                      const isHoliday = !!holidayMap[dateStr];
+                      const isPopoverOpen = holidayPopover?.dateStr === dateStr;
                       return (
                         <th key={day.toISOString()}
-                          className="py-2 px-0.5 text-center min-w-[72px]"
+                          className="py-2 px-0.5 text-center min-w-[72px] relative"
                           style={{
                             borderLeft: "1px solid rgba(255,255,255,0.04)",
-                            background: isToday ? "rgba(249,115,22,0.08)" : undefined,
+                            background: isHoliday
+                              ? "rgba(234,179,8,0.10)"
+                              : isToday ? "rgba(249,115,22,0.08)" : undefined,
                           }}>
-                          <div className={cn("text-sm font-bold", isToday ? "text-orange-400" : isSun ? "text-red-500/60" : "text-gray-400")}>
-                            {format(day, "d")}
-                          </div>
-                          <div className={cn("text-[9px] font-medium mt-0.5", isToday ? "text-orange-500/70" : isSun ? "text-red-500/40" : "text-gray-700")}>
-                            {isToday ? "Today" : format(day, "EEE")}
-                          </div>
+                          <button
+                            onClick={() => canEdit && setHolidayPopover(isPopoverOpen ? null : { dateStr, name: holidayMap[dateStr] ?? "" })}
+                            className={cn("w-full", canEdit && "cursor-pointer hover:opacity-80")}
+                            disabled={!canEdit}
+                            title={isHoliday ? `Holiday: ${holidayMap[dateStr]} — click to edit` : canEdit ? "Click to mark as holiday" : undefined}
+                          >
+                            <div className={cn("text-sm font-bold", isHoliday ? "text-yellow-400" : isToday ? "text-orange-400" : isSun ? "text-red-500/60" : "text-gray-400")}>
+                              {format(day, "d")}
+                            </div>
+                            <div className={cn("text-[9px] font-medium mt-0.5", isHoliday ? "text-yellow-500/70" : isToday ? "text-orange-500/70" : isSun ? "text-red-500/40" : "text-gray-700")}>
+                              {isHoliday ? "H" : isToday ? "Today" : format(day, "EEE")}
+                            </div>
+                          </button>
+                          {/* Holiday popover */}
+                          {isPopoverOpen && (
+                            <div
+                              className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 rounded-xl p-3 shadow-xl text-left"
+                              style={{ background: "#1c1c1c", border: "1px solid rgba(234,179,8,0.3)", minWidth: "180px" }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <p className="text-[10px] font-bold text-yellow-400 mb-2 uppercase tracking-wider">Mark Holiday</p>
+                              <input
+                                autoFocus
+                                type="text"
+                                placeholder="Holiday name…"
+                                value={holidayPopover.name}
+                                onChange={(e) => setHolidayPopover({ dateStr, name: e.target.value })}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && holidayPopover.name.trim()) saveHoliday(dateStr, holidayPopover.name.trim());
+                                  if (e.key === "Escape") setHolidayPopover(null);
+                                }}
+                                className="w-full bg-transparent border rounded-lg px-2 py-1.5 text-xs text-white outline-none mb-2"
+                                style={{ borderColor: "rgba(234,179,8,0.3)" }}
+                              />
+                              <div className="flex gap-1.5">
+                                <button
+                                  onClick={() => holidayPopover.name.trim() && saveHoliday(dateStr, holidayPopover.name.trim())}
+                                  disabled={!holidayPopover.name.trim() || holidaySaving}
+                                  className="flex-1 py-1 rounded-lg text-[10px] font-bold text-black disabled:opacity-50"
+                                  style={{ background: "#eab308" }}
+                                >
+                                  Save
+                                </button>
+                                {isHoliday && (
+                                  <button
+                                    onClick={() => removeHoliday(dateStr)}
+                                    disabled={holidaySaving}
+                                    className="flex-1 py-1 rounded-lg text-[10px] font-bold text-red-400 disabled:opacity-50"
+                                    style={{ background: "rgba(239,68,68,0.12)" }}
+                                  >
+                                    Remove
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </th>
                       );
                     })}
@@ -579,22 +683,34 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
 
                         {/* Day cells */}
                         {days.map((day) => {
-                          const dateStr  = format(day, "yyyy-MM-dd");
-                          const status   = localMap[emp.id]?.[dateStr] ?? "";
-                          const shifts   = attendanceMap[emp.id]?.[dateStr]?.shifts ?? [];
-                          const isSunday = day.getDay() === 0;
-                          const isFuture = day > new Date();
-                          const isToday  = dateStr === todayStr;
-                          const style    = STATUS_STYLE[status];
+                          const dateStr   = format(day, "yyyy-MM-dd");
+                          const status    = localMap[emp.id]?.[dateStr] ?? "";
+                          const shifts    = attendanceMap[emp.id]?.[dateStr]?.shifts ?? [];
+                          const isSunday  = day.getDay() === 0;
+                          const isFuture  = day > new Date();
+                          const isToday   = dateStr === todayStr;
+                          const isHoliday = !!holidayMap[dateStr];
+                          const style     = STATUS_STYLE[status];
 
                           return (
                             <td key={dateStr}
                               className="px-0.5 py-1.5 align-top text-center"
                               style={{
                                 borderLeft: "1px solid rgba(255,255,255,0.04)",
-                                background: isToday ? "rgba(249,115,22,0.05)" : isFuture ? "rgba(0,0,0,0.15)" : undefined,
-                                opacity: isFuture && !status ? 0.35 : 1,
+                                background: isHoliday
+                                  ? "rgba(234,179,8,0.06)"
+                                  : isToday ? "rgba(249,115,22,0.05)" : isFuture ? "rgba(0,0,0,0.15)" : undefined,
+                                opacity: isFuture && !status && !isHoliday ? 0.35 : 1,
                               }}>
+                              {isHoliday ? (
+                                <div
+                                  title={holidayMap[dateStr]}
+                                  className="w-full rounded-md text-[9px] font-bold px-1 py-0.5 mb-0.5 leading-tight"
+                                  style={{ background: "rgba(234,179,8,0.15)", color: "#eab308" }}
+                                >
+                                  H
+                                </div>
+                              ) : (
                               <button
                                 onClick={() => cycleStatus(emp.id, dateStr, isFuture)}
                                 disabled={!canEdit}
@@ -611,6 +727,7 @@ export function EmployeeAttendanceClient({ employees, allEmployees, attendanceMa
                                   ? STATUS_OPTIONS.find(s => s.value === status)?.label
                                   : ""}
                               </button>
+                              )}
 
                               {/* Shift times */}
                               {shifts.length > 0 && (
