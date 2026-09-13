@@ -172,16 +172,15 @@ function ConvertModal({ enquiry, pin, employees, onClose, onDone }: {
     });
     if (res.ok) {
       const { enquiry: updated } = await res.json();
-      onDone(updated); // update card immediately
-      setLinkedEnquiry(updated);
+      setLinkedEnquiry(updated); // hold update — only push to card on final close
       if (memberId) {
-        // Fetch payments for step 2
         setPaymentsLoading(true);
         const pr = await fetch(`/api/staff/members/${memberId}/payments?pin=${encodeURIComponent(pin)}`);
         if (pr.ok) setPayments(await pr.json());
         setPaymentsLoading(false);
+        setStep(2);
       }
-      setStep(2);
+      // if no member linked, finish() is called by the Skip button directly
     }
     setSaving(false);
   }
@@ -203,9 +202,14 @@ function ConvertModal({ enquiry, pin, employees, onClose, onDone }: {
 
   const stepLabel = step === 1 ? "1 of 2 · Link member" : "2 of 2 · Assign sale";
 
+  function finish() {
+    if (linkedEnquiry) onDone(linkedEnquiry);
+    onClose();
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.75)" }}
-      onClick={step === 2 ? onClose : onClose}>
+  <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.75)" }}
+      onClick={finish}>
       <div className="w-full max-w-lg rounded-t-3xl overflow-hidden max-h-[88vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{ background: "#1c1c1c", border: "1px solid rgba(255,255,255,0.08)" }}>
@@ -223,7 +227,7 @@ function ConvertModal({ enquiry, pin, employees, onClose, onDone }: {
             </div>
             <p className="text-xs text-gray-500 mt-0.5">{toTitleCase(enquiry.name)}</p>
           </div>
-          <button onClick={onClose} className="text-gray-600"><X className="h-5 w-5" /></button>
+          <button onClick={finish} className="text-gray-600"><X className="h-5 w-5" /></button>
         </div>
 
         {/* Step indicator */}
@@ -282,10 +286,10 @@ function ConvertModal({ enquiry, pin, employees, onClose, onDone }: {
               )}
             </div>
             <div className="flex gap-3 px-5 py-4 flex-shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-              <button onClick={() => confirmLink(null)} disabled={saving}
+              <button onClick={async () => { await confirmLink(null); finish(); }} disabled={saving}
                 className="flex-1 py-3 rounded-2xl text-sm font-semibold disabled:opacity-50"
                 style={{ background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
-                Skip link →
+                Skip
               </button>
               <button onClick={() => confirmLink(selected!.id)} disabled={saving || !selected}
                 className="flex-1 py-3 rounded-2xl text-sm font-bold text-white disabled:opacity-40"
@@ -360,7 +364,7 @@ function ConvertModal({ enquiry, pin, employees, onClose, onDone }: {
               )}
             </div>
             <div className="px-5 py-4 flex-shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-              <button onClick={onClose}
+              <button onClick={finish}
                 className="w-full py-3 rounded-2xl text-sm font-bold text-white"
                 style={{ background: saleAssigned ? "linear-gradient(135deg, #10b981, #059669)" : "rgba(255,255,255,0.06)", color: saleAssigned ? "#fff" : "#9ca3af" }}>
                 {saleAssigned ? "Done ✓" : "Skip — Done"}
