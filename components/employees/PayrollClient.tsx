@@ -21,7 +21,7 @@ type PayrollRecord = {
   id: string;
   month: number; year: number;
   presentDays: number; absentDays: number; halfDays: number;
-  weeklyOffs: number; leaveDays: number; workingDays: number;
+  weeklyOffs: number; leaveDays: number; holidayDays: number; workingDays: number;
   requiredHours: any; actualHours: any;
   grossSalary: any; deductions: any; bonus: any; netSalary: any;
   isPaid: boolean; paidDate: Date | null; paidMode: string | null;
@@ -273,6 +273,7 @@ export function PayrollClient({ records, month, year, userRole, commissionsTab }
                         <span className="text-emerald-400 font-medium">{r.presentDays}P</span>
                         <span className="text-red-400 font-medium">{r.absentDays}A</span>
                         {r.halfDays > 0 && <span className="text-amber-400 font-medium">{r.halfDays}H</span>}
+                        {r.holidayDays > 0 && <span className="font-medium" style={{ color: "#eab308" }}>{r.holidayDays} Hol</span>}
                       </div>
                     )}
                   </td>

@@ -34,6 +34,7 @@ export type PayrollResult = {
   weeklyOffs: number;
   leaveDays: number;
   paidLeaveDays: number;
+  holidayDays: number;
   workingDays: number;
   requiredHours: number;
   actualHours: number;
@@ -53,13 +54,25 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
   const monthStart = startOfMonth(new Date(input.year, input.month - 1, 1));
   const monthEnd = endOfMonth(monthStart);
 
-  const attendances = await prisma.employeeAttendance.findMany({
-    where: {
-      employeeId: input.employeeId,
-      date: { gte: monthStart, lte: monthEnd },
-    },
-    include: { shifts: true },
-  });
+  const [attendances, gymHolidays] = await Promise.all([
+    prisma.employeeAttendance.findMany({
+      where: {
+        employeeId: input.employeeId,
+        date: { gte: monthStart, lte: monthEnd },
+      },
+      include: { shifts: true },
+    }),
+    prisma.gymHoliday.findMany({
+      where: { date: { gte: monthStart, lte: monthEnd } },
+    }),
+  ]);
+
+  // Build holiday set: "yyyy-MM-dd"
+  const holidayKeys = new Set<string>();
+  for (const h of gymHolidays) {
+    const d = new Date(h.date);
+    holidayKeys.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`);
+  }
 
   // Build date → status map from explicit attendance records
   const recordedStatus = new Map<string, EmployeeAttendanceStatus>();
@@ -69,12 +82,17 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     recordedStatus.set(key, a.status);
   }
 
-  // Count statuses — unrecorded Sundays default to PRESENT
-  let presentDays = 0, absentDays = 0, halfDays = 0, weeklyOffs = 0, leaveDays = 0, paidLeaveDays = 0;
+  // Count statuses — holidays are paid days off (excluded from working days & deductions)
+  // Unrecorded Sundays default to PRESENT
+  let presentDays = 0, absentDays = 0, halfDays = 0, weeklyOffs = 0, leaveDays = 0, paidLeaveDays = 0, holidayDays = 0;
   const totalCalendarDays = getDaysInMonth(monthStart);
   for (let d = 1; d <= totalCalendarDays; d++) {
-    const date = new Date(input.year, input.month - 1, d);
     const key = `${input.year}-${String(input.month).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    if (holidayKeys.has(key)) {
+      holidayDays++;
+      continue; // paid holiday — excluded from all deduction calculations
+    }
+    const date = new Date(input.year, input.month - 1, d);
     const isSunday = date.getDay() === 0;
     const status = recordedStatus.get(key) ?? (isSunday ? EmployeeAttendanceStatus.PRESENT : null);
     if (!status) continue;
@@ -121,11 +139,12 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     ? (effectiveShiftDays as number[])
     : [1, 2, 3, 4, 5, 6];
 
-  // Build set of off-day keys (days NOT in shiftDays) — these are auto-credited as full shift hours
+  // Build set of off-day keys (days NOT in shiftDays, plus gym holidays) — auto-credited as full shift hours
   const offDayKeys = new Set<string>();
   for (let d = 1; d <= totalCalendarDays; d++) {
-    if (!shiftDays.includes(new Date(input.year, input.month - 1, d).getDay())) {
-      offDayKeys.add(`${input.year}-${String(input.month).padStart(2,"0")}-${String(d).padStart(2,"0")}`);
+    const key = `${input.year}-${String(input.month).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    if (!shiftDays.includes(new Date(input.year, input.month - 1, d).getDay()) || holidayKeys.has(key)) {
+      offDayKeys.add(key);
     }
   }
 
@@ -149,9 +168,10 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
 
   actualHours = Math.round(actualHours * 100) / 100;
 
-  const workingDays = totalCalendarDays;
+  // Working days = calendar days minus gym holidays (holidays are paid, not deductible)
+  const workingDays = totalCalendarDays - holidayDays;
 
-  // Required hours = hoursPerDay × ALL calendar days (off-days auto-credited, shift days from kiosk)
+  // Required hours = hoursPerDay × ALL calendar days (off-days + holidays auto-credited, shift days from kiosk)
   const requiredHours = isTrainer && hoursPerDay > 0 ? hoursPerDay * totalCalendarDays : 0;
 
   // 1 automatic paid leave credit per month for all employees
@@ -174,7 +194,8 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     deductions += leaveDays * perDay;
   } else if (employee.salaryType === SalaryType.PER_DAY) {
     const perDay = Number(employee.perDaySalary ?? 0);
-    grossSalary = (presentDays + paidLeaveDays + AUTO_PAID_LEAVE) * perDay + halfDays * perDay * 0.5;
+    // Holidays count as paid days for PER_DAY staff
+    grossSalary = (presentDays + paidLeaveDays + holidayDays + AUTO_PAID_LEAVE) * perDay + halfDays * perDay * 0.5;
   }
 
   // ── Sales & PT commission (bonus) ────────────────────────────────────────
@@ -222,6 +243,7 @@ export async function calculatePayroll(input: PayrollInput): Promise<PayrollResu
     weeklyOffs,
     leaveDays,
     paidLeaveDays,
+    holidayDays,
     workingDays,
     requiredHours,
     actualHours,
@@ -251,6 +273,7 @@ export async function savePayroll(result: PayrollResult): Promise<void> {
       weeklyOffs:    result.weeklyOffs,
       leaveDays:     result.leaveDays,
       paidLeaveDays: result.paidLeaveDays,
+      holidayDays:   result.holidayDays,
       workingDays:   result.workingDays,
       requiredHours: result.requiredHours,
       actualHours:   result.actualHours,
@@ -266,6 +289,7 @@ export async function savePayroll(result: PayrollResult): Promise<void> {
       weeklyOffs:    result.weeklyOffs,
       leaveDays:     result.leaveDays,
       paidLeaveDays: result.paidLeaveDays,
+      holidayDays:   result.holidayDays,
       workingDays:   result.workingDays,
       requiredHours: result.requiredHours,
       actualHours:   result.actualHours,

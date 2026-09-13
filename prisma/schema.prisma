@@ -495,7 +495,8 @@ model PayrollRecord {
   weeklyOffs   Int      @default(0)
   leaveDays    Int      @default(0)
   paidLeaveDays Int     @default(0)
-  workingDays    Int      @default(0) // calendar working days in month
+  holidayDays    Int      @default(0) // gym holidays in month (paid, excluded from deductions)
+  workingDays    Int      @default(0) // calendar working days in month (excludes holidays)
   requiredHours  Decimal  @db.Decimal(8, 2) @default(0) // hours target for the month
   actualHours    Decimal  @db.Decimal(8, 2) @default(0) // hours actually worked (from shifts)
   grossSalary    Decimal  @db.Decimal(10, 2)
