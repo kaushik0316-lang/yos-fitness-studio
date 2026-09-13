@@ -15,7 +15,7 @@ type Member = {
 };
 
 const DEFAULT_TEMPLATE =
-  `Hi {name}!\n\nWe miss you at Yos Fitness Studio — come in this week!\n\nIf you've been coming, please remember to scan IN when you arrive and OUT when you leave at our kiosk. This helps to track your sessions properly.\n\nSee you soon! — Yos Fitness Studio`;
+  `Hi {name}!\n\nWe miss you at Yos Fitness Studio — come in this week!\n\nIf you've been coming, please remember to scan IN when you arrive and OUT when you leave at our kiosk. This helps us track your sessions properly.\n\nSee you soon! — Yos Fitness Studio`;
 
 type ResultRow = { memberId: string; name: string; status: "sent" | "failed" | "skipped"; error?: string };
 
