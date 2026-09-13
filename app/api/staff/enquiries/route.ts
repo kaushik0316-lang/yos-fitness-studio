@@ -53,10 +53,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No CRM user available to create enquiry" }, { status: 500 });
   }
 
+  // Fix 4: duplicate phone check
+  const phone = (body.phone as string).trim();
+  const existing = await prisma.enquiry.findFirst({
+    where: { phone, status: { notIn: ["CONVERTED", "LOST"] } },
+    select: { id: true, name: true },
+  });
+  if (existing) {
+    return NextResponse.json(
+      { error: `An active enquiry already exists for this phone number (${toTitleCase(existing.name)}).` },
+      { status: 409 }
+    );
+  }
+
   const enquiry = await prisma.enquiry.create({
     data: {
       name:         (body.name as string).trim().toUpperCase(),
-      phone:        (body.phone as string).trim(),
+      phone,
       interest:     body.interest?.trim() || null,
       source:       body.source || "WALK_IN",
       assignedToId: body.assignedToId || employee.id,
@@ -95,10 +108,14 @@ export async function PATCH(req: NextRequest) {
   if (body.action === "unconvert") {
     const enq = await prisma.enquiry.findUnique({
       where: { id: body.enquiryId },
-      select: { memberId: true },
+      select: { memberId: true, notes: true },
     });
+    // Fix 5: restore previous status stored in notes during convert
+    const prevMatch = enq?.notes?.match(/\[prev_status:([A-Z_]+)\]/);
+    const prevStatus = prevMatch ? prevMatch[1] : "CONTACTED";
+    const cleanNotes = enq?.notes?.replace(/\s*\[prev_status:[A-Z_]+\]/, "").trim() || null;
+
     await prisma.$transaction(async (tx) => {
-      // Clear leadSource from the linked member if we set it
       if (enq?.memberId) {
         await tx.member.update({
           where: { id: enq.memberId },
@@ -107,7 +124,7 @@ export async function PATCH(req: NextRequest) {
       }
       await tx.enquiry.update({
         where: { id: body.enquiryId },
-        data: { status: "NEW", convertedAt: null, memberId: null },
+        data: { status: prevStatus as any, convertedAt: null, memberId: null, notes: cleanNotes },
       });
     });
     const updated = await prisma.enquiry.findUnique({
@@ -124,9 +141,18 @@ export async function PATCH(req: NextRequest) {
   if (body.action === "convert") {
     const { enquiryId, memberId } = body;
     await prisma.$transaction(async (tx) => {
+      // Fix 5: snapshot current status in notes so unconvert can restore it
+      const current = await tx.enquiry.findUnique({
+        where: { id: enquiryId },
+        select: { status: true, notes: true },
+      });
+      const notesWithPrev = current?.status && current.status !== "CONVERTED"
+        ? `${current.notes ?? ""} [prev_status:${current.status}]`.trim()
+        : current?.notes ?? null;
+
       await tx.enquiry.update({
         where: { id: enquiryId },
-        data: { status: "CONVERTED", convertedAt: new Date(), memberId: memberId ?? null },
+        data: { status: "CONVERTED", convertedAt: new Date(), memberId: memberId ?? null, notes: notesWithPrev },
       });
       if (memberId) {
         const enq = await tx.enquiry.findUnique({ where: { id: enquiryId }, select: { source: true } });

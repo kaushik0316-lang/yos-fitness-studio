@@ -6,10 +6,11 @@ async function verifyPin(pin: string) {
   return prisma.employee.findUnique({ where: { pin }, select: { id: true } });
 }
 
-// GET /api/staff/enquiries/members?pin=xxxx&q=search
-export async function GET(req: NextRequest) {
-  const pin = req.nextUrl.searchParams.get("pin") ?? "";
-  const q   = req.nextUrl.searchParams.get("q")?.trim() ?? "";
+// Fix 3: POST instead of GET to keep PIN out of query string / logs / browser history
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+  const pin  = body.pin ?? "";
+  const q    = (body.q ?? "").trim();
 
   const employee = await verifyPin(pin);
   if (!employee) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

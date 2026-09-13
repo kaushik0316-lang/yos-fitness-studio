@@ -149,13 +149,17 @@ function ConvertModal({ enquiry, pin, employees, onClose, onDone }: {
   const [saleAssigned, setSaleAssigned] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
-  // Member search
+  // Member search — Fix 3: POST to keep PIN out of URL/logs
   useEffect(() => {
     clearTimeout(timerRef.current);
     if (query.trim().length < 2) { setResults([]); return; }
     timerRef.current = setTimeout(async () => {
       setSearchLoading(true);
-      const res = await fetch(`/api/staff/enquiries/members?pin=${encodeURIComponent(pin)}&q=${encodeURIComponent(query)}`);
+      const res = await fetch("/api/staff/enquiries/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin, q: query }),
+      });
       if (res.ok) setResults(await res.json());
       setSearchLoading(false);
     }, 300);
@@ -209,7 +213,7 @@ function ConvertModal({ enquiry, pin, employees, onClose, onDone }: {
 
   return (
   <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.75)" }}
-      onClick={finish}>
+      onClick={step === 1 ? onClose : finish}>
       <div className="w-full max-w-lg rounded-t-3xl overflow-hidden max-h-[88vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{ background: "#1c1c1c", border: "1px solid rgba(255,255,255,0.08)" }}>
@@ -417,12 +421,16 @@ export default function StaffEnquiriesPage() {
 
   async function handleStatusChange(id: string, status: string) {
     if (!pin) return;
+    const enq = enquiries.find((e) => e.id === id);
+    // Fix 6: no-op if already on that status
+    if (enq?.status === status) return;
     if (status === "CONVERTED") {
-      const enq = enquiries.find((e) => e.id === id);
-      if (enq && !enq.member) {
-        setConvertTarget(enq);
+      // Open convert modal if not already linked
+      if (!enq?.member) {
+        setConvertTarget(enq!);
         return;
       }
+      // Already linked — just update status, skip modal
     }
     const res = await fetch("/api/staff/enquiries", {
       method: "PATCH",
@@ -1170,7 +1178,13 @@ function EnquiryModal({ title, initial, employees, defaultAssignedToId, onClose,
               <div>
                 <label style={lbl}>Status</label>
                 <select name="status" defaultValue={initial?.status ?? "NEW"} style={inp}>
-                  {STATUSES.map((s) => <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>)}
+                  {/* Fix 1: CONVERTED excluded — use the status pill convert flow instead */}
+                  {STATUSES.filter((s) => s !== "CONVERTED").map((s) => (
+                    <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
+                  ))}
+                  {initial?.status === "CONVERTED" && (
+                    <option value="CONVERTED" disabled>{STATUS_CONFIG.CONVERTED.label} (use Undo to revert)</option>
+                  )}
                 </select>
               </div>
             )}
