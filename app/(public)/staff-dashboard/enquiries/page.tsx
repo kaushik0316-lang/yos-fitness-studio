@@ -129,32 +129,41 @@ function StatusPicker({ enquiry, onSelect }: {
   );
 }
 
-function ConvertModal({ enquiry, pin, onClose, onDone }: {
+function ConvertModal({ enquiry, pin, employees, onClose, onDone }: {
   enquiry: Enquiry;
   pin: string;
+  employees: Employee[];
   onClose: () => void;
   onDone: (updated: Enquiry) => void;
 }) {
-  const [query, setQuery]     = useState("");
-  const [results, setResults] = useState<{ id: string; memberId: string; fullName: string; phone: string }[]>([]);
+  // Step 1: link member  |  Step 2: assign sale
+  const [step, setStep]         = useState<1 | 2>(1);
+  const [query, setQuery]       = useState("");
+  const [results, setResults]   = useState<{ id: string; memberId: string; fullName: string; phone: string }[]>([]);
   const [selected, setSelected] = useState<{ id: string; memberId: string; fullName: string } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving]   = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [linkedEnquiry, setLinkedEnquiry] = useState<Enquiry | null>(null);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [saleAssigned, setSaleAssigned] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
+  // Member search
   useEffect(() => {
     clearTimeout(timerRef.current);
     if (query.trim().length < 2) { setResults([]); return; }
     timerRef.current = setTimeout(async () => {
-      setLoading(true);
+      setSearchLoading(true);
       const res = await fetch(`/api/staff/enquiries/members?pin=${encodeURIComponent(pin)}&q=${encodeURIComponent(query)}`);
       if (res.ok) setResults(await res.json());
-      setLoading(false);
+      setSearchLoading(false);
     }, 300);
     return () => clearTimeout(timerRef.current);
   }, [query, pin]);
 
-  async function submit(memberId: string | null) {
+  // Step 1 confirm: save the link, then move to step 2
+  async function confirmLink(memberId: string | null) {
     setSaving(true);
     const res = await fetch("/api/staff/enquiries", {
       method: "PATCH",
@@ -163,85 +172,202 @@ function ConvertModal({ enquiry, pin, onClose, onDone }: {
     });
     if (res.ok) {
       const { enquiry: updated } = await res.json();
-      onDone(updated);
+      onDone(updated); // update card immediately
+      setLinkedEnquiry(updated);
+      if (memberId) {
+        // Fetch payments for step 2
+        setPaymentsLoading(true);
+        const pr = await fetch(`/api/staff/members/${memberId}/payments?pin=${encodeURIComponent(pin)}`);
+        if (pr.ok) setPayments(await pr.json());
+        setPaymentsLoading(false);
+      }
+      setStep(2);
     }
     setSaving(false);
   }
 
+  async function assignSale(paymentId: string, soldById: string) {
+    const memberId = selected?.id ?? linkedEnquiry?.member?.id;
+    if (!memberId) return;
+    const res = await fetch(`/api/staff/members/${memberId}/payments`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin, paymentId, soldById }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setPayments((prev) => prev.map((p) => p.id === paymentId ? { ...p, ...updated } : p));
+      setSaleAssigned(true);
+    }
+  }
+
+  const stepLabel = step === 1 ? "1 of 2 · Link member" : "2 of 2 · Assign sale";
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.75)" }}
-      onClick={onClose}>
-      <div className="w-full max-w-lg rounded-t-3xl overflow-hidden"
+      onClick={step === 2 ? onClose : onClose}>
+      <div className="w-full max-w-lg rounded-t-3xl overflow-hidden max-h-[88vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
         style={{ background: "#1c1c1c", border: "1px solid rgba(255,255,255,0.08)" }}>
 
-        <div className="flex items-center justify-between px-5 py-4"
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 flex-shrink-0"
           style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <div>
-            <p className="font-bold text-white text-sm">Mark as Joined</p>
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-white text-sm">Mark as Joined</p>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: "rgba(249,115,22,0.15)", color: "#f97316" }}>
+                {stepLabel}
+              </span>
+            </div>
             <p className="text-xs text-gray-500 mt-0.5">{toTitleCase(enquiry.name)}</p>
           </div>
           <button onClick={onClose} className="text-gray-600"><X className="h-5 w-5" /></button>
         </div>
 
-        <div className="px-5 py-4 space-y-3">
-          <p className="text-xs text-gray-500">Link to the member record they created after joining:</p>
+        {/* Step indicator */}
+        <div className="flex gap-1 px-5 pt-3 flex-shrink-0">
+          {[1, 2].map((s) => (
+            <div key={s} className="h-1 flex-1 rounded-full transition-all"
+              style={{ background: step >= s ? "#10b981" : "rgba(255,255,255,0.1)" }} />
+          ))}
+        </div>
 
-          {!selected ? (
-            <div>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-600 pointer-events-none" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search by name, phone, or member ID…"
-                  autoFocus
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none"
-                  style={{ background: "#2a2a2a", border: "1px solid rgba(255,255,255,0.1)" }}
-                />
-              </div>
-              {results.length > 0 && (
-                <div className="mt-1 rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)", background: "#2a2a2a" }}>
-                  {results.map((m) => (
-                    <button key={m.id} onClick={() => setSelected(m)}
-                      className="w-full flex items-start gap-3 px-3 py-2.5 text-left active:bg-white/[0.06]">
-                      <div>
-                        <p className="text-sm font-semibold text-white">{toTitleCase(m.fullName)}</p>
-                        <p className="text-xs text-gray-500">{m.memberId} · {m.phone}</p>
-                      </div>
-                    </button>
-                  ))}
+        {/* ── Step 1: Link member ── */}
+        {step === 1 && (
+          <>
+            <div className="px-5 py-4 space-y-3 flex-1 overflow-y-auto">
+              <p className="text-xs text-gray-500">Search the member record they created after joining:</p>
+              {!selected ? (
+                <div>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-600 pointer-events-none" />
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Search by name, phone, or member ID…"
+                      autoFocus
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none"
+                      style={{ background: "#2a2a2a", border: "1px solid rgba(255,255,255,0.1)" }}
+                    />
+                  </div>
+                  {results.length > 0 && (
+                    <div className="mt-1 rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)", background: "#2a2a2a" }}>
+                      {results.map((m) => (
+                        <button key={m.id} onClick={() => setSelected(m)}
+                          className="w-full flex items-start gap-3 px-3 py-2.5 text-left active:bg-white/[0.06]">
+                          <div>
+                            <p className="text-sm font-semibold text-white">{toTitleCase(m.fullName)}</p>
+                            <p className="text-xs text-gray-500">{m.memberId} · {m.phone}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {searchLoading && <p className="text-xs text-gray-600 mt-2">Searching…</p>}
+                  {!searchLoading && query.length >= 2 && results.length === 0 && (
+                    <p className="text-xs text-gray-600 mt-2">No unlinked members found</p>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-between px-3 py-2.5 rounded-xl"
+                  style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                  <div>
+                    <p className="text-sm font-bold text-emerald-400">{toTitleCase(selected.fullName)}</p>
+                    <p className="text-xs text-gray-500">{selected.memberId}</p>
+                  </div>
+                  <button onClick={() => setSelected(null)} className="text-gray-600"><X className="h-4 w-4" /></button>
                 </div>
               )}
-              {loading && <p className="text-xs text-gray-600 mt-2">Searching…</p>}
-              {!loading && query.length >= 2 && results.length === 0 && (
-                <p className="text-xs text-gray-600 mt-2">No unlinked members found</p>
+            </div>
+            <div className="flex gap-3 px-5 py-4 flex-shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              <button onClick={() => confirmLink(null)} disabled={saving}
+                className="flex-1 py-3 rounded-2xl text-sm font-semibold disabled:opacity-50"
+                style={{ background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
+                Skip link →
+              </button>
+              <button onClick={() => confirmLink(selected!.id)} disabled={saving || !selected}
+                className="flex-1 py-3 rounded-2xl text-sm font-bold text-white disabled:opacity-40"
+                style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}>
+                {saving ? "Saving…" : "Next →"}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ── Step 2: Assign sale ── */}
+        {step === 2 && (
+          <>
+            <div className="px-5 py-4 flex-1 overflow-y-auto space-y-3">
+              <p className="text-xs text-gray-500">Which payment is for this sale? Assign it to the staff who closed it.</p>
+
+              {paymentsLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-6 h-6 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />
+                </div>
+              ) : payments.length === 0 ? (
+                <div className="flex flex-col items-center py-8 gap-2">
+                  <CreditCard className="h-8 w-8 text-gray-700" />
+                  <p className="text-xs text-gray-500">No payments found for this member yet</p>
+                </div>
+              ) : (
+                payments.map((p) => {
+                  const label = p.categoryLabel ?? p.package?.name ?? p.paymentType;
+                  const net   = Number(p.amount) - Number(p.discount);
+                  return (
+                    <div key={p.id} className="rounded-2xl p-4 space-y-3"
+                      style={{ background: "#242424", border: "1px solid rgba(255,255,255,0.06)" }}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-sm">{label}</p>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md"
+                              style={{ background: "rgba(255,255,255,0.06)", color: "#6b7280" }}>
+                              {p.paymentMode}
+                            </span>
+                            <span className="text-[10px] text-gray-600">
+                              {new Date(p.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                            </span>
+                            {p.receiptNumber && <span className="text-[10px] text-gray-600">#{p.receiptNumber}</span>}
+                          </div>
+                        </div>
+                        <p className="font-extrabold text-white flex-shrink-0">₹{net.toLocaleString("en-IN")}</p>
+                      </div>
+                      <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "0.75rem" }}>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Closed by</p>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={p.soldById ?? ""}
+                            onChange={(e) => assignSale(p.id, e.target.value)}
+                            className="flex-1 text-sm font-semibold rounded-xl px-3 py-2 outline-none"
+                            style={{
+                              background: "#2a2a2a",
+                              border: `1px solid ${p.soldById ? "rgba(16,185,129,0.3)" : "rgba(255,255,255,0.1)"}`,
+                              color: p.soldById ? "#34d399" : "#6b7280",
+                            }}>
+                            <option value="">— Unassigned —</option>
+                            {employees.map((emp) => (
+                              <option key={emp.id} value={emp.id}>{toTitleCase(emp.fullName)}</option>
+                            ))}
+                          </select>
+                          {p.soldBy && <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
-          ) : (
-            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl"
-              style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
-              <div>
-                <p className="text-sm font-bold text-emerald-400">{toTitleCase(selected.fullName)}</p>
-                <p className="text-xs text-gray-500">{selected.memberId}</p>
-              </div>
-              <button onClick={() => setSelected(null)} className="text-gray-600"><X className="h-4 w-4" /></button>
+            <div className="px-5 py-4 flex-shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              <button onClick={onClose}
+                className="w-full py-3 rounded-2xl text-sm font-bold text-white"
+                style={{ background: saleAssigned ? "linear-gradient(135deg, #10b981, #059669)" : "rgba(255,255,255,0.06)", color: saleAssigned ? "#fff" : "#9ca3af" }}>
+                {saleAssigned ? "Done ✓" : "Skip — Done"}
+              </button>
             </div>
-          )}
-        </div>
-
-        <div className="flex gap-3 px-5 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <button onClick={() => submit(null)} disabled={saving}
-            className="flex-1 py-3 rounded-2xl text-sm font-semibold disabled:opacity-50"
-            style={{ background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
-            Skip link
-          </button>
-          <button onClick={() => submit(selected?.id ?? null)} disabled={saving || !selected}
-            className="flex-1 py-3 rounded-2xl text-sm font-bold text-white disabled:opacity-40"
-            style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}>
-            {saving ? "Saving…" : "Confirm"}
-          </button>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -753,10 +879,10 @@ export default function StaffEnquiriesPage() {
         <ConvertModal
           enquiry={convertTarget}
           pin={pin}
+          employees={employees}
           onClose={() => setConvertTarget(null)}
           onDone={(updated) => {
             setEnquiries((prev) => prev.map((e) => e.id === updated.id ? updated : e));
-            setConvertTarget(null);
           }}
         />
       )}
