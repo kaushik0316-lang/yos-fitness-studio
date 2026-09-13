@@ -395,7 +395,6 @@ export default function StaffEnquiriesPage() {
   const [editing, setEditing]       = useState<Enquiry | null>(null);
   const [employees, setEmployees]   = useState<Employee[]>([]);
   const [convertTarget, setConvertTarget] = useState<Enquiry | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
   const [paymentsTarget, setPaymentsTarget] = useState<LinkedMember | null>(null);
 
   useEffect(() => {
@@ -494,7 +493,6 @@ export default function StaffEnquiriesPage() {
   }
 
   const monthTree = buildMonthTree(enquiries);
-  const [openYear, setOpenYear] = useState<string | null>(null);
 
   const q = search.toLowerCase();
   const filtered = enquiries
@@ -510,12 +508,6 @@ export default function StaffEnquiriesPage() {
     if (!e.followUpDate || e.status === "CONVERTED" || e.status === "LOST") return false;
     return daysUntil(e.followUpDate) <= 0;
   }).length;
-
-  const activeFilterCount = [
-    monthFilter !== "ALL",
-    staffFilter !== "ALL",
-    statusFilter !== "ALL",
-  ].filter(Boolean).length;
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#0a0a0a" }}>
@@ -538,22 +530,6 @@ export default function StaffEnquiriesPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowFilters((v) => !v)}
-            className="relative p-2 rounded-xl text-sm font-semibold"
-            style={{
-              background: showFilters ? "rgba(249,115,22,0.15)" : "#1c1c1c",
-              color: showFilters ? "#f97316" : "#9ca3af",
-            }}>
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" d="M3 6h18M6 12h12M9 18h6" />
-            </svg>
-            {activeFilterCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center"
-                style={{ background: "#f97316", color: "#fff" }}>
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
           <button onClick={() => setShowAdd(true)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold text-white"
             style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}>
@@ -577,119 +553,43 @@ export default function StaffEnquiriesPage() {
           </div>
         )}
 
-        {/* Filter panel */}
-        {showFilters && (
-          <div className="rounded-2xl p-4 space-y-3" style={{ background: "#1c1c1c", border: "1px solid rgba(255,255,255,0.06)" }}>
-
-            {/* Month filter — year → months two-level */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Month</p>
-              <div className="space-y-2">
-                <button onClick={() => { setMonthFilter("ALL"); setOpenYear(null); }}
-                  className="px-3 py-1.5 rounded-full text-xs font-bold"
-                  style={{
-                    background: monthFilter === "ALL" ? "rgba(249,115,22,0.15)" : "rgba(255,255,255,0.05)",
-                    color: monthFilter === "ALL" ? "#f97316" : "#6b7280",
-                  }}>
-                  All time
-                </button>
-                {monthTree.map(({ year, months }) => {
-                  const isOpen = openYear === year;
-                  const yearActive = monthFilter !== "ALL" && monthFilter.startsWith(year);
-                  return (
-                    <div key={year}>
-                      <button
-                        onClick={() => setOpenYear(isOpen ? null : year)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold w-auto"
-                        style={{
-                          background: yearActive ? "rgba(249,115,22,0.15)" : "rgba(255,255,255,0.05)",
-                          color: yearActive ? "#f97316" : "#9ca3af",
-                        }}>
-                        {year}
-                        <ChevronDown className={`h-3 w-3 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-                      </button>
-                      {isOpen && (
-                        <div className="flex flex-wrap gap-1.5 mt-1.5 pl-2">
-                          {months.map(({ value, label }) => (
-                            <button key={value} onClick={() => setMonthFilter(value)}
-                              className="px-3 py-1.5 rounded-full text-xs font-bold"
-                              style={{
-                                background: monthFilter === value ? "rgba(249,115,22,0.15)" : "rgba(255,255,255,0.05)",
-                                color: monthFilter === value ? "#f97316" : "#6b7280",
-                              }}>
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Staff filter */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Staff</p>
-              <div className="flex flex-wrap gap-1.5">
-                <button onClick={() => setStaffFilter("ALL")}
-                  className="px-3 py-1.5 rounded-full text-xs font-bold"
-                  style={{
-                    background: staffFilter === "ALL" ? "rgba(249,115,22,0.15)" : "rgba(255,255,255,0.05)",
-                    color: staffFilter === "ALL" ? "#f97316" : "#6b7280",
-                  }}>
-                  Everyone
-                </button>
-                {employees.map((emp) => (
-                  <button key={emp.id} onClick={() => setStaffFilter(emp.id)}
-                    className="px-3 py-1.5 rounded-full text-xs font-bold"
-                    style={{
-                      background: staffFilter === emp.id ? "rgba(249,115,22,0.15)" : "rgba(255,255,255,0.05)",
-                      color: staffFilter === emp.id ? "#f97316" : "#6b7280",
-                    }}>
-                    {toTitleCase(emp.fullName)}
-                  </button>
+        {/* Filters */}
+        <div className="flex gap-2">
+          <select
+            value={monthFilter}
+            onChange={(e) => setMonthFilter(e.target.value)}
+            className="flex-1 py-2 px-3 rounded-xl text-xs font-semibold outline-none appearance-none"
+            style={{ background: "#1c1c1c", color: monthFilter === "ALL" ? "#6b7280" : "#f97316", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <option value="ALL">All time</option>
+            {monthTree.map(({ year, months }) => (
+              <optgroup key={year} label={year}>
+                {months.map(({ value, label }) => (
+                  <option key={value} value={value}>{label}</option>
                 ))}
-              </div>
-            </div>
-
-            {/* Status filter */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Status</p>
-              <div className="flex flex-wrap gap-1.5">
-                <button onClick={() => setFilter("ALL")}
-                  className="px-3 py-1.5 rounded-full text-xs font-bold"
-                  style={{
-                    background: statusFilter === "ALL" ? "rgba(249,115,22,0.15)" : "rgba(255,255,255,0.05)",
-                    color: statusFilter === "ALL" ? "#f97316" : "#6b7280",
-                  }}>
-                  All ({counts.ALL})
-                </button>
-                {STATUSES.map((s) => {
-                  const cfg = STATUS_CONFIG[s];
-                  return (
-                    <button key={s} onClick={() => setFilter(s)}
-                      className="px-3 py-1.5 rounded-full text-xs font-bold"
-                      style={{
-                        background: statusFilter === s ? cfg.bg : "rgba(255,255,255,0.05)",
-                        color: statusFilter === s ? cfg.color : "#6b7280",
-                      }}>
-                      {cfg.label} ({counts[s] ?? 0})
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {activeFilterCount > 0 && (
-              <button
-                onClick={() => { setMonthFilter("ALL"); setStaffFilter("ALL"); setFilter("ALL"); }}
-                className="text-xs font-bold text-gray-500 hover:text-white transition-colors">
-                Clear all filters
-              </button>
-            )}
-          </div>
-        )}
+              </optgroup>
+            ))}
+          </select>
+          <select
+            value={staffFilter}
+            onChange={(e) => setStaffFilter(e.target.value)}
+            className="flex-1 py-2 px-3 rounded-xl text-xs font-semibold outline-none appearance-none"
+            style={{ background: "#1c1c1c", color: staffFilter === "ALL" ? "#6b7280" : "#f97316", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <option value="ALL">Everyone</option>
+            {employees.map((emp) => (
+              <option key={emp.id} value={emp.id}>{toTitleCase(emp.fullName)}</option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="flex-1 py-2 px-3 rounded-xl text-xs font-semibold outline-none appearance-none"
+            style={{ background: "#1c1c1c", color: statusFilter === "ALL" ? "#6b7280" : "#f97316", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <option value="ALL">All ({counts.ALL})</option>
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>{STATUS_CONFIG[s].label} ({counts[s] ?? 0})</option>
+            ))}
+          </select>
+        </div>
 
         {/* Search */}
         <div className="relative">
@@ -707,29 +607,6 @@ export default function StaffEnquiriesPage() {
             </button>
           )}
         </div>
-
-        {/* Quick status pills (compact, only when filter panel is hidden) */}
-        {!showFilters && (
-          <div className="flex flex-wrap gap-2">
-            {[{ key: "ALL", label: `All (${counts.ALL})` }, ...STATUSES.map((s) => ({
-              key: s, label: `${STATUS_CONFIG[s].label} (${counts[s] ?? 0})`
-            }))].map(({ key, label }) => {
-              const cfg = STATUS_CONFIG[key];
-              const isActive = statusFilter === key;
-              return (
-                <button key={key} onClick={() => setFilter(key)}
-                  className="px-3 py-1.5 rounded-full text-xs font-bold transition-all"
-                  style={{
-                    background: isActive ? (cfg?.bg ?? "rgba(249,115,22,0.15)") : "#1c1c1c",
-                    color: isActive ? (cfg?.color ?? "#fb923c") : "#6b7280",
-                    border: `1px solid ${isActive ? (cfg?.dot ?? "#f97316") + "60" : "transparent"}`,
-                  }}>
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        )}
 
         {/* List */}
         {loading ? (
