@@ -2,9 +2,36 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { getActiveProvider } from "@/lib/messaging/provider";
-import { MessageChannel, MessageStatus } from "@prisma/client";
+import { MessageChannel, MessageStatus, MemberStatus } from "@prisma/client";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { format } from "date-fns";
+
+// GET /api/outreach — active members sorted by lastAttendanceDate asc
+export async function GET() {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const members = await prisma.member.findMany({
+    where: { status: MemberStatus.ACTIVE },
+    select: {
+      id: true, memberId: true, fullName: true, phone: true, whatsapp: true,
+      expiryDate: true, lastAttendanceDate: true, doNotDisturb: true,
+      trainer: { select: { fullName: true } },
+      memberships: { orderBy: { expiryDate: "desc" }, take: 1, select: { package: { select: { name: true } } } },
+    },
+    orderBy: { lastAttendanceDate: "asc" },
+  });
+
+  return NextResponse.json(members.map(m => ({
+    id: m.id, memberId: m.memberId, fullName: m.fullName,
+    phone: m.phone, whatsapp: m.whatsapp,
+    expiryDate: m.expiryDate?.toISOString() ?? null,
+    lastAttendanceDate: m.lastAttendanceDate?.toISOString() ?? null,
+    doNotDisturb: m.doNotDisturb,
+    trainerName: m.trainer?.fullName ?? null,
+    packageName: m.memberships[0]?.package?.name ?? null,
+  })));
+}
 
 function cleanPhone(p: string) { return p.replace(/[\s\-().]/g, ""); }
 

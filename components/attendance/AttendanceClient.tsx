@@ -4,8 +4,9 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search, CheckCircle2, Clock, CalendarCheck, ChevronLeft, ChevronRight,
-  LogOut, Dumbbell, Users, Timer, TrendingUp, Calendar, Pencil,
+  LogOut, Dumbbell, Users, Timer, TrendingUp, Calendar, Pencil, Send,
 } from "lucide-react";
+import { OutreachClient } from "@/components/members/OutreachClient";
 import Link from "next/link";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import { ManualAttendanceDialog } from "@/components/attendance/ManualAttendanceDialog";
@@ -96,7 +97,9 @@ export function AttendanceClient({
   selectedDate, isToday, weekVisitsMap, streakMap,
 }: Props) {
   const router = useRouter();
-  const [activeTab, setActiveTab]       = useState<"inGym" | "visited" | "pending">("inGym");
+  const [activeTab, setActiveTab]       = useState<"inGym" | "visited" | "pending" | "outreach">("inGym");
+  const [outreachMembers, setOutreachMembers] = useState<any[] | null>(null);
+  const [outreachLoading, setOutreachLoading] = useState(false);
   const [search, setSearch]             = useState("");
   const [markFor, setMarkFor]           = useState<Member | null>(null);
   const [manualOpen, setManualOpen]     = useState(false);
@@ -118,6 +121,18 @@ export function AttendanceClient({
       .then((data) => { if (Array.isArray(data)) setNotCheckedIn(data); })
       .finally(() => setPendingLoading(false));
   }, [activeTab, selectedDate]);
+
+  const outreachFetched = useRef(false);
+  useEffect(() => {
+    if (activeTab !== "outreach") return;
+    if (outreachFetched.current) return;
+    outreachFetched.current = true;
+    setOutreachLoading(true);
+    fetch("/api/outreach")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setOutreachMembers(data); })
+      .finally(() => setOutreachLoading(false));
+  }, [activeTab]);
 
   const inGym    = useMemo(() => todayAttendance.filter((a) => !a.checkOutTime), [todayAttendance]);
   const visited  = todayAttendance;
@@ -347,9 +362,10 @@ export function AttendanceClient({
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="flex gap-1 rounded-xl p-1" style={{ background: "rgba(255,255,255,0.05)" }}>
               {([
-                { key: "inGym"   as const, label: `In Gym`, count: inGym.length,           accent: "#10b981" },
-                { key: "visited" as const, label: `Visited`, count: todayAttendance.length, accent: "#a855f7" },
-                { key: "pending" as const, label: `Pending`, count: totalActive - todayAttendance.length, accent: "#f97316" },
+                { key: "inGym"    as const, label: `In Gym`,  count: inGym.length,                          accent: "#10b981" },
+                { key: "visited"  as const, label: `Visited`, count: todayAttendance.length,                accent: "#a855f7" },
+                { key: "pending"  as const, label: `Pending`, count: totalActive - todayAttendance.length, accent: "#f97316" },
+                { key: "outreach" as const, label: `Outreach`, count: null,                                accent: "#f97316" },
               ]).map((tab) => (
                 <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
@@ -357,12 +373,14 @@ export function AttendanceClient({
                     ? { background: tab.accent, color: "#fff" }
                     : { color: "#6b7280" }}>
                   {tab.label}
-                  <span className="text-[10px] font-extrabold px-1 py-0.5 rounded-md"
-                    style={activeTab === tab.key
-                      ? { background: "rgba(0,0,0,0.2)", color: "#fff" }
-                      : { background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
-                    {tab.count}
-                  </span>
+                  {tab.count !== null && (
+                    <span className="text-[10px] font-extrabold px-1 py-0.5 rounded-md"
+                      style={activeTab === tab.key
+                        ? { background: "rgba(0,0,0,0.2)", color: "#fff" }
+                        : { background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
+                      {tab.count}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -627,6 +645,20 @@ export function AttendanceClient({
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* ── Outreach ── */}
+        {activeTab === "outreach" && (
+          <div className="p-4">
+            {outreachLoading ? (
+              <div className="flex items-center justify-center py-12 gap-3 text-gray-500 text-sm">
+                <div className="w-4 h-4 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />
+                Loading members…
+              </div>
+            ) : (
+              <OutreachClient members={outreachMembers ?? []} />
+            )}
           </div>
         )}
 

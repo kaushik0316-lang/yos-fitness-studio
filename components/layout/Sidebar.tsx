@@ -6,7 +6,7 @@ import { signOut } from "next-auth/react";
 import {
   Users, CalendarCheck, RotateCcw, CreditCard,
   ClipboardList, DollarSign, BarChart3,
-  Settings, LogOut, Wrench, FileUp, UserSearch, TrendingUp, Trophy, Search, MessageSquare, Megaphone, Send,
+  Settings, LogOut, Wrench, FileUp, UserSearch, TrendingUp, Trophy, Search, MessageSquare, Megaphone,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -20,8 +20,7 @@ const navGroups = [
       { label: "Challenge",        href: "/challenge",          icon: Trophy,        roles: ["ADMIN", "FRONT_DESK", "TRAINER"] },
       { label: "Enquiries",        href: "/enquiries",          icon: UserSearch,    roles: ["ADMIN", "FRONT_DESK", "TRAINER"] },
       { label: "Attendance",       href: "/attendance",         icon: CalendarCheck, roles: ["ADMIN", "FRONT_DESK", "TRAINER"] },
-      { label: "Outreach",          href: "/outreach",           icon: Send,          roles: ["ADMIN", "FRONT_DESK"] },
-      { label: "Renewals",         href: "/renewals",           icon: RotateCcw,     roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
+{ label: "Renewals",         href: "/renewals",           icon: RotateCcw,     roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
       { label: "Payments",         href: "/payments",           icon: CreditCard,    roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
       { label: "Overview",         href: "/staff-tools",        icon: Wrench,        roles: ["ADMIN", "FRONT_DESK"] },
     ],
