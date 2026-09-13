@@ -78,6 +78,10 @@ function buildMonthTree(enquiries: Enquiry[]) {
     .map(([year, months]) => ({ year, months }));
 }
 
+function stripTag(notes: string | null) {
+  return notes?.replace(/\s*\[prev_status:[A-Z_]+\]/, "").trim() || null;
+}
+
 function enquiryMonth(e: Enquiry) {
   const d = new Date(e.createdAt);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -143,6 +147,7 @@ function ConvertModal({ enquiry, pin, employees, onClose, onDone }: {
   const [selected, setSelected] = useState<{ id: string; memberId: string; fullName: string } | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [saving, setSaving]     = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [linkedEnquiry, setLinkedEnquiry] = useState<Enquiry | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
@@ -166,31 +171,45 @@ function ConvertModal({ enquiry, pin, employees, onClose, onDone }: {
     return () => clearTimeout(timerRef.current);
   }, [query, pin]);
 
-  // Step 1 confirm: save the link, then move to step 2
-  async function confirmLink(memberId: string | null) {
+  // Step 1 confirm: save the link, then move to step 2. Returns true on success.
+  async function confirmLink(memberId: string | null): Promise<boolean> {
     setSaving(true);
-    const res = await fetch("/api/staff/enquiries", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pin, action: "convert", enquiryId: enquiry.id, memberId }),
-    });
-    if (res.ok) {
+    setSaveError(null);
+    try {
+      const res = await fetch("/api/staff/enquiries", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin, action: "convert", enquiryId: enquiry.id, memberId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setSaveError(err.error ?? "Failed to save. Please try again.");
+        return false;
+      }
       const { enquiry: updated } = await res.json();
-      setLinkedEnquiry(updated); // hold update — only push to card on final close
+      setLinkedEnquiry(updated);
       if (memberId) {
         setPaymentsLoading(true);
-        const pr = await fetch(`/api/staff/members/${memberId}/payments?pin=${encodeURIComponent(pin)}`);
+        const pr = await fetch(`/api/staff/members/${memberId}/payments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin }),
+        });
         if (pr.ok) setPayments(await pr.json());
         setPaymentsLoading(false);
         setStep(2);
       }
-      // if no member linked, finish() is called by the Skip button directly
+      return true;
+    } catch {
+      setSaveError("Network error. Please try again.");
+      return false;
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function assignSale(paymentId: string, soldById: string) {
-    const memberId = selected?.id ?? linkedEnquiry?.member?.id;
+    const memberId = linkedEnquiry?.member?.id;
     if (!memberId) return;
     const res = await fetch(`/api/staff/members/${memberId}/payments`, {
       method: "PATCH",
@@ -246,6 +265,12 @@ function ConvertModal({ enquiry, pin, employees, onClose, onDone }: {
         {step === 1 && (
           <>
             <div className="px-5 py-4 space-y-3 flex-1 overflow-y-auto">
+              {saveError && (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-red-400"
+                  style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                  <X className="h-3.5 w-3.5 flex-shrink-0" /> {saveError}
+                </div>
+              )}
               <p className="text-xs text-gray-500">Search the member record they created after joining:</p>
               {!selected ? (
                 <div>
@@ -290,7 +315,7 @@ function ConvertModal({ enquiry, pin, employees, onClose, onDone }: {
               )}
             </div>
             <div className="flex gap-3 px-5 py-4 flex-shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-              <button onClick={async () => { await confirmLink(null); finish(); }} disabled={saving}
+              <button onClick={async () => { const ok = await confirmLink(null); if (ok) finish(); }} disabled={saving}
                 className="flex-1 py-3 rounded-2xl text-sm font-semibold disabled:opacity-50"
                 style={{ background: "rgba(255,255,255,0.06)", color: "#9ca3af" }}>
                 Skip
@@ -424,12 +449,11 @@ export default function StaffEnquiriesPage() {
     // Fix 6: no-op if already on that status
     if (enq?.status === status) return;
     if (status === "CONVERTED") {
-      // Open convert modal if not already linked
-      if (!enq?.member) {
-        setConvertTarget(enq!);
-        return;
-      }
-      // Already linked — just update status, skip modal
+      // Already CONVERTED — no-op regardless of member link
+      if (enq?.status === "CONVERTED") return;
+      // Open convert modal to link member
+      setConvertTarget(enq!);
+      return;
     }
     const res = await fetch("/api/staff/enquiries", {
       method: "PATCH",
@@ -494,15 +518,18 @@ export default function StaffEnquiriesPage() {
 
   const monthTree = buildMonthTree(enquiries);
 
-  const q = search.toLowerCase();
-  const filtered = enquiries
-    .filter((e) => statusFilter === "ALL" || e.status === statusFilter)
+  // Pre-filter by month + staff; counts and final list both derive from this
+  const preFiltered = enquiries
     .filter((e) => monthFilter === "ALL" || enquiryMonth(e) === monthFilter)
-    .filter((e) => staffFilter === "ALL" || e.assignedTo?.id === staffFilter)
-    .filter((e) => !q || e.name.toLowerCase().includes(q) || e.phone.includes(q) || (e.interest ?? "").toLowerCase().includes(q));
+    .filter((e) => staffFilter === "ALL" || e.assignedTo?.id === staffFilter);
 
-  const counts: Record<string, number> = { ALL: enquiries.length };
-  for (const s of STATUSES) counts[s] = enquiries.filter((e) => e.status === s).length;
+  const counts: Record<string, number> = { ALL: preFiltered.length };
+  for (const s of STATUSES) counts[s] = preFiltered.filter((e) => e.status === s).length;
+
+  const q = search.toLowerCase();
+  const filtered = preFiltered
+    .filter((e) => statusFilter === "ALL" || e.status === statusFilter)
+    .filter((e) => !q || e.name.toLowerCase().includes(q) || e.phone.includes(q) || (e.interest ?? "").toLowerCase().includes(q));
 
   const overdueCount = enquiries.filter((e) => {
     if (!e.followUpDate || e.status === "CONVERTED" || e.status === "LOST") return false;
@@ -710,10 +737,10 @@ export default function StaffEnquiriesPage() {
                   )}
 
                   {/* Notes */}
-                  {e.notes && (
+                  {stripTag(e.notes) && (
                     <p className="text-xs text-gray-500 flex items-start gap-1.5">
                       <StickyNote className="h-3 w-3 flex-shrink-0 mt-0.5 text-gray-700" />
-                      {e.notes}
+                      {stripTag(e.notes)}
                     </p>
                   )}
 
@@ -824,7 +851,11 @@ function MemberPaymentsSheet({ member, pin, employees, onClose }: {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const res = await fetch(`/api/staff/members/${member.id}/payments?pin=${encodeURIComponent(pin)}`);
+      const res = await fetch(`/api/staff/members/${member.id}/payments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
       if (res.ok) setPayments(await res.json());
       setLoading(false);
     })();
@@ -1074,7 +1105,7 @@ function EnquiryModal({ title, initial, employees, defaultAssignedToId, onClose,
             </div>
             <div>
               <label style={lbl}>Notes</label>
-              <textarea name="notes" rows={3} defaultValue={initial?.notes ?? ""}
+              <textarea name="notes" rows={3} defaultValue={stripTag(initial?.notes ?? null) ?? ""}
                 placeholder="Details about the enquiry…"
                 style={{ ...inp, resize: "none" }} />
             </div>

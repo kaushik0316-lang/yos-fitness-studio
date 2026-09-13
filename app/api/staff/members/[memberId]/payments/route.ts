@@ -6,14 +6,24 @@ async function verifyPin(pin: string) {
   return prisma.employee.findUnique({ where: { pin }, select: { id: true } });
 }
 
-// GET /api/staff/members/[memberId]/payments?pin=xxxx
+// POST /api/staff/members/[memberId]/payments — list payments (PIN in body, not URL)
 export async function GET(req: NextRequest, { params }: { params: { memberId: string } }) {
+  // Legacy: still accept GET for backward compat, but POST is preferred
   const pin = req.nextUrl.searchParams.get("pin") ?? "";
+  return fetchPayments(pin, params.memberId);
+}
+
+export async function POST(req: NextRequest, { params }: { params: { memberId: string } }) {
+  const body = await req.json();
+  return fetchPayments(body.pin ?? "", params.memberId);
+}
+
+async function fetchPayments(pin: string, memberId: string) {
   const employee = await verifyPin(pin);
   if (!employee) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const payments = await prisma.payment.findMany({
-    where: { memberId: params.memberId, isVoided: false },
+    where: { memberId, isVoided: false },
     select: {
       id: true,
       date: true,
