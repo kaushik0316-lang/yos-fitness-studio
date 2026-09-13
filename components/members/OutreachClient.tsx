@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { formatDistanceToNow, format } from "date-fns";
-import { Send, CheckSquare, Square, MessageCircle, Users, AlertCircle, CheckCircle2, XCircle, Search } from "lucide-react";
+import { Send, CheckSquare, Square, Users, AlertCircle, CheckCircle2, XCircle, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { toast } from "@/hooks/use-toast";
@@ -14,11 +14,8 @@ type Member = {
   doNotDisturb: boolean; trainerName: string | null; packageName: string | null;
 };
 
-const INACTIVE_TEMPLATE =
-  `Hi {name}! 👋\n\nWe miss you at Yos Fitness Studio! It's been a while since your last visit.\n\nYour membership is active till {expiry} — don't let it go to waste! 💪\n\nCome in this week, {trainer} is waiting for you. See you soon!`;
-
-const REMINDER_TEMPLATE =
-  `Hi {name}! 🙏\n\nA quick reminder — please make sure to scan IN when you arrive and OUT when you leave at our kiosk.\n\nThis helps us track your attendance and plan your sessions better.\n\nSee you at the gym! 💪 — Yos Fitness Studio`;
+const DEFAULT_TEMPLATE =
+  `Hi {name}! 👋\n\nWe miss you at Yos Fitness Studio — come in this week! 💪\n\nAlso a quick reminder: please remember to scan IN when you arrive and OUT when you leave at our kiosk. This helps us track your sessions properly.\n\nSee you soon! 🙏 — Yos Fitness Studio`;
 
 type ResultRow = { memberId: string; name: string; status: "sent" | "failed" | "skipped"; error?: string };
 
@@ -76,36 +73,25 @@ function MemberRow({ m, checked, onToggle }: { m: Member; checked: boolean; onTo
   );
 }
 
-export function OutreachClient({ inactive, regular }: { inactive: Member[]; regular: Member[] }) {
-  const [tab, setTab] = useState<"inactive" | "regular">("inactive");
+export function OutreachClient({ members }: { members: Member[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [message, setMessage] = useState(INACTIVE_TEMPLATE);
+  const [message, setMessage] = useState(DEFAULT_TEMPLATE);
   const [sending, setSending] = useState(false);
   const [results, setResults] = useState<ResultRow[] | null>(null);
   const [q, setQ] = useState("");
 
-  const list = tab === "inactive" ? inactive : regular;
   const filtered = useMemo(() => {
-    if (!q.trim()) return list;
+    if (!q.trim()) return members;
     const lq = q.toLowerCase();
-    return list.filter(m =>
+    return members.filter(m =>
       m.fullName.toLowerCase().includes(lq) ||
       m.memberId.toLowerCase().includes(lq) ||
       (m.phone ?? "").includes(lq)
     );
-  }, [list, q]);
+  }, [members, q]);
 
   const eligible = filtered.filter(m => !m.doNotDisturb && !!(m.whatsapp ?? m.phone));
-  const selectedInList = filtered.filter(m => selected.has(m.id));
   const allSelected = eligible.length > 0 && eligible.every(m => selected.has(m.id));
-
-  function toggleTab(t: "inactive" | "regular") {
-    setTab(t);
-    setSelected(new Set());
-    setMessage(t === "inactive" ? INACTIVE_TEMPLATE : REMINDER_TEMPLATE);
-    setResults(null);
-    setQ("");
-  }
 
   function toggleAll() {
     if (allSelected) {
@@ -120,12 +106,12 @@ export function OutreachClient({ inactive, regular }: { inactive: Member[]; regu
   }
 
   const preview = useMemo(() => {
-    const first = list.find(m => selected.has(m.id)) ?? list[0] ?? null;
+    const first = members.find(m => selected.has(m.id)) ?? members[0] ?? null;
     return interpolatePreview(message, first);
-  }, [message, selected, list]);
+  }, [message, selected, members]);
 
   async function send() {
-    const ids = list.filter(m => selected.has(m.id)).map(m => m.id);
+    const ids = members.filter(m => selected.has(m.id)).map(m => m.id);
     if (!ids.length || !message.trim()) return;
     setSending(true); setResults(null);
     try {
@@ -147,33 +133,8 @@ export function OutreachClient({ inactive, regular }: { inactive: Member[]; regu
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5 h-full">
       {/* LEFT — member list */}
       <div className="flex flex-col gap-4 min-h-0">
-        {/* Tabs */}
-        <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: "rgba(255,255,255,0.05)" }}>
-          {([
-            { key: "inactive", label: "Come Back", count: inactive.length, icon: AlertCircle },
-            { key: "regular",  label: "Check-in Reminder", count: regular.length, icon: MessageCircle },
-          ] as const).map(({ key, label, count, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => toggleTab(key)}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all",
-                tab === key ? "bg-orange-500 text-white shadow-lg" : "text-gray-500 hover:text-gray-300"
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-              <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-bold", tab === key ? "bg-white/20 text-white" : "bg-white/8 text-gray-500")}>
-                {count}
-              </span>
-            </button>
-          ))}
-        </div>
-
         <p className="text-[11px] text-gray-600">
-          {tab === "inactive"
-            ? "Active members who haven't checked in for 7+ days. Select and send a message to bring them back."
-            : "Active members who attended in the last 30 days. Remind them to check in and out properly."}
+          Active members with a package. Select who to message — sorted by last check-in (least recent first).
         </p>
 
         {/* Search + select all */}
@@ -200,7 +161,7 @@ export function OutreachClient({ inactive, regular }: { inactive: Member[]; regu
           {filtered.length === 0 ? (
             <div className="rounded-2xl p-10 text-center" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
               <Users className="h-8 w-8 text-gray-700 mx-auto mb-2" />
-              <p className="text-gray-600 text-sm">{q ? "No matches" : "No members in this segment"}</p>
+              <p className="text-gray-600 text-sm">{q ? "No matches" : "No active members"}</p>
             </div>
           ) : (
             filtered.map(m => (
@@ -239,7 +200,7 @@ export function OutreachClient({ inactive, regular }: { inactive: Member[]; regu
         <div className="rounded-2xl p-4 flex flex-col gap-3" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Message</p>
-            <span className="text-[10px] text-gray-700">Use {"{name}"} {"{expiry}"} {"{trainer}"}</span>
+            <span className="text-[10px] text-gray-700">Use {"{name}"}</span>
           </div>
           <textarea
             value={message}
@@ -253,7 +214,9 @@ export function OutreachClient({ inactive, regular }: { inactive: Member[]; regu
 
         {/* Preview */}
         <div className="rounded-2xl p-4" style={{ background: "rgba(249,115,22,0.04)", border: "1px solid rgba(249,115,22,0.12)" }}>
-          <p className="text-[10px] font-bold text-orange-500 uppercase tracking-wider mb-2">Preview — {list[0] ? toTitleCase(list.find(m => selected.has(m.id))?.fullName ?? list[0].fullName) : "member"}</p>
+          <p className="text-[10px] font-bold text-orange-500 uppercase tracking-wider mb-2">
+            Preview — {toTitleCase(members.find(m => selected.has(m.id))?.fullName ?? members[0]?.fullName ?? "member")}
+          </p>
           <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{preview}</p>
         </div>
 
