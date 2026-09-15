@@ -409,32 +409,34 @@ export default function StaffDashboardPage() {
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col rounded-3xl overflow-hidden" style={{ background: "#1c1c1c" }}>
             <Link href="/staff-dashboard/new-receipt"
-              className="flex flex-col gap-3 p-5 transition-opacity active:opacity-70 flex-1"
+              className="flex items-center gap-3 px-4 py-4 transition-opacity active:opacity-70 flex-1"
               style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: "rgba(249,115,22,0.15)" }}>
-                <Receipt className="h-5 w-5" style={{ color: "#f97316" }} />
+                <Receipt className="h-4.5 w-4.5 h-[18px] w-[18px]" style={{ color: "#f97316" }} />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-white font-bold text-sm">New Receipt</p>
-                <p className="text-xs mt-0.5" style={{ color: "#6b7280" }}>Record a payment</p>
+                <p className="text-xs" style={{ color: "#6b7280" }}>Record a payment</p>
               </div>
+              <ChevronRight className="h-4 w-4 flex-shrink-0" style={{ color: "#374151" }} />
             </Link>
             <Link href="/staff-dashboard/members"
-              className="flex flex-col gap-3 p-5 transition-opacity active:opacity-70 flex-1">
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
+              className="flex items-center gap-3 px-4 py-4 transition-opacity active:opacity-70 flex-1">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: "rgba(139,92,246,0.15)" }}>
-                <UserPlus className="h-5 w-5" style={{ color: "#a78bfa" }} />
+                <UserPlus className="h-[18px] w-[18px]" style={{ color: "#a78bfa" }} />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-white font-bold text-sm">New Enquiry</p>
-                <p className="text-xs mt-0.5" style={{ color: "#6b7280" }}>Add a lead</p>
+                <p className="text-xs" style={{ color: "#6b7280" }}>Add a lead</p>
               </div>
+              <ChevronRight className="h-4 w-4 flex-shrink-0" style={{ color: "#374151" }} />
             </Link>
           </div>
 
           <Link href="/my-attendance"
-            className="flex flex-col gap-3 rounded-3xl p-5 transition-opacity active:opacity-70"
+            className="flex flex-col gap-3 rounded-3xl p-5 transition-opacity active:opacity-70 h-full"
             style={{ background: "#1c1c1c" }}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
               style={{ background: "rgba(59,130,246,0.15)" }}>
