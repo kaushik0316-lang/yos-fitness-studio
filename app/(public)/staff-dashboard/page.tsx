@@ -18,6 +18,9 @@ interface EmployeeData {
 }
 interface Shift { checkInTime: string; checkOutTime: string | null; }
 interface AttendanceData { status: string; shifts: Shift[]; }
+interface MemberSummary {
+  id: string; memberId: string; fullName: string; phone: string; expiryDate: string | null;
+}
 
 const TOTAL_DIGITS = 4;
 const NUMPAD_KEYS = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
@@ -40,8 +43,11 @@ export default function StaffDashboardPage() {
   const [phase, setPhase]           = useState<Phase>("input");
   const [pin, setPin]               = useState("");
   const [errorMsg, setErrorMsg]     = useState("");
-  const [employee, setEmployee]     = useState<EmployeeData | null>(null);
-  const [attendance, setAttendance] = useState<AttendanceData | null>(null);
+  const [employee, setEmployee]         = useState<EmployeeData | null>(null);
+  const [attendance, setAttendance]     = useState<AttendanceData | null>(null);
+  const [expiredRecently, setExpiredRecently] = useState<MemberSummary[]>([]);
+  const [expiringSoon, setExpiringSoon]       = useState<MemberSummary[]>([]);
+  const [renewalTab, setRenewalTab]           = useState<"soon" | "expired">("soon");
   const [copied, setCopied]         = useState(false);
   const [shaking, setShaking]       = useState(false);
   const submittingRef               = useRef(false);
@@ -61,6 +67,8 @@ export default function StaffDashboardPage() {
           if (data.employee) {
             setEmployee(data.employee);
             setAttendance(data.todayAttendance);
+            setExpiredRecently(data.expiredRecently ?? []);
+            setExpiringSoon(data.expiringSoon ?? []);
             setPin(stored);
             setPhase("dashboard");
           } else {
@@ -96,6 +104,8 @@ export default function StaffDashboardPage() {
       }
       setEmployee(data.employee);
       setAttendance(data.todayAttendance);
+      setExpiredRecently(data.expiredRecently ?? []);
+      setExpiringSoon(data.expiringSoon ?? []);
       setPin(enteredPin);
       sessionStorage.setItem("staff_pin", enteredPin);
       setPhase("dashboard");
@@ -439,6 +449,74 @@ export default function StaffDashboardPage() {
             <ChevronRight className="h-4 w-4 flex-shrink-0" style={{ color: "#374151" }} />
           </Link>
         </div>
+
+        {/* Membership Alerts */}
+        {(expiringSoon.length > 0 || expiredRecently.length > 0) && (
+          <div className="rounded-3xl p-5" style={{ background: "#1c1c1c" }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: "#4b5563" }}>
+              Membership Alerts
+            </p>
+
+            {/* Tab strip */}
+            <div className="flex gap-1 rounded-xl p-1 mb-4" style={{ background: "#111" }}>
+              <button
+                onClick={() => setRenewalTab("soon")}
+                className="flex-1 py-2 rounded-lg text-xs font-bold transition-all"
+                style={renewalTab === "soon"
+                  ? { background: "#f97316", color: "#fff" }
+                  : { color: "#6b7280" }}>
+                Expiring Soon ({expiringSoon.length})
+              </button>
+              <button
+                onClick={() => setRenewalTab("expired")}
+                className="flex-1 py-2 rounded-lg text-xs font-bold transition-all"
+                style={renewalTab === "expired"
+                  ? { background: "#ef4444", color: "#fff" }
+                  : { color: "#6b7280" }}>
+                Expired ({expiredRecently.length})
+              </button>
+            </div>
+
+            {/* List */}
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {(renewalTab === "soon" ? expiringSoon : expiredRecently).map(m => {
+                const expDate = m.expiryDate ? new Date(m.expiryDate) : null;
+                const daysLeft = expDate
+                  ? Math.round((expDate.getTime() - Date.now()) / 86400000)
+                  : null;
+                const phone = m.phone.replace(/\D/g, "").slice(-10);
+                const expired = renewalTab === "expired";
+                return (
+                  <div key={m.id} className="flex items-center gap-3 rounded-2xl px-3 py-2.5"
+                    style={{ background: "#111" }}>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-semibold truncate">{m.fullName}</p>
+                      <p className="text-[11px] mt-0.5" style={{ color: "#6b7280" }}>
+                        {m.memberId} · {expDate ? expDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}
+                        {daysLeft !== null && (
+                          <span className="ml-1 font-bold" style={{ color: expired ? "#f87171" : daysLeft <= 3 ? "#fb923c" : "#facc15" }}>
+                            {expired ? `${Math.abs(daysLeft)}d ago` : daysLeft === 0 ? "today" : `${daysLeft}d left`}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    {phone && (
+                      <a href={`tel:${phone}`}
+                        onClick={e => e.stopPropagation()}
+                        className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-colors"
+                        style={{ background: "rgba(249,115,22,0.12)", color: "#f97316" }}>
+                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+              {(renewalTab === "soon" ? expiringSoon : expiredRecently).length === 0 && (
+                <p className="text-center text-xs py-4" style={{ color: "#4b5563" }}>None right now</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Registration Form */}
         <div className="rounded-3xl p-5" style={{ background: "#1c1c1c" }}>

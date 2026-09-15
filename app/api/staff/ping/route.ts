@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { startOfDay } from "date-fns";
+import { startOfDay, subDays, addDays } from "date-fns";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
@@ -32,6 +32,36 @@ export async function POST(req: NextRequest) {
     include: { shifts: { orderBy: { shiftIndex: "asc" } } },
   });
 
+  const now = new Date();
+  const todayStart = startOfDay(now);
+  const past30 = subDays(todayStart, 30);
+  const future30 = addDays(todayStart, 30);
+
+  const [expiredRecently, expiringSoon] = await Promise.all([
+    // Expired in last 30 days
+    prisma.member.findMany({
+      where: {
+        status: { not: "PROSPECT" },
+        NOT: { memberId: { startsWith: "IMP-" } },
+        expiryDate: { gte: past30, lt: todayStart },
+      },
+      select: { id: true, memberId: true, fullName: true, phone: true, expiryDate: true },
+      orderBy: { expiryDate: "desc" },
+      take: 50,
+    }),
+    // Expiring in next 30 days
+    prisma.member.findMany({
+      where: {
+        status: "ACTIVE",
+        NOT: { memberId: { startsWith: "IMP-" } },
+        expiryDate: { gte: todayStart, lte: future30 },
+      },
+      select: { id: true, memberId: true, fullName: true, phone: true, expiryDate: true },
+      orderBy: { expiryDate: "asc" },
+      take: 50,
+    }),
+  ]);
+
   return NextResponse.json({
     employee: {
       id: employee.id,
@@ -48,5 +78,13 @@ export async function POST(req: NextRequest) {
           })),
         }
       : null,
+    expiredRecently: expiredRecently.map(m => ({
+      id: m.id, memberId: m.memberId, fullName: m.fullName, phone: m.phone,
+      expiryDate: m.expiryDate?.toISOString() ?? null,
+    })),
+    expiringSoon: expiringSoon.map(m => ({
+      id: m.id, memberId: m.memberId, fullName: m.fullName, phone: m.phone,
+      expiryDate: m.expiryDate?.toISOString() ?? null,
+    })),
   });
 }
