@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       take: 1,
       select: {
         package: { select: { name: true } },
-        soldBy: { select: { fullName: true } },
+        payment: { select: { soldBy: { select: { fullName: true } } } },
       },
     },
   };
@@ -92,13 +92,13 @@ export async function POST(req: NextRequest) {
       id: m.id, memberId: m.memberId, fullName: m.fullName, phone: m.phone,
       expiryDate: m.expiryDate?.toISOString() ?? null,
       packageName: m.memberships[0]?.package?.name ?? null,
-      soldBy: m.memberships[0]?.soldBy?.fullName ?? null,
+      soldBy: m.memberships[0]?.payment?.soldBy?.fullName ?? null,
     })),
     expiringSoon: expiringSoon.map(m => ({
       id: m.id, memberId: m.memberId, fullName: m.fullName, phone: m.phone,
       expiryDate: m.expiryDate?.toISOString() ?? null,
       packageName: m.memberships[0]?.package?.name ?? null,
-      soldBy: m.memberships[0]?.soldBy?.fullName ?? null,
+      soldBy: m.memberships[0]?.payment?.soldBy?.fullName ?? null,
     })),
   });
 }
