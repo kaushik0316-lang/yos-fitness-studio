@@ -4,15 +4,23 @@ import { auth } from "@/lib/auth";
 import { getActiveProvider } from "@/lib/messaging/provider";
 import { MessageChannel, MessageStatus, MemberStatus } from "@prisma/client";
 import { toTitleCase } from "@/lib/utils/titleCase";
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
 
-// GET /api/outreach — active members sorted by lastAttendanceDate asc
+// GET /api/outreach — active members who haven't checked in in the last 30 days
 export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const cutoff = subDays(new Date(), 30);
+
   const members = await prisma.member.findMany({
-    where: { status: MemberStatus.ACTIVE },
+    where: {
+      status: MemberStatus.ACTIVE,
+      OR: [
+        { lastAttendanceDate: null },
+        { lastAttendanceDate: { lt: cutoff } },
+      ],
+    },
     select: {
       id: true, memberId: true, fullName: true, phone: true, whatsapp: true,
       expiryDate: true, lastAttendanceDate: true, doNotDisturb: true,

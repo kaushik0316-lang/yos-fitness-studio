@@ -205,7 +205,7 @@ export function OutreachClient({ members }: { members: Member[] }) {
       {/* LEFT — member list */}
       <div className="flex flex-col gap-4 min-h-0">
         <p className="text-[11px] text-gray-600">
-          Active members with a package. Select who to message — sorted by last check-in (least recent first).
+          Active members who haven't checked in for 30+ days — sorted by last check-in (least recent first).
         </p>
 
         {/* Search + select all */}
