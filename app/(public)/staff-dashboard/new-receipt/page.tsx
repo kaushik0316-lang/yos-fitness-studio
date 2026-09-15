@@ -7,7 +7,8 @@ import { toTitleCase } from "@/lib/utils/titleCase";
 
 const HOME = "/staff-dashboard";
 
-type Member = { id: string; memberId: string; fullName: string; phone: string };
+type Member = { id: string; memberId: string; fullName: string; phone: string; status: string };
+type Employee = { id: string; fullName: string; employeeId: string };
 
 const CATEGORIES = ["General Fitness", "Personal Training", "Semi-Private Coaching", "Transformation Package", "Student Package", "HIIT Classes"];
 const PERIOD_MONTHS: Record<string, number> = { "1 Month": 1, "3 Months": 3, "6 Months": 6, "12 Months": 12 };
@@ -27,12 +28,14 @@ export default function StaffNewReceipt() {
   const router = useRouter();
   const [pin, setPin] = useState<string | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [memberSearch, setMemberSearch] = useState("");
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isNewMember, setIsNewMember] = useState(false);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
+  const [soldByEmployeeId, setSoldByEmployeeId] = useState("");
 
   const [company, setCompany] = useState<"YOS_FITNESS" | "YOS_FITNESS_STUDIO">("YOS_FITNESS");
   const [paymentType, setPaymentType] = useState<"ADMISSION" | "RENEWAL" | "BALANCE">("ADMISSION");
@@ -70,7 +73,7 @@ export default function StaffNewReceipt() {
       body: JSON.stringify({ pin, q: memberSearch.length >= 1 ? memberSearch : "" }),
     })
       .then(r => r.json())
-      .then(d => setMembers(d.members ?? []))
+      .then(d => { setMembers(d.members ?? []); if (d.employees) setEmployees(d.employees); })
       .catch(() => {});
   }, [pin, memberSearch]);
 
@@ -117,6 +120,7 @@ export default function StaffNewReceipt() {
           splitAmount: splitEnabled && splitAmt2 ? Number(splitAmt2) : undefined,
           startDate, expiryDate,
           notes: notes || undefined,
+          soldByEmployeeId: soldByEmployeeId || undefined,
         }),
       });
       const data = await res.json();
@@ -240,9 +244,21 @@ export default function StaffNewReceipt() {
                 </div>
               )}
               {selectedMember && (
-                <p className="text-xs text-green-400 font-medium mt-2">
-                  ✓ {selectedMember.memberId} — {toTitleCase(selectedMember.fullName)}
-                </p>
+                <div className="mt-2 rounded-xl px-3 py-2.5 flex items-center justify-between"
+                  style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
+                  <div>
+                    <p className="text-xs font-bold text-green-400">
+                      ✓ {selectedMember.memberId} — {toTitleCase(selectedMember.fullName)}
+                    </p>
+                    <p className="text-xs text-zinc-500 mt-0.5">{selectedMember.phone}</p>
+                  </div>
+                  {selectedMember.status !== "ACTIVE" && (
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-lg"
+                      style={{ background: "rgba(239,68,68,0.12)", color: "#f87171" }}>
+                      {selectedMember.status}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -420,6 +436,22 @@ export default function StaffNewReceipt() {
             </div>
           )}
         </div>
+
+        {/* Sold By */}
+        {employees.length > 0 && (
+          <div className="rounded-2xl p-4 border" style={{ background: "#1c1c1c", borderColor: "#2a2a2a" }}>
+            <label className={LBL}>Sold By</label>
+            <select className={INP} value={soldByEmployeeId} onChange={e => setSoldByEmployeeId(e.target.value)}
+              style={{ colorScheme: "dark" }}>
+              <option value="">— Self (PIN holder) —</option>
+              {employees.map(emp => (
+                <option key={emp.id} value={emp.id}>
+                  {toTitleCase(emp.fullName)} ({emp.employeeId})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Notes */}
         <div className="rounded-2xl p-4 border" style={{ background: "#1c1c1c", borderColor: "#2a2a2a" }}>

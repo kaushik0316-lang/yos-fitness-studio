@@ -27,10 +27,16 @@ export async function POST(req: NextRequest) {
         ],
       } : {}),
     },
-    select: { id: true, memberId: true, fullName: true, phone: true },
+    select: { id: true, memberId: true, fullName: true, phone: true, status: true },
     orderBy: { fullName: "asc" },
     take: 20,
   });
 
-  return NextResponse.json({ members });
+  const employees = await prisma.employee.findMany({
+    where: { isActive: true },
+    select: { id: true, fullName: true, employeeId: true },
+    orderBy: { fullName: "asc" },
+  });
+
+  return NextResponse.json({ members, employees });
 }

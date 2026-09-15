@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
             company, paymentType, categoryLabel, periodLabel,
             amount, discount, pendingAmount, paymentMode,
             splitPaymentMode, splitAmount,
-            billDate, startDate, expiryDate, notes } = body;
+            billDate, startDate, expiryDate, notes,
+            soldByEmployeeId } = body;
 
     if (!pin) return NextResponse.json({ error: "PIN required" }, { status: 401 });
 
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
           splitAmount: splitAmount ? Number(splitAmount) : null,
           company: company as Company,
           collectedById: systemUser.id,
-          soldById: employee.id,
+          soldById: soldByEmployeeId || employee.id,
           notes: notes || null,
           receiptNumber: nextReceiptNumber,
           paymentType: (paymentType as PaymentType) ?? "ADMISSION",
