@@ -29,19 +29,22 @@ function BulkWaPanel({ members, selected, message, onClose, onLogged }: {
 
   async function markSent(memberId: string, personalisedMsg: string) {
     setRowState(r => ({ ...r, [memberId]: "sent" }));
-    try {
-      await fetch("/api/outreach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ memberIds: [memberId], message: personalisedMsg, manualOnly: true }),
-      });
-      onLogged?.();
-    } catch { /* silent — state already updated */ }
+    // Fire-and-forget — don't await so the panel stays open
+    fetch("/api/outreach", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberIds: [memberId], message: personalisedMsg, manualOnly: true }),
+    }).catch(() => {});
+  }
+
+  function handleClose() {
+    onLogged?.(); // refresh history once when panel closes
+    onClose();
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.7)" }} onClick={onClose}>
+      style={{ background: "rgba(0,0,0,0.7)" }} onClick={handleClose}>
       <div className="w-full max-w-md rounded-3xl overflow-hidden"
         style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.1)", maxHeight: "80vh" }}
         onClick={e => e.stopPropagation()}>
@@ -50,7 +53,7 @@ function BulkWaPanel({ members, selected, message, onClose, onLogged }: {
             <p className="font-bold text-white">Bulk WhatsApp</p>
             <p className="text-xs text-gray-500 mt-0.5">{selectedList.length} members · {sentCount} opened</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
+          <button onClick={handleClose} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
             <X className="h-4 w-4 text-gray-400" />
           </button>
         </div>
