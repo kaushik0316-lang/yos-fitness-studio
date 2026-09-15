@@ -110,12 +110,18 @@ function interpolatePreview(tpl: string, member: Member | null): string {
     .replace(/\{trainer\}/g, member.trainerName ? toTitleCase(member.trainerName) : "your trainer");
 }
 
-function MemberRow({ m, checked, onToggle }: { m: Member; checked: boolean; onToggle: () => void }) {
+function MemberRow({ m, checked, onToggle, lastOutreach }: {
+  m: Member; checked: boolean; onToggle: () => void;
+  lastOutreach?: { lastAt: string | null; count: number };
+}) {
   const lastSeen = m.lastAttendanceDate
     ? formatDistanceToNow(new Date(m.lastAttendanceDate), { addSuffix: true })
     : "Never";
   const expiry = m.expiryDate ? format(new Date(m.expiryDate), "dd MMM yy") : "—";
   const hasPhone = !!(m.whatsapp ?? m.phone);
+  const outreachDateStr = lastOutreach?.lastAt
+    ? new Date(lastOutreach.lastAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })
+    : null;
 
   return (
     <div
@@ -135,11 +141,17 @@ function MemberRow({ m, checked, onToggle }: { m: Member; checked: boolean; onTo
         {checked ? <CheckSquare className="h-4 w-4 text-orange-400" /> : <Square className="h-4 w-4" />}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm font-bold text-white truncate">{toTitleCase(m.fullName)}</p>
           <span className="text-[9px] font-mono text-gray-700">{m.memberId}</span>
           {m.doNotDisturb && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(239,68,68,0.1)", color: "#f87171" }}>DND</span>}
           {!hasPhone && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(255,255,255,0.05)", color: "#6b7280" }}>No phone</span>}
+          {outreachDateStr && (
+            <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-medium"
+              style={{ background: "rgba(251,146,60,0.1)", color: "#fb923c", border: "1px solid rgba(251,146,60,0.2)" }}>
+              ✓ {outreachDateStr}{lastOutreach!.count > 1 ? ` ×${lastOutreach!.count}` : ""}
+            </span>
+          )}
         </div>
         <p className="text-[11px] text-gray-600 truncate">
           {m.packageName ?? "—"} · exp {expiry}
@@ -164,6 +176,16 @@ export function OutreachClient({ members, logs = [], onRefresh }: { members: Mem
   const [results, setResults] = useState<ResultRow[] | null>(null);
   const [q, setQ] = useState("");
   const [showBulkPanel, setShowBulkPanel] = useState(false);
+
+  const outreachMap = useMemo(() =>
+    logs.reduce<Record<string, { count: number; lastAt: string | null }>>((acc, log) => {
+      if (!log.memberId) return acc;
+      const at = log.sentAt ?? log.createdAt;
+      if (!acc[log.memberId]) { acc[log.memberId] = { count: 1, lastAt: at }; }
+      else { acc[log.memberId].count++; if (at && (!acc[log.memberId].lastAt || at > acc[log.memberId].lastAt!)) acc[log.memberId].lastAt = at; }
+      return acc;
+    }, {}),
+  [logs]);
 
   const filtered = useMemo(() => {
     if (!q.trim()) return members;
@@ -252,7 +274,7 @@ export function OutreachClient({ members, logs = [], onRefresh }: { members: Mem
             </div>
           ) : (
             filtered.map(m => (
-              <MemberRow key={m.id} m={m} checked={selected.has(m.id)} onToggle={() => toggle(m.id)} />
+              <MemberRow key={m.id} m={m} checked={selected.has(m.id)} onToggle={() => toggle(m.id)} lastOutreach={outreachMap[m.id]} />
             ))
           )}
         </div>
