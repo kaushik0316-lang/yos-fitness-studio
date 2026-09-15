@@ -60,8 +60,8 @@ const PROTECTED_PREFIXES = [
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  // Always allow public pages
-  if (PUBLIC_PAGES.has(pathname)) {
+  // Always allow public pages (exact match or staff-dashboard subtree)
+  if (PUBLIC_PAGES.has(pathname) || pathname.startsWith("/staff-dashboard/")) {
     return NextResponse.next();
   }
 
