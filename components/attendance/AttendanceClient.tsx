@@ -99,6 +99,7 @@ export function AttendanceClient({
   const router = useRouter();
   const [activeTab, setActiveTab]       = useState<"inGym" | "visited" | "pending" | "outreach">("inGym");
   const [outreachMembers, setOutreachMembers] = useState<any[] | null>(null);
+  const [outreachLogs, setOutreachLogs]       = useState<any[]>([]);
   const [outreachLoading, setOutreachLoading] = useState(false);
   const [search, setSearch]             = useState("");
   const [markFor, setMarkFor]           = useState<Member | null>(null);
@@ -123,15 +124,27 @@ export function AttendanceClient({
   }, [activeTab, selectedDate]);
 
   const outreachFetched = useRef(false);
+
+  function fetchOutreach() {
+    setOutreachLoading(true);
+    fetch("/api/outreach")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setOutreachMembers(data);
+        } else if (data.members) {
+          setOutreachMembers(data.members);
+          setOutreachLogs(data.logs ?? []);
+        }
+      })
+      .finally(() => setOutreachLoading(false));
+  }
+
   useEffect(() => {
     if (activeTab !== "outreach") return;
     if (outreachFetched.current) return;
     outreachFetched.current = true;
-    setOutreachLoading(true);
-    fetch("/api/outreach")
-      .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setOutreachMembers(data); })
-      .finally(() => setOutreachLoading(false));
+    fetchOutreach();
   }, [activeTab]);
 
   const inGym    = useMemo(() => todayAttendance.filter((a) => !a.checkOutTime), [todayAttendance]);
@@ -657,7 +670,7 @@ export function AttendanceClient({
                 Loading members…
               </div>
             ) : (
-              <OutreachClient members={outreachMembers ?? []} />
+              <OutreachClient members={outreachMembers ?? []} logs={outreachLogs} onRefresh={fetchOutreach} />
             )}
           </div>
         )}

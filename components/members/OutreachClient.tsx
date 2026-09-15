@@ -20,12 +20,24 @@ const DEFAULT_TEMPLATE =
 
 type ResultRow = { memberId: string; name: string; status: "sent" | "failed" | "skipped"; error?: string };
 
-function BulkWaPanel({ members, selected, message, onClose }: {
-  members: Member[]; selected: Set<string>; message: string; onClose: () => void;
+function BulkWaPanel({ members, selected, message, onClose, onLogged }: {
+  members: Member[]; selected: Set<string>; message: string; onClose: () => void; onLogged?: () => void;
 }) {
   const [rowState, setRowState] = useState<Record<string, "idle" | "opened" | "sent">>({});
   const selectedList = members.filter(m => selected.has(m.id));
   const sentCount = Object.values(rowState).filter(s => s === "sent").length;
+
+  async function markSent(memberId: string, personalisedMsg: string) {
+    setRowState(r => ({ ...r, [memberId]: "sent" }));
+    try {
+      await fetch("/api/outreach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberIds: [memberId], message: personalisedMsg, manualOnly: true }),
+      });
+      onLogged?.();
+    } catch { /* silent — state already updated */ }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
@@ -72,7 +84,7 @@ function BulkWaPanel({ members, selected, message, onClose }: {
                       {state === "opened" ? "Re-open" : "Open Chat"}
                     </a>
                     {state === "opened" && (
-                      <button onClick={() => setRowState(r => ({ ...r, [m.id]: "sent" }))}
+                      <button onClick={() => markSent(m.id, personalised)}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors"
                         style={{ background: "rgba(34,197,94,0.15)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.3)" }}>
                         <CheckCircle2 className="h-3.5 w-3.5" /> Sent?
@@ -145,7 +157,7 @@ function MemberRow({ m, checked, onToggle }: { m: Member; checked: boolean; onTo
 
 type LogEntry = { id: string; memberId: string | null; memberName: string; sentByName: string | null; sentAt: string | null; createdAt: string };
 
-export function OutreachClient({ members, logs = [] }: { members: Member[]; logs?: LogEntry[] }) {
+export function OutreachClient({ members, logs = [], onRefresh }: { members: Member[]; logs?: LogEntry[]; onRefresh?: () => void }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState(DEFAULT_TEMPLATE);
   const [sending, setSending] = useState(false);
@@ -352,6 +364,7 @@ export function OutreachClient({ members, logs = [] }: { members: Member[]; logs
         selected={selected}
         message={message}
         onClose={() => setShowBulkPanel(false)}
+        onLogged={onRefresh}
       />
     )}
     </>
