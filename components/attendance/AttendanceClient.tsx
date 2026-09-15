@@ -125,19 +125,29 @@ export function AttendanceClient({
 
   const outreachFetched = useRef(false);
 
+  function applyOutreachData(data: any) {
+    if (Array.isArray(data)) {
+      setOutreachMembers(data);
+    } else if (data.members) {
+      setOutreachMembers(data.members);
+      setOutreachLogs(data.logs ?? []);
+    }
+  }
+
   function fetchOutreach() {
     setOutreachLoading(true);
     fetch("/api/outreach")
       .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setOutreachMembers(data);
-        } else if (data.members) {
-          setOutreachMembers(data.members);
-          setOutreachLogs(data.logs ?? []);
-        }
-      })
+      .then(applyOutreachData)
       .finally(() => setOutreachLoading(false));
+  }
+
+  // Silent refresh — updates logs without unmounting OutreachClient
+  function refreshOutreachLogs() {
+    fetch("/api/outreach")
+      .then((r) => r.json())
+      .then(applyOutreachData)
+      .catch(() => {});
   }
 
   useEffect(() => {
@@ -670,7 +680,7 @@ export function AttendanceClient({
                 Loading members…
               </div>
             ) : (
-              <OutreachClient members={outreachMembers ?? []} logs={outreachLogs} onRefresh={fetchOutreach} />
+              <OutreachClient members={outreachMembers ?? []} logs={outreachLogs} onRefresh={refreshOutreachLogs} />
             )}
           </div>
         )}
