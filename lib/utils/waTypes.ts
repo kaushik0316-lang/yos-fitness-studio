@@ -5,7 +5,8 @@ export type WaType =
   | "PAYMENT"
   | "ENQUIRY"
   | "TERMS"
-  | "GENERAL";
+  | "GENERAL"
+  | "OUTREACH";
 
 export const WA_TYPE_LABELS: Record<WaType, string> = {
   BIRTHDAY: "Birthday Wish",
@@ -15,4 +16,5 @@ export const WA_TYPE_LABELS: Record<WaType, string> = {
   ENQUIRY:  "Enquiry Follow-up",
   TERMS:    "Terms & Conditions",
   GENERAL:  "General Message",
+  OUTREACH: "Outreach Message",
 };

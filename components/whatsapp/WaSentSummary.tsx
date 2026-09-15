@@ -26,6 +26,7 @@ const TYPE_COLORS: Record<WaType, string> = {
   ENQUIRY:  "#38bdf8",
   TERMS:    "#a3e635",
   GENERAL:  "#9ca3af",
+  OUTREACH: "#fb923c",
 };
 
 function fmt(d: Date | string | null) {
