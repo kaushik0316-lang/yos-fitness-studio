@@ -47,6 +47,14 @@ export async function POST(req: NextRequest) {
         payment: { select: { soldBy: { select: { fullName: true } } } },
       },
     },
+    payments: {
+      orderBy: { date: "desc" as const },
+      take: 1,
+      select: {
+        categoryLabel: true,
+        soldBy: { select: { fullName: true } },
+      },
+    },
   };
 
   const [expiredRecently, expiringSoon] = await Promise.all([
@@ -91,14 +99,14 @@ export async function POST(req: NextRequest) {
     expiredRecently: expiredRecently.map(m => ({
       id: m.id, memberId: m.memberId, fullName: m.fullName, phone: m.phone,
       expiryDate: m.expiryDate?.toISOString() ?? null,
-      packageName: m.memberships[0]?.package?.name ?? null,
-      soldBy: m.memberships[0]?.payment?.soldBy?.fullName ?? null,
+      packageName: m.memberships[0]?.package?.name ?? m.payments[0]?.categoryLabel ?? null,
+      soldBy: m.memberships[0]?.payment?.soldBy?.fullName ?? m.payments[0]?.soldBy?.fullName ?? null,
     })),
     expiringSoon: expiringSoon.map(m => ({
       id: m.id, memberId: m.memberId, fullName: m.fullName, phone: m.phone,
       expiryDate: m.expiryDate?.toISOString() ?? null,
-      packageName: m.memberships[0]?.package?.name ?? null,
-      soldBy: m.memberships[0]?.payment?.soldBy?.fullName ?? null,
+      packageName: m.memberships[0]?.package?.name ?? m.payments[0]?.categoryLabel ?? null,
+      soldBy: m.memberships[0]?.payment?.soldBy?.fullName ?? m.payments[0]?.soldBy?.fullName ?? null,
     })),
   });
 }
