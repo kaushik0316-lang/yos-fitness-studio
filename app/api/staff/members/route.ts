@@ -18,7 +18,6 @@ export async function POST(req: NextRequest) {
 
   const members = await prisma.member.findMany({
     where: {
-      status: "ACTIVE",
       NOT: { memberId: { startsWith: "IMP-" } },
       ...(q ? {
         OR: [
