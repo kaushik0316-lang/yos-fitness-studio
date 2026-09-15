@@ -37,26 +37,36 @@ export async function POST(req: NextRequest) {
   const past30 = subDays(todayStart, 30);
   const future30 = addDays(todayStart, 30);
 
+  const memberSelect = {
+    id: true, memberId: true, fullName: true, phone: true, expiryDate: true,
+    memberships: {
+      orderBy: { expiryDate: "desc" as const },
+      take: 1,
+      select: {
+        package: { select: { name: true } },
+        soldBy: { select: { fullName: true } },
+      },
+    },
+  };
+
   const [expiredRecently, expiringSoon] = await Promise.all([
-    // Expired in last 30 days
     prisma.member.findMany({
       where: {
         status: { not: "PROSPECT" },
         NOT: { memberId: { startsWith: "IMP-" } },
         expiryDate: { gte: past30, lt: todayStart },
       },
-      select: { id: true, memberId: true, fullName: true, phone: true, expiryDate: true },
+      select: memberSelect,
       orderBy: { expiryDate: "desc" },
       take: 50,
     }),
-    // Expiring in next 30 days
     prisma.member.findMany({
       where: {
         status: "ACTIVE",
         NOT: { memberId: { startsWith: "IMP-" } },
         expiryDate: { gte: todayStart, lte: future30 },
       },
-      select: { id: true, memberId: true, fullName: true, phone: true, expiryDate: true },
+      select: memberSelect,
       orderBy: { expiryDate: "asc" },
       take: 50,
     }),
@@ -81,10 +91,14 @@ export async function POST(req: NextRequest) {
     expiredRecently: expiredRecently.map(m => ({
       id: m.id, memberId: m.memberId, fullName: m.fullName, phone: m.phone,
       expiryDate: m.expiryDate?.toISOString() ?? null,
+      packageName: m.memberships[0]?.package?.name ?? null,
+      soldBy: m.memberships[0]?.soldBy?.fullName ?? null,
     })),
     expiringSoon: expiringSoon.map(m => ({
       id: m.id, memberId: m.memberId, fullName: m.fullName, phone: m.phone,
       expiryDate: m.expiryDate?.toISOString() ?? null,
+      packageName: m.memberships[0]?.package?.name ?? null,
+      soldBy: m.memberships[0]?.soldBy?.fullName ?? null,
     })),
   });
 }
