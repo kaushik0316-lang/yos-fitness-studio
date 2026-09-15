@@ -27,7 +27,20 @@ export async function POST(req: NextRequest) {
         ],
       } : {}),
     },
-    select: { id: true, memberId: true, fullName: true, phone: true, status: true },
+    select: {
+      id: true, memberId: true, fullName: true, phone: true, status: true,
+      expiryDate: true, startDate: true, lastPaymentDate: true,
+      memberships: {
+        orderBy: { expiryDate: "desc" as const },
+        take: 1,
+        select: { package: { select: { name: true } } },
+      },
+      payments: {
+        orderBy: { date: "desc" as const },
+        take: 1,
+        select: { categoryLabel: true },
+      },
+    },
     orderBy: { fullName: "asc" },
     take: 20,
   });
@@ -38,5 +51,13 @@ export async function POST(req: NextRequest) {
     orderBy: { fullName: "asc" },
   });
 
-  return NextResponse.json({ members, employees });
+  const serialized = members.map((m) => ({
+    id: m.id, memberId: m.memberId, fullName: m.fullName, phone: m.phone, status: m.status,
+    expiryDate: m.expiryDate?.toISOString() ?? null,
+    startDate: m.startDate?.toISOString() ?? null,
+    lastPaymentDate: m.lastPaymentDate?.toISOString() ?? null,
+    packageName: m.memberships[0]?.package?.name ?? m.payments[0]?.categoryLabel ?? null,
+  }));
+
+  return NextResponse.json({ members: serialized, employees });
 }
