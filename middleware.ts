@@ -17,6 +17,7 @@ const PUBLIC_PAGES = new Set([
   "/staff-dashboard",
   "/staff-dashboard/new-receipt",
   "/staff-dashboard/enquiries",
+  "/staff-dashboard/members",
   "/register",
   "/my-attendance",
   "/join",
