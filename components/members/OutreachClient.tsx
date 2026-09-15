@@ -6,6 +6,7 @@ import { Send, CheckSquare, Square, Users, AlertCircle, CheckCircle2, XCircle, S
 import { cn } from "@/lib/utils";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { toast } from "@/hooks/use-toast";
+import { WaSentSummary } from "@/components/whatsapp/WaSentSummary";
 
 type Member = {
   id: string; memberId: string; fullName: string;
@@ -142,7 +143,9 @@ function MemberRow({ m, checked, onToggle }: { m: Member; checked: boolean; onTo
   );
 }
 
-export function OutreachClient({ members }: { members: Member[] }) {
+type LogEntry = { id: string; memberId: string | null; memberName: string; sentByName: string | null; sentAt: string | null; createdAt: string };
+
+export function OutreachClient({ members, logs = [] }: { members: Member[]; logs?: LogEntry[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState(DEFAULT_TEMPLATE);
   const [sending, setSending] = useState(false);
@@ -201,6 +204,7 @@ export function OutreachClient({ members }: { members: Member[] }) {
 
   return (
     <>
+    <WaSentSummary logs={logs} waType="OUTREACH" />
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5 h-full">
       {/* LEFT — member list */}
       <div className="flex flex-col gap-4 min-h-0">
