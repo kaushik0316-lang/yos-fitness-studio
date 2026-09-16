@@ -132,6 +132,7 @@ enum AutomationTrigger {
   EXPIRY_1_DAY
   EXPIRY_TODAY
   ALREADY_EXPIRED
+  BIRTHDAY
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

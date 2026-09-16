@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { MemberStatus } from "@prisma/client";
+import { runRenewalReminders } from "@/lib/automation/renewalReminders";
 
 function isAddOnPkg(name: string | null | undefined): boolean {
   if (!name) return false;
@@ -85,19 +86,26 @@ function isAuthorized(req: NextRequest): boolean {
   return manual === cronSecret || bearer === cronSecret;
 }
 
-export async function POST(req: NextRequest) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+async function runAll() {
   const results: Record<string, any> = {};
-
   try {
     results.expireOverdue = await expireOverdueMembers();
   } catch (e: any) {
     results.expireOverdue = { error: e.message };
   }
+  try {
+    results.remindersAndBirthdays = await runRenewalReminders();
+  } catch (e: any) {
+    results.remindersAndBirthdays = { error: e.message };
+  }
+  return results;
+}
 
+export async function POST(req: NextRequest) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const results = await runAll();
   return NextResponse.json({ success: true, results, timestamp: new Date().toISOString() });
 }
 
@@ -106,14 +114,6 @@ export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const results: Record<string, any> = {};
-
-  try {
-    results.expireOverdue = await expireOverdueMembers();
-  } catch (e: any) {
-    results.expireOverdue = { error: e.message };
-  }
-
+  const results = await runAll();
   return NextResponse.json({ success: true, results, timestamp: new Date().toISOString() });
 }

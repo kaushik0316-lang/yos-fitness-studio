@@ -254,13 +254,14 @@ export async function runRenewalReminders(): Promise<{
     if (!member.whatsapp && !member.phone) continue;
 
     const alreadySent = await prisma.messageLog.findFirst({
-      where: { memberId: member.id, trigger: AutomationTrigger.INACTIVE_4_DAYS, createdAt: { gte: addDaysUTC(today, -1) } },
+      where: { memberId: member.id, trigger: "BIRTHDAY" as AutomationTrigger, createdAt: { gte: addDaysUTC(today, -1) } },
     });
     if (alreadySent) continue;
 
     processed++;
     try {
       const firstName = toTitleCase(member.fullName);
+      const templateName = process.env.BIRTHDAY_TEMPLATE_NAME;
       const message = `🎂 Happy Birthday, ${firstName}!\n\nWishing you a wonderful day! Keep crushing those fitness goals — the whole Yos team is cheering for you! 🎉💪\n\n– Team Yos Fitness Studio`;
       const rawPhone = member.whatsapp ?? member.phone!;
       const phone = cleanPhone(rawPhone);
@@ -268,6 +269,10 @@ export async function runRenewalReminders(): Promise<{
         to: phone.startsWith("+") ? phone : `+91${phone}`,
         message,
         channel: "WHATSAPP",
+        ...(templateName && {
+          templateName,
+          templateParams: [{ type: "text" as const, text: firstName }],
+        }),
       });
       await prisma.messageLog.create({
         data: {
@@ -276,7 +281,8 @@ export async function runRenewalReminders(): Promise<{
           status: result.success ? MessageStatus.SENT : MessageStatus.FAILED,
           sentAt: result.success ? new Date() : undefined,
           failureReason: result.error,
-          trigger: AutomationTrigger.INACTIVE_4_DAYS,
+          trigger: "BIRTHDAY" as AutomationTrigger,
+          waType: "BIRTHDAY",
           isManual: false,
         },
       });
