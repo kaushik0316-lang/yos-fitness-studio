@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const MIN_SHIFT_MINUTES = 15;
+const MIN_SHIFT_MINUTES = 5;
 
 // GET — preview: how many shifts would be deleted
 export async function GET() {
