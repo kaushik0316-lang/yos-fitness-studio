@@ -1017,7 +1017,7 @@ function RenewalsTab({ pin }: { pin: string }) {
               <div key={m.id} className="rounded-2xl px-4 py-3"
                 style={{ background: "#1c1c1c", border: "1px solid rgba(255,255,255,0.04)" }}>
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-white text-sm font-bold truncate">{m.fullName}</p>
+                  <p className="text-white text-sm font-bold truncate">{toTitleCase(m.fullName)}</p>
                   {daysLabel && (
                     <span className="text-[11px] font-bold flex-shrink-0" style={{ color: daysColor }}>
                       {daysLabel}
