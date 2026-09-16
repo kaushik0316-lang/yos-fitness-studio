@@ -658,89 +658,76 @@ export default function MemberPortalPage() {
           </div>
         )}
 
-        {/* Stats strip */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl p-4 flex flex-col gap-2" style={{ background: "#1c1c1c" }}>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: "rgba(168,85,247,0.12)" }}>
-              <TrendingUp className="h-4 w-4" style={{ color: "#c084fc" }} />
+        {/* Stats + today compact row */}
+        <div className="rounded-2xl overflow-hidden" style={{ background: "#1c1c1c", border: "1px solid rgba(255,255,255,0.04)" }}>
+          {/* Stats row */}
+          <div className="grid grid-cols-3 divide-x" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.05)" }}>
+            <div className="px-3 py-3 flex flex-col gap-0.5">
+              <p className="text-white font-extrabold text-lg leading-none">{totalVisits}</p>
+              <p className="text-[10px] text-gray-600">Total Visits</p>
             </div>
-            <div>
-              <p className="text-white font-extrabold text-2xl leading-none">{totalVisits}</p>
-              <p className="text-[11px] text-gray-600 mt-1">Total Visits</p>
-            </div>
-          </div>
-          <div className="rounded-2xl p-4 flex flex-col gap-2" style={{ background: "#1c1c1c" }}>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: "rgba(251,146,60,0.12)" }}>
-              <Clock className="h-4 w-4 text-orange-400" />
-            </div>
-            <div>
+            <div className="px-3 py-3 flex flex-col gap-0.5">
               <p className="text-white font-extrabold text-base leading-none">
                 {member?.lastAttendanceDate
                   ? new Date(member.lastAttendanceDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" })
                   : "—"}
               </p>
-              <p className="text-[11px] text-gray-600 mt-1">Last Visit</p>
+              <p className="text-[10px] text-gray-600">Last Visit</p>
+            </div>
+            <div className="px-3 py-3 flex flex-col gap-0.5">
+              <p className="font-extrabold text-base leading-none" style={{ color: todayCheckIn ? "#4ade80" : "#6b7280" }}>
+                {todayCheckIn ? fmtTime(todayCheckIn) : "—"}
+              </p>
+              <p className="text-[10px] text-gray-600">Today In</p>
             </div>
           </div>
-        </div>
 
-        {/* Today's check-in — hidden for expired members who haven't checked in */}
-        {(todayCheckIn || !isExpired) && (
-          <div className="rounded-3xl p-5" style={{ background: "#1c1c1c" }}>
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: "#4b5563" }}>
-              Today&apos;s Attendance
-            </p>
-            {todayCheckIn ? (
-              <div className="flex flex-col gap-2 rounded-2xl px-4 py-3" style={{ background: "#111" }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
-                  <span className="text-sm font-semibold text-green-400">
-                    ✓ Checked in at {fmtTime(todayCheckIn)}
-                  </span>
-                </div>
-                {todayCheckOut ? (
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#3b82f6" }} />
-                    <span className="text-sm font-semibold" style={{ color: "#93c5fd" }}>
-                      ✓ Checked out at {fmtTime(todayCheckOut)}
-                      {autoCheckedOut && <span className="ml-1 text-xs text-gray-500">(auto)</span>}
-                    </span>
-                  </div>
-                ) : (
+          {/* Today's attendance — compact */}
+          {(todayCheckIn || !isExpired) && (
+            <div className="px-4 py-3">
+              {todayCheckIn ? (
+                <div className="flex items-center justify-between gap-3">
                   <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between mt-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-gray-600 flex-shrink-0" />
-                        <span className="text-xs text-gray-500">Not checked out yet</span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                      <span className="text-xs font-semibold text-green-400">In {fmtTime(todayCheckIn)}</span>
+                    </div>
+                    {todayCheckOut ? (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#3b82f6" }} />
+                        <span className="text-xs font-semibold" style={{ color: "#93c5fd" }}>
+                          Out {fmtTime(todayCheckOut)}{autoCheckedOut && <span className="ml-1 text-[10px] text-gray-600">(auto)</span>}
+                        </span>
                       </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-gray-700" />
+                        <span className="text-[10px] text-gray-600">Not checked out</span>
+                      </div>
+                    )}
+                  </div>
+                  {!todayCheckOut && (
+                    <div className="flex flex-col items-end gap-1">
                       <button onClick={handleCheckOut} disabled={checkingOut}
-                        className="text-xs font-bold px-3 py-1.5 rounded-xl disabled:opacity-50"
+                        className="text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50"
                         style={{ background: "rgba(29,78,216,0.2)", color: "#93c5fd", border: "1px solid rgba(29,78,216,0.3)" }}>
                         {checkingOut ? "…" : "Check Out"}
                       </button>
+                      {errorMsg && <p className="text-[10px] text-red-400">{errorMsg}</p>}
                     </div>
-                    {errorMsg && (
-                      <p className="text-xs text-red-400 text-center">{errorMsg}</p>
-                    )}
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#2a2a2a" }}>
+                    <Clock className="h-3 w-3 text-gray-600" />
                   </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 py-1">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: "#2a2a2a" }}>
-                  <Clock className="h-4 w-4 text-gray-600" />
+                  <p className="text-xs text-gray-500">Not checked in today · Use Check In below</p>
                 </div>
-                <div>
-                  <p className="text-white text-sm font-semibold">Not checked in yet</p>
-                  <p className="text-xs text-gray-600">Use Check In below</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3 grid-rows-2">
