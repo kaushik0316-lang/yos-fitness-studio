@@ -15,6 +15,7 @@ const PUBLIC_PAGES = new Set([
   "/checkin",
   "/checkin/poster",
   "/staff-dashboard",
+  "/staff-dashboard-qr",
   "/staff-dashboard/new-receipt",
   "/staff-dashboard/enquiries",
   "/staff-dashboard/members",
