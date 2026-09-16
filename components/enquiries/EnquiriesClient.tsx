@@ -759,7 +759,7 @@ function EnquiryDialog({ title, employees, initial, onClose, onSubmit }: {
                 <label style={labelStyle}>Name *</label>
                 <input name="name" required defaultValue={initial?.name ? toTitleCase(initial.name) : ""}
                   placeholder="Full name" style={inputStyle}
-                  onChange={(e) => { e.target.value = toTitleCase(e.target.value); }} />
+                  onBlur={(e) => { e.target.value = toTitleCase(e.target.value); }} />
               </div>
               <div className="col-span-2">
                 <label style={labelStyle}>Phone *</label>
