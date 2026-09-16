@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { ArrowLeft, CreditCard, Receipt } from "lucide-react";
+import { ArrowLeft, CreditCard, Receipt, Download } from "lucide-react";
 import Image from "next/image";
 
 type Payment = {
@@ -34,10 +34,12 @@ export default function MyPaymentsPage() {
   const [payments, setPayments] = useState<Payment[] | null>(null);
   const [memberName, setMemberName] = useState("");
   const [error, setError] = useState("");
+  const [pin, setPin] = useState("");
 
   useEffect(() => {
     const pin = sessionStorage.getItem("member_pin");
     if (!pin) { setError("Session expired. Please log in again."); return; }
+    setPin(pin);
 
     fetch("/api/member/payments", {
       method: "POST",
@@ -155,6 +157,22 @@ export default function MyPaymentsPage() {
                         #{p.receiptNumber}
                       </span>
                     )}
+                  </div>
+
+                  {/* Download bill */}
+                  <div className="pl-[46px] mt-2.5">
+                    <a
+                      href={`/api/member/receipt?paymentId=${p.id}&pin=${pin}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                      style={{ background: "rgba(255,255,255,0.05)", color: "#9ca3af" }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,107,0,0.12)"; (e.currentTarget as HTMLElement).style.color = "#ff6b00"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)"; (e.currentTarget as HTMLElement).style.color = "#9ca3af"; }}
+                    >
+                      <Download className="h-3 w-3" />
+                      Download Bill
+                    </a>
                   </div>
                 </div>
               );
