@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { getFirstName } from "@/lib/utils/titleCase";
 import Image from "next/image";
 import Link from "next/link";
@@ -20,6 +20,7 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
 
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     fullName: "", phone: "", gender: "", dateOfBirth: "",
@@ -45,7 +46,7 @@ export default function RegisterPage() {
     form.fullName.trim() && form.phone.trim() && form.gender &&
     form.dateOfBirth && form.address.trim() &&
     form.weight && form.height && form.healthConditions.trim() &&
-    termsAccepted;
+    termsAccepted && signatureDataUrl;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -63,6 +64,7 @@ export default function RegisterPage() {
           whatsapp: form.phone,
           primaryCompany: "YOS_FITNESS",
           intentionOfJoining: goals.join(", "),
+          signatureDataUrl,
         }),
       });
       const data = await res.json();
@@ -375,6 +377,9 @@ export default function RegisterPage() {
           </label>
         </div>
 
+        {/* ── Signature ── */}
+        <SignaturePad onSign={setSignatureDataUrl} signed={!!signatureDataUrl} />
+
         {/* Submit */}
         <button type="submit"
           disabled={!requiredFilled || phase === "submitting"}
@@ -398,5 +403,122 @@ function Spinner() {
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
     </svg>
+  );
+}
+
+function SignaturePad({ onSign, signed }: { onSign: (dataUrl: string | null) => void; signed: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+  const hasDrawn = useRef(false);
+
+  const getPos = (e: MouseEvent | Touch, canvas: HTMLCanvasElement) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const clientX = "clientX" in e ? e.clientX : e.clientX;
+    const clientY = "clientY" in e ? e.clientY : e.clientY;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  };
+
+  const startDraw = useCallback((x: number, y: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d")!;
+    drawing.current = true;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  }, []);
+
+  const draw = useCallback((x: number, y: number) => {
+    if (!drawing.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d")!;
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    hasDrawn.current = true;
+  }, []);
+
+  const endDraw = useCallback(() => {
+    if (!drawing.current) return;
+    drawing.current = false;
+    const canvas = canvasRef.current;
+    if (!canvas || !hasDrawn.current) return;
+    onSign(canvas.toDataURL("image/png"));
+  }, [onSign]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d")!;
+    ctx.strokeStyle = "#1a1a1a";
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    const onMouseDown = (e: MouseEvent) => { const p = getPos(e, canvas); startDraw(p.x, p.y); };
+    const onMouseMove = (e: MouseEvent) => { const p = getPos(e, canvas); draw(p.x, p.y); };
+    const onTouchStart = (e: TouchEvent) => { e.preventDefault(); const p = getPos(e.touches[0], canvas); startDraw(p.x, p.y); };
+    const onTouchMove = (e: TouchEvent) => { e.preventDefault(); const p = getPos(e.touches[0], canvas); draw(p.x, p.y); };
+
+    canvas.addEventListener("mousedown", onMouseDown);
+    canvas.addEventListener("mousemove", onMouseMove);
+    canvas.addEventListener("mouseup", endDraw);
+    canvas.addEventListener("mouseleave", endDraw);
+    canvas.addEventListener("touchstart", onTouchStart, { passive: false });
+    canvas.addEventListener("touchmove", onTouchMove, { passive: false });
+    canvas.addEventListener("touchend", endDraw);
+
+    return () => {
+      canvas.removeEventListener("mousedown", onMouseDown);
+      canvas.removeEventListener("mousemove", onMouseMove);
+      canvas.removeEventListener("mouseup", endDraw);
+      canvas.removeEventListener("mouseleave", endDraw);
+      canvas.removeEventListener("touchstart", onTouchStart);
+      canvas.removeEventListener("touchmove", onTouchMove);
+      canvas.removeEventListener("touchend", endDraw);
+    };
+  }, [startDraw, draw, endDraw]);
+
+  function clear() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d")!;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasDrawn.current = false;
+    onSign(null);
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border shadow-sm overflow-hidden"
+      style={{ borderColor: signed ? "#86efac" : "#fed7aa" }}>
+      <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between"
+        style={{ background: signed ? "linear-gradient(90deg,#f0fdf4,#fff)" : "linear-gradient(90deg,#fff7ed,#fff)" }}>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: signed ? "#16a34a" : "#ea580c" }}>
+            {signed ? "✓ Signature Captured" : "Signature Required *"}
+          </p>
+          <p className="text-[11px] text-gray-400 mt-0.5">Sign below to confirm you agree to the terms</p>
+        </div>
+        <button type="button" onClick={clear}
+          className="text-[11px] font-semibold text-gray-400 hover:text-red-500 transition-colors px-2 py-1 rounded-lg hover:bg-red-50">
+          Clear
+        </button>
+      </div>
+      <div className="p-3">
+        <canvas
+          ref={canvasRef}
+          width={600}
+          height={160}
+          className="w-full rounded-xl touch-none"
+          style={{
+            border: "1.5px dashed #d1d5db",
+            background: "#fafafa",
+            cursor: "crosshair",
+          }}
+        />
+        <p className="text-[10px] text-gray-400 text-center mt-2">Use your finger or mouse to sign above</p>
+      </div>
+    </div>
   );
 }

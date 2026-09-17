@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   const { fullName, phone, whatsapp, gender, dateOfBirth, email,
     bloodGroup, weight, height, healthConditions, intentionOfJoining,
-    emergencyContact, emergencyPhone, address, primaryCompany } = body;
+    emergencyContact, emergencyPhone, address, primaryCompany, signatureDataUrl } = body;
 
   if (!fullName?.trim() || !phone?.trim() || !primaryCompany) {
     return NextResponse.json({ error: "Name, phone and gym selection are required." }, { status: 400 });
@@ -61,6 +61,8 @@ export async function POST(req: NextRequest) {
         emergencyContact: u(emergencyContact),
         emergencyPhone: emergencyPhone?.trim() || null,
         address: u(address),
+        signatureDataUrl: signatureDataUrl ?? null,
+        termsAcceptedAt: new Date(),
         status: "PROSPECT",
       },
       select: { memberId: true, fullName: true },
