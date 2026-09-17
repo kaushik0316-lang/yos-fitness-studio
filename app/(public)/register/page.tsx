@@ -411,13 +411,11 @@ function SignaturePad({ onSign, signed }: { onSign: (dataUrl: string | null) => 
   const drawing = useRef(false);
   const hasDrawn = useRef(false);
 
-  const getPos = (e: MouseEvent | Touch, canvas: HTMLCanvasElement) => {
+  const getPos = (e: { clientX: number; clientY: number }, canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const clientX = "clientX" in e ? e.clientX : e.clientX;
-    const clientY = "clientY" in e ? e.clientY : e.clientY;
-    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
   };
 
   const startDraw = useCallback((x: number, y: number) => {
