@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const BACKUP_EMAIL = process.env.BACKUP_EMAIL ?? "kaushik0316@gmail.com";
 
 function isAuthorized(req: NextRequest): boolean {
@@ -32,6 +31,7 @@ export async function GET(req: NextRequest) {
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ error: "RESEND_API_KEY not configured" }, { status: 500 });
   }
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
   // ── Fetch all members ─────────────────────────────────────────────────────
   const members = await prisma.member.findMany({
