@@ -11,7 +11,7 @@ import { MobileNav } from "@/components/layout/MobileNav";
 // ── Contact & domain constants ───────────────────────────────────────────────
 const PHONE_DISPLAY = "+91 98406 90418";
 const PHONE_TEL = "+919840690418";
-const WHATSAPP_NUMBER = "919840690418";
+const WHATSAPP_NUMBER = "918072880576";
 const SITE_URL = "https://yosfitnessstudio.in";
 const WA_ENQUIRY =
   "Hi%20Yos%20Fitness%20Studio!%20I%20would%20like%20to%20enquire%20about%20membership.";
