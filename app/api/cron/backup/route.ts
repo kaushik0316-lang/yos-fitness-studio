@@ -1,27 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
-import fs from "fs";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { Resend } from "resend";
+import { membersBase64, yfReceiptsBase64, yfsReceiptsBase64 } from "./base-data";
 
 const BACKUP_EMAIL = process.env.BACKUP_EMAIL ?? "yosfitness@gmail.com";
-// Files are committed to both data/backup-base (local) and app/api/cron/backup/base (Vercel bundle)
-function getBaseDir(): string {
-  const candidates = [
-    path.join(process.cwd(), "app", "api", "cron", "backup", "base"),
-    path.join(process.cwd(), "data", "backup-base"),
-    path.join("/var/task", "app", "api", "cron", "backup", "base"),
-    path.join("/var/task", "data", "backup-base"),
-  ];
-  for (const dir of candidates) {
-    try {
-      if (fs.existsSync(path.join(dir, "members.xlsx"))) return dir;
-    } catch { /* ignore */ }
-  }
-  return candidates[0]; // will fail with a useful ENOENT
-}
-const BASE_DIR = getBaseDir();
 
 function isAuthorized(req: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET;
@@ -95,17 +78,10 @@ export async function GET(req: NextRequest) {
   }
   const resend = new Resend(process.env.RESEND_API_KEY);
 
-  // ── Read base files ───────────────────────────────────────────────────────
-  let membersBase: XLSX.WorkBook, yfBase: XLSX.WorkBook, yfsBase: XLSX.WorkBook;
-  try {
-    membersBase  = XLSX.readFile(path.join(BASE_DIR, "members.xlsx"));
-    yfBase       = XLSX.readFile(path.join(BASE_DIR, "yf-receipts.xlsx"));
-    yfsBase      = XLSX.readFile(path.join(BASE_DIR, "yfs-receipts.xlsx"));
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error("[backup] base file read failed:", msg, "BASE_DIR:", BASE_DIR);
-    return NextResponse.json({ error: "Base file read failed", detail: msg, BASE_DIR }, { status: 500 });
-  }
+  // ── Load base workbooks from bundled Base64 constants ────────────────────
+  const membersBase = XLSX.read(Buffer.from(membersBase64, "base64"), { type: "buffer" });
+  const yfBase      = XLSX.read(Buffer.from(yfReceiptsBase64, "base64"), { type: "buffer" });
+  const yfsBase     = XLSX.read(Buffer.from(yfsReceiptsBase64, "base64"), { type: "buffer" });
 
   const membersWs  = membersBase.Sheets["Sheet1"];
   const yfWs       = yfBase.Sheets["Sheet1"];
