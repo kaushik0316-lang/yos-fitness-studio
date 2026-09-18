@@ -6,11 +6,22 @@ import * as XLSX from "xlsx";
 import { Resend } from "resend";
 
 const BACKUP_EMAIL = process.env.BACKUP_EMAIL ?? "yosfitness@gmail.com";
-// On Vercel, use path relative to this file (bundled together); fallback to project root
-const BASE_DIR = path.join(
-  process.env.VERCEL ? path.dirname(new URL(import.meta.url).pathname) : process.cwd(),
-  process.env.VERCEL ? "base" : "data/backup-base"
-);
+// Files are committed to both data/backup-base (local) and app/api/cron/backup/base (Vercel bundle)
+function getBaseDir(): string {
+  const candidates = [
+    path.join(process.cwd(), "app", "api", "cron", "backup", "base"),
+    path.join(process.cwd(), "data", "backup-base"),
+    path.join("/var/task", "app", "api", "cron", "backup", "base"),
+    path.join("/var/task", "data", "backup-base"),
+  ];
+  for (const dir of candidates) {
+    try {
+      if (fs.existsSync(path.join(dir, "members.xlsx"))) return dir;
+    } catch { /* ignore */ }
+  }
+  return candidates[0]; // will fail with a useful ENOENT
+}
+const BASE_DIR = getBaseDir();
 
 function isAuthorized(req: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET;
