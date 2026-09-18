@@ -16,9 +16,11 @@ function isAuthorized(req: NextRequest): boolean {
   return false;
 }
 
-function fmtDate(d: Date | null | undefined): string {
+function fmtDate(d: Date | null | undefined, minYear = 1950): string {
   if (!d) return "";
-  return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const date = new Date(d);
+  if (isNaN(date.getTime()) || date.getFullYear() < minYear) return "";
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function fmtMoney(n: unknown): number {
@@ -122,7 +124,7 @@ export async function GET(req: NextRequest) {
       : p.paymentMode;
     return {
       "RECEIPT NO.":      p.receiptNumber ?? "",
-      "DATE":             fmtDate(p.date),
+      "DATE":             fmtDate(p.date, 2000),
       "MEMBER ID":        p.member.memberId,
       "NAME":             p.member.fullName,
       "MOBILE":           p.member.phone,
@@ -156,7 +158,7 @@ export async function GET(req: NextRequest) {
 
   const paymentWs = XLSX.utils.json_to_sheet(paymentRows);
   paymentWs["!cols"] = [
-    { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 28 }, { wch: 14 },
+    { wch: 12 }, { wch: 16 }, { wch: 10 }, { wch: 28 }, { wch: 14 },
     { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 14 },
     { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 12 },
     { wch: 25 },
