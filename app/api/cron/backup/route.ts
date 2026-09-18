@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
       paymentMode: true,
       splitPaymentMode: true,
       splitAmount: true,
-      package: { select: { name: true } },
+      package: { select: { name: true, durationDays: true } },
       categoryLabel: true,
       membership: { select: { startDate: true, expiryDate: true } },
       notes: true,
@@ -118,26 +118,30 @@ export async function GET(req: NextRequest) {
 
   // ── Build Payments sheet (matching original Receipts format) ─────────────
   const paymentRows = payments.map((p) => {
-    const paid = fmtMoney(p.amount) - fmtMoney(p.discount);
     const modeStr = p.splitPaymentMode && p.splitAmount
       ? `${p.paymentMode} + ${p.splitPaymentMode}`
       : p.paymentMode;
+    const days = p.package?.durationDays;
+    const duration = days
+      ? days >= 365 ? `${Math.round(days / 365)} Year`
+        : days >= 30 ? `${Math.round(days / 30)} Month${Math.round(days / 30) > 1 ? "s" : ""}`
+        : `${days} Days`
+      : "";
     return {
-      "RECEIPT NO.":      p.receiptNumber ?? "",
       "DATE":             fmtDate(p.date, 2000),
-      "MEMBER ID":        p.member.memberId,
+      "RECEIPT NO.":      p.receiptNumber ?? "",
       "NAME":             p.member.fullName,
       "MOBILE":           p.member.phone,
+      "APPL. NO":         p.member.memberId,
       "TYPE":             p.categoryLabel ?? p.package?.name ?? "",
       "MODE OF PAYMENT":  modeStr,
       "PACKAGE":          p.package?.name ?? p.categoryLabel ?? "",
+      "DURATION":         duration,
       "START":            fmtDate(p.membership?.startDate),
       "END":              fmtDate(p.membership?.expiryDate),
       "AMOUNT":           fmtMoney(p.amount),
       "DISCOUNT":         fmtMoney(p.discount),
-      "PAID":             paid,
       "BALANCE":          fmtMoney(p.pendingAmount),
-      "SPLIT AMOUNT":     p.splitAmount ? fmtMoney(p.splitAmount) : "",
       "NOTES":            p.notes ?? "",
     };
   });
@@ -158,10 +162,9 @@ export async function GET(req: NextRequest) {
 
   const paymentWs = XLSX.utils.json_to_sheet(paymentRows);
   paymentWs["!cols"] = [
-    { wch: 12 }, { wch: 16 }, { wch: 10 }, { wch: 28 }, { wch: 14 },
-    { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 14 },
-    { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 12 },
-    { wch: 25 },
+    { wch: 16 }, { wch: 12 }, { wch: 28 }, { wch: 14 }, { wch: 12 },
+    { wch: 20 }, { wch: 20 }, { wch: 22 }, { wch: 12 }, { wch: 16 },
+    { wch: 16 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 25 },
   ];
   XLSX.utils.book_append_sheet(wb, paymentWs, "Payments");
 
