@@ -63,13 +63,7 @@ function waLink(phone: string, message?: string) {
 function buildEnquiryTemplate(name: string, status: string, interest: string | null): string {
   const firstName = toTitleCase(name);
   const pkg = interest ? ` for ${interest}` : "";
-  if (status === "NEW" || status === "CONTACTED") {
-    return `Hi ${firstName}! Thank you for your interest in Yos Fitness Studio${pkg}.\n\nWe'd love to have you visit us and experience our facility. Would you like to schedule a free trial session?\n\nLet us know a convenient time and we'll set it up for you!\n\n– Team Yos`;
-  }
-  if (status === "TRIAL_SCHEDULED" || status === "TRIAL_DONE") {
-    return `Hi ${firstName}! Hope you enjoyed your trial at Yos Fitness Studio.\n\nWe'd love to have you join us as a member${pkg}. Ready to get started?\n\nDrop us a message and we'll get your membership sorted!\n\n– Team Yos`;
-  }
-  return `Hi ${firstName}! Just checking in from Yos Fitness Studio. Are you still interested in joining us${pkg}?\n\nFeel free to reach out anytime — we're happy to answer any questions!\n\n– Team Yos`;
+  return `Hi ${firstName}! 😊 Hope all the details${pkg} were communicated by our staff.\n\nFeel free to ask us anything — we're happy to help!\n\nLooking forward to having you restart your fitness journey with us. 💪\n\n– Team Yos Fitness Studio`;
 }
 
 function daysUntil(d: Date) {
