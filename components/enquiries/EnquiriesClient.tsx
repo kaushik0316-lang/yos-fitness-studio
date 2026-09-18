@@ -63,7 +63,7 @@ function waLink(phone: string, message?: string) {
 function buildEnquiryTemplate(name: string, status: string, interest: string | null): string {
   const firstName = toTitleCase(name);
   const pkg = interest ? ` for ${interest}` : "";
-  return `Hi ${firstName}! 😊 Hope all the details${pkg} were communicated by our staff.\n\nFeel free to ask us anything — we're happy to help!\n\nLooking forward to having you restart your fitness journey with us. 💪\n\n– Team Yos Fitness Studio`;
+  return `Hi ${firstName}! 😊 Hope all the details were communicated by our staff.\n\nFeel free to ask us anything — we're happy to help!\n\nLooking forward to having you restart your fitness journey with us. 💪\n\n– Team Yos Fitness Studio`;
 }
 
 function daysUntil(d: Date) {
