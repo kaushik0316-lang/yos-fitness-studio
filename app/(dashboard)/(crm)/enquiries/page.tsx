@@ -10,12 +10,20 @@ export const metadata = { title: "Enquiries" };
 export default async function EnquiriesPage() {
   const session = await auth();
 
+  const isAdmin = session?.user.role === "ADMIN";
+
   const [enquiries, employees, funnel] = await Promise.all([
     prisma.enquiry.findMany({
       include: {
         assignedTo: { select: { id: true, fullName: true } },
         createdBy: { select: { id: true, name: true } },
         member: { select: { id: true, memberId: true, fullName: true } },
+        ...(isAdmin ? {
+          messages: {
+            orderBy: { sentAt: "desc" as const },
+            include: { sentBy: { select: { name: true } } },
+          },
+        } : {}),
       },
       orderBy: { createdAt: "desc" },
     }),

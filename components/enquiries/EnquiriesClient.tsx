@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef, useEffect, useCallback } from "react";
-import { Plus, Phone, MessageCircle, Search, X, ChevronDown, UserCircle, Calendar, StickyNote, Trash2, UserCheck, TrendingUp } from "lucide-react";
+import { Plus, Phone, MessageCircle, Search, X, ChevronDown, UserCircle, Calendar, StickyNote, Trash2, UserCheck, TrendingUp, CheckCheck, Clock } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import { createEnquiry, updateEnquiry, deleteEnquiry, convertEnquiry, searchMembersForLink } from "@/lib/actions/enquiries";
@@ -11,6 +11,13 @@ type Employee = { id: string; fullName: string; role: string };
 
 type LinkedMember = { id: string; memberId: string; fullName: string };
 
+type EnquiryMessage = {
+  id: string;
+  message: string;
+  sentAt: Date;
+  sentBy: { name: string };
+};
+
 type Enquiry = {
   id: string; name: string; phone: string;
   interest: string | null; source: string; status: string;
@@ -19,6 +26,7 @@ type Enquiry = {
   followUpDate: Date | null; notes: string | null;
   createdAt: Date; convertedAt: Date | null;
   member: LinkedMember | null;
+  messages?: EnquiryMessage[];
 };
 
 type FunnelStats = {
@@ -85,6 +93,7 @@ export function EnquiriesClient({ enquiries: initial, employees, funnel, userId,
   const [convertTarget, setConvertTarget] = useState<Enquiry | null>(null);
   const [showFunnel, setShowFunnel] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [loggingId, setLoggingId] = useState<string | null>(null);
 
   const isAdmin = userRole === "ADMIN";
 
@@ -155,6 +164,29 @@ export function EnquiriesClient({ enquiries: initial, employees, funnel, userId,
     if (!confirm("Delete this enquiry?")) return;
     await deleteEnquiry(id);
     setEnquiries((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  async function handleLogMessage(enquiryId: string, message: string) {
+    setLoggingId(enquiryId);
+    try {
+      const res = await fetch(`/api/enquiries/${enquiryId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      if (!res.ok) return;
+      const { log } = await res.json();
+      setEnquiries((prev) => prev.map((e) =>
+        e.id === enquiryId
+          ? { ...e, messages: [log, ...(e.messages ?? [])] }
+          : e
+      ));
+      if (selected?.id === enquiryId) {
+        setSelected((prev) => prev ? { ...prev, messages: [log, ...(prev.messages ?? [])] } : prev);
+      }
+    } finally {
+      setLoggingId(null);
+    }
   }
 
   const todayFollowUps = enquiries.filter((e) => {
@@ -375,6 +407,21 @@ export function EnquiriesClient({ enquiries: initial, employees, funnel, userId,
                           style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}>
                           <MessageCircle className="h-3 w-3" />WhatsApp
                         </a>
+                        {isAdmin && (
+                          <button
+                            disabled={loggingId === e.id}
+                            onClick={(ev) => { ev.stopPropagation(); handleLogMessage(e.id, buildEnquiryTemplate(e.name, e.status, e.interest)); }}
+                            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                            style={{ background: "rgba(99,102,241,0.12)", color: "#818cf8" }}
+                            title="Mark WhatsApp as sent">
+                            <CheckCheck className="h-3 w-3" />Sent
+                          </button>
+                        )}
+                        {isAdmin && (e.messages?.length ?? 0) > 0 && (
+                          <span className="flex items-center gap-1 text-xs text-gray-600" title={`Last sent ${formatDate(e.messages![0].sentAt)}`}>
+                            <Clock className="h-3 w-3" />{e.messages!.length}
+                          </span>
+                        )}
                         <StatusDropdown
                           enquiryId={e.id}
                           status={e.status}
@@ -415,11 +462,14 @@ export function EnquiriesClient({ enquiries: initial, employees, funnel, userId,
       {selected && (
         <DetailDrawer
           enquiry={selected}
+          isAdmin={isAdmin}
+          loggingId={loggingId}
           onClose={() => setSelected(null)}
           onEdit={() => { setEditing(selected); setSelected(null); }}
           onDelete={isAdmin ? () => { handleDelete(selected.id); setSelected(null); } : undefined}
           onStatusChange={(s) => handleStatusChange(selected.id, s)}
           onConvert={() => { setConvertTarget(selected); setSelected(null); }}
+          onLogMessage={(msg) => handleLogMessage(selected.id, msg)}
         />
       )}
       {convertTarget && (
@@ -583,13 +633,16 @@ function ConvertModal({ enquiry, onClose, onConfirm }: {
   );
 }
 
-function DetailDrawer({ enquiry, onClose, onEdit, onDelete, onStatusChange, onConvert }: {
+function DetailDrawer({ enquiry, isAdmin, loggingId, onClose, onEdit, onDelete, onStatusChange, onConvert, onLogMessage }: {
   enquiry: Enquiry;
+  isAdmin: boolean;
+  loggingId: string | null;
   onClose: () => void;
   onEdit: () => void;
   onDelete?: () => void;
   onStatusChange: (s: string) => void;
   onConvert: () => void;
+  onLogMessage: (msg: string) => void;
 }) {
   const cfg = STATUS_CONFIG[enquiry.status] ?? STATUS_CONFIG.NEW;
   const followUpDays = enquiry.followUpDate ? daysUntil(enquiry.followUpDate) : null;
@@ -683,6 +736,22 @@ function DetailDrawer({ enquiry, onClose, onEdit, onDelete, onStatusChange, onCo
               <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{enquiry.notes}</p>
             </div>
           )}
+          {isAdmin && (enquiry.messages?.length ?? 0) > 0 && (
+            <div className="py-3">
+              <p className="text-xs text-gray-600 uppercase tracking-wider font-semibold mb-2">WhatsApp Log</p>
+              <div className="flex flex-col gap-2">
+                {enquiry.messages!.map((msg) => (
+                  <div key={msg.id} className="rounded-lg p-2.5" style={{ background: "rgba(37,211,102,0.06)", border: "1px solid rgba(37,211,102,0.12)" }}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold" style={{ color: "#25d366" }}>{toTitleCase(msg.sentBy.name)}</span>
+                      <span className="text-xs text-gray-600">{formatDate(msg.sentAt)}</span>
+                    </div>
+                    <p className="text-xs text-gray-400 whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 px-5 py-4 flex-shrink-0"
@@ -697,6 +766,15 @@ function DetailDrawer({ enquiry, onClose, onEdit, onDelete, onStatusChange, onCo
             style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}>
             <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
           </a>
+          {isAdmin && (
+            <button
+              disabled={loggingId === enquiry.id}
+              onClick={() => onLogMessage(buildEnquiryTemplate(enquiry.name, enquiry.status, enquiry.interest))}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+              style={{ background: "rgba(99,102,241,0.12)", color: "#818cf8" }}>
+              <CheckCheck className="h-3.5 w-3.5" /> Mark Sent
+            </button>
+          )}
           <button onClick={onEdit}
             className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white transition-all"
             style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}>
