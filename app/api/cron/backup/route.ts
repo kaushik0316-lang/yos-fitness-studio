@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { Resend } from "resend";
 
-const BACKUP_EMAIL = process.env.BACKUP_EMAIL ?? "kaushik0316@gmail.com";
+const BACKUP_EMAIL = process.env.BACKUP_EMAIL ?? "yosfitness@gmail.com";
 
 function isAuthorized(req: NextRequest): boolean {
   // Vercel sends Authorization: Bearer <CRON_SECRET> for automatic cron invocations
