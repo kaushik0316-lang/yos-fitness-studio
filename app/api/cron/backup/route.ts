@@ -85,9 +85,16 @@ export async function GET(req: NextRequest) {
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   // ── Read base files ───────────────────────────────────────────────────────
-  const membersBase  = XLSX.readFile(path.join(BASE_DIR, "members.xlsx"));
-  const yfBase       = XLSX.readFile(path.join(BASE_DIR, "yf-receipts.xlsx"));
-  const yfsBase      = XLSX.readFile(path.join(BASE_DIR, "yfs-receipts.xlsx"));
+  let membersBase: XLSX.WorkBook, yfBase: XLSX.WorkBook, yfsBase: XLSX.WorkBook;
+  try {
+    membersBase  = XLSX.readFile(path.join(BASE_DIR, "members.xlsx"));
+    yfBase       = XLSX.readFile(path.join(BASE_DIR, "yf-receipts.xlsx"));
+    yfsBase      = XLSX.readFile(path.join(BASE_DIR, "yfs-receipts.xlsx"));
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[backup] base file read failed:", msg, "BASE_DIR:", BASE_DIR);
+    return NextResponse.json({ error: "Base file read failed", detail: msg, BASE_DIR }, { status: 500 });
+  }
 
   const membersWs  = membersBase.Sheets["Sheet1"];
   const yfWs       = yfBase.Sheets["Sheet1"];
