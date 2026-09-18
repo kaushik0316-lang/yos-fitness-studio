@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { Resend } from "resend";
-import { membersBase64, yfReceiptsBase64, yfsReceiptsBase64 } from "./base-data";
 
 const BACKUP_EMAIL = process.env.BACKUP_EMAIL ?? "yosfitness@gmail.com";
+
+// Headers exactly matching reference files
+const MEMBER_HEADER = [
+  "APPLICATION NUMBER","NAME","GENDER","DATE OF BIRTH","AGE",
+  "MARITAL STATUS","ADDRESS","PINCODE","EMAIL","MOBILE","","",
+  "PROFESSION","WEIGHT","HEIGHT","PURPOSE","DATE","DOJ",
+];
+const YF_HEADER  = ["DATE","RECEIPT NO.","NAME","MOBILE","APPL NO.","TYPE","MODE OF PAYMENT","PACKAGE","DURATION","START","END","AMOUNT","BALANCE"];
+const YFS_HEADER = ["DATE","RECEIPT NO.","NAME","MOBILE","APPL. NO","TYPE","MODE OF PAYMENT","PACKAGE","DURATION ","START","END","AMOUNT","BALANCE","COUPLE OFFER"];
 
 function isAuthorized(req: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET;
@@ -15,19 +23,12 @@ function isAuthorized(req: NextRequest): boolean {
   return false;
 }
 
-// JS Date → Excel serial number
 function toXL(d: Date | null | undefined, minYear = 1950): number | "" {
   if (!d) return "";
   const date = new Date(d);
   if (isNaN(date.getTime()) || date.getFullYear() < minYear) return "";
   const epoch = new Date(Date.UTC(1900, 0, 1));
   return Math.floor((date.getTime() - epoch.getTime()) / 86400000) + 2;
-}
-
-// Excel serial → JS Date
-function fromXL(serial: number): Date {
-  const epoch = new Date(Date.UTC(1900, 0, 1));
-  return new Date(epoch.getTime() + (serial - 2) * 86400000);
 }
 
 function calcAge(dob: Date | null | undefined): number | "" {
@@ -55,7 +56,6 @@ function getDuration(days: number | null | undefined): string {
   return `${days}D`;
 }
 
-// Apply date format codes to cells in the given column indices (0-based)
 function applyDateFormat(ws: XLSX.WorkSheet, colIndices: number[]) {
   const range = XLSX.utils.decode_range(ws["!ref"] ?? "A1");
   for (let r = range.s.r + 1; r <= range.e.r; r++) {
@@ -69,6 +69,13 @@ function applyDateFormat(ws: XLSX.WorkSheet, colIndices: number[]) {
   }
 }
 
+function makeSheet(rows: (string | number | "")[][], dateColIndices: number[]): XLSX.WorkSheet {
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  applyDateFormat(ws, dateColIndices);
+  ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+  return ws;
+}
+
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -78,50 +85,21 @@ export async function GET(req: NextRequest) {
   }
   const resend = new Resend(process.env.RESEND_API_KEY);
 
-  // ── Load base workbooks from bundled Base64 constants ────────────────────
-  const membersBase = XLSX.read(Buffer.from(membersBase64, "base64"), { type: "buffer" });
-  const yfBase      = XLSX.read(Buffer.from(yfReceiptsBase64, "base64"), { type: "buffer" });
-  const yfsBase     = XLSX.read(Buffer.from(yfsReceiptsBase64, "base64"), { type: "buffer" });
-
-  const membersWs  = membersBase.Sheets["Sheet1"];
-  const yfWs       = yfBase.Sheets["Sheet1"];
-  const yfsWs      = yfsBase.Sheets["Sheet1"];
-
-  const membersRows = XLSX.utils.sheet_to_json<(string | number)[]>(membersWs, { header: 1, defval: "" });
-  const yfRows      = XLSX.utils.sheet_to_json<(string | number)[]>(yfWs,      { header: 1, defval: "" });
-  const yfsRows     = XLSX.utils.sheet_to_json<(string | number)[]>(yfsWs,     { header: 1, defval: "" });
-
-  // Determine cutoffs from last row of base files
-  const lastMemberAppNo   = membersRows[membersRows.length - 1][0] as number;   // e.g. 2838
-  const lastYFReceipt     = yfRows[yfRows.length - 1][1] as number;              // e.g. 4422
-  const lastYFSReceipt    = yfsRows[yfsRows.length - 1][1] as number;            // e.g. 2680
-  const lastYFDateSerial  = yfRows[yfRows.length - 1][0] as number;              // e.g. 46164
-  const lastYFSDateSerial = yfsRows[yfsRows.length - 1][0] as number;
-
-  const yfCutoff  = fromXL(lastYFDateSerial);
-  const yfsCutoff = fromXL(lastYFSDateSerial);
-
-  // ── Query new data from DB ────────────────────────────────────────────────
-  const [newMembers, yfPayments, yfsPayments] = await Promise.all([
-    // New members: those whose numeric ID > lastMemberAppNo
+  // ── Fetch all data from DB ────────────────────────────────────────────────
+  const [members, yfPayments, yfsPayments] = await Promise.all([
     prisma.member.findMany({
       orderBy: { memberId: "asc" },
       select: {
         memberId: true, fullName: true, gender: true, dateOfBirth: true,
-        address: true, email: true, phone: true, whatsapp: true,
+        address: true, email: true, phone: true,
         weight: true, height: true, intentionOfJoining: true,
         joinDate: true, startDate: true,
       },
-    }).then(all => all.filter(m => {
-      const n = numericId(m.memberId);
-      return typeof n === "number" && n > lastMemberAppNo;
-    })),
+    }),
 
-    // New YF payments (YF- prefix, not YFS-)
     prisma.payment.findMany({
       where: {
         isVoided: false,
-        date: { gt: yfCutoff },
         member: { memberId: { startsWith: "YF-", not: { startsWith: "YFS-" } } },
       },
       orderBy: [{ date: "asc" }, { receiptNumber: "asc" }],
@@ -136,11 +114,9 @@ export async function GET(req: NextRequest) {
       },
     }),
 
-    // New YFS payments (YFS- prefix)
     prisma.payment.findMany({
       where: {
         isVoided: false,
-        date: { gt: yfsCutoff },
         member: { memberId: { startsWith: "YFS-" } },
       },
       orderBy: [{ date: "asc" }, { receiptNumber: "asc" }],
@@ -156,117 +132,95 @@ export async function GET(req: NextRequest) {
     }),
   ]);
 
-  // ── Append new members ────────────────────────────────────────────────────
-  // Exact column order: APPLICATION NUMBER, NAME, GENDER, DATE OF BIRTH, AGE,
-  // MARITAL STATUS, ADDRESS, PINCODE, EMAIL, MOBILE, "", "", PROFESSION,
-  // WEIGHT, HEIGHT, PURPOSE, DATE, DOJ
-  for (const m of newMembers) {
+  // ── Build Members rows ────────────────────────────────────────────────────
+  const memberRows: (string | number | "")[][] = [MEMBER_HEADER];
+  for (const m of members) {
     const dob = m.dateOfBirth ? new Date(m.dateOfBirth) : null;
-    const row: (string | number)[] = [
-      numericId(m.memberId) as number,
+    memberRows.push([
+      numericId(m.memberId),
       m.fullName.toUpperCase(),
       m.gender ?? "NIL",
-      toXL(dob) as number | "",
-      calcAge(dob) as number | "",
-      "NIL",                          // MARITAL STATUS
+      toXL(dob),
+      calcAge(dob),
+      "NIL",                          // MARITAL STATUS (not in CRM)
       m.address ?? "NIL",
-      "NIL",                          // PINCODE
+      "NIL",                          // PINCODE (not in CRM)
       m.email ?? "NIL",
       m.phone,
-      "",                             // col K (empty)
-      "",                             // col L (empty)
-      "NIL",                          // PROFESSION
+      "", "",                         // empty cols K, L
+      "NIL",                          // PROFESSION (not in CRM)
       m.weight ? Number(m.weight) : "NIL",
       m.height ? Number(m.height) : "NIL",
       m.intentionOfJoining ?? "NIL",
-      toXL(m.joinDate) as number | "",
-      toXL(m.startDate) as number | "",
-    ] as (string | number)[];
-    membersRows.push(row);
+      toXL(m.joinDate),
+      toXL(m.startDate),
+    ]);
   }
 
-  // ── Append new YF payments ────────────────────────────────────────────────
-  // Exact columns: DATE, RECEIPT NO., NAME, MOBILE, APPL NO., TYPE,
-  // MODE OF PAYMENT, PACKAGE, DURATION, START, END, AMOUNT, BALANCE
-  let yfReceiptNo = lastYFReceipt;
+  // ── Build YF receipt rows ─────────────────────────────────────────────────
+  const yfRows: (string | number | "")[][] = [YF_HEADER];
+  let autoReceipt = 0;
   for (const p of yfPayments) {
     const modeStr = p.splitPaymentMode && p.splitAmount
       ? `${p.paymentMode} + ${p.splitPaymentMode}`
       : (p.paymentMode ?? "");
-    const row: (string | number)[] = [
-      toXL(p.date, 2000) as number | "",
-      p.receiptNumber ?? ++yfReceiptNo,
+    yfRows.push([
+      toXL(p.date, 2000),
+      p.receiptNumber ?? ++autoReceipt,
       p.member.fullName.toUpperCase(),
       p.member.phone,
-      numericId(p.member.memberId) as number | "",
+      numericId(p.member.memberId),
       p.categoryLabel ?? "",
       modeStr.toUpperCase(),
       p.package?.name ?? "",
       getDuration(p.package?.durationDays),
-      toXL(p.membership?.startDate) as number | "",
-      toXL(p.membership?.expiryDate) as number | "",
+      toXL(p.membership?.startDate),
+      toXL(p.membership?.expiryDate),
       fmtMoney(p.amount),
       p.pendingAmount ? fmtMoney(p.pendingAmount) : "NIL",
-    ] as (string | number)[];
-    yfRows.push(row);
+    ]);
   }
 
-  // ── Append new YFS payments ───────────────────────────────────────────────
-  // Exact columns: DATE, RECEIPT NO., NAME, MOBILE, APPL. NO, TYPE,
-  // MODE OF PAYMENT, PACKAGE, DURATION, START, END, AMOUNT, BALANCE, COUPLE OFFER
-  let yfsReceiptNo = lastYFSReceipt;
+  // ── Build YFS receipt rows ────────────────────────────────────────────────
+  const yfsRows: (string | number | "")[][] = [YFS_HEADER];
+  let autoReceiptYfs = 0;
   for (const p of yfsPayments) {
     const modeStr = p.splitPaymentMode && p.splitAmount
       ? `${p.paymentMode} + ${p.splitPaymentMode}`
       : (p.paymentMode ?? "");
-    const row: (string | number)[] = [
-      toXL(p.date, 2000) as number | "",
-      p.receiptNumber ?? ++yfsReceiptNo,
+    yfsRows.push([
+      toXL(p.date, 2000),
+      p.receiptNumber ?? ++autoReceiptYfs,
       p.member.fullName.toUpperCase(),
       p.member.phone,
-      numericId(p.member.memberId) as number | "",
+      numericId(p.member.memberId),
       p.categoryLabel ?? "",
       modeStr.toUpperCase(),
       p.package?.name ?? "",
       getDuration(p.package?.durationDays),
-      toXL(p.membership?.startDate) as number | "",
-      toXL(p.membership?.expiryDate) as number | "",
+      toXL(p.membership?.startDate),
+      toXL(p.membership?.expiryDate),
       fmtMoney(p.amount),
       p.pendingAmount ? fmtMoney(p.pendingAmount) : "NIL",
-      "",                             // COUPLE OFFER
-    ] as (string | number)[];
-    yfsRows.push(row);
+      "",  // COUPLE OFFER
+    ]);
   }
-
-  // ── Rebuild worksheets from updated row arrays ────────────────────────────
-  function rowsToSheet(rows: (string | number)[][], dateColIndices: number[]): XLSX.WorkSheet {
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    applyDateFormat(ws, dateColIndices);
-    ws["!freeze"] = { xSplit: 0, ySplit: 1 };
-    return ws;
-  }
-
-  const newMembersWs = rowsToSheet(membersRows as (string|number)[][], [3, 16, 17]);
-  const newYfWs      = rowsToSheet(yfRows as (string|number)[][], [0, 9, 10]);
-  const newYfsWs     = rowsToSheet(yfsRows as (string|number)[][], [0, 9, 10]);
 
   // ── Build workbooks ───────────────────────────────────────────────────────
-  function makeWb(sheetName: string, ws: XLSX.WorkSheet): XLSX.WorkBook {
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-    return wb;
-  }
+  const membersWb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(membersWb, makeSheet(memberRows, [3, 16, 17]), "Sheet1");
 
-  const membersWb = makeWb("Sheet1", newMembersWs);
-  const yfWb      = makeWb("Sheet1", newYfWs);
-  const yfsWb     = makeWb("Sheet1", newYfsWs);
+  const yfWb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(yfWb, makeSheet(yfRows, [0, 9, 10]), "Sheet1");
+
+  const yfsWb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(yfsWb, makeSheet(yfsRows, [0, 9, 10]), "Sheet1");
 
   const toB64 = (wb: XLSX.WorkBook) =>
     Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" })).toString("base64");
 
   // ── Email ─────────────────────────────────────────────────────────────────
-  const today = new Date();
-  const dateStr = today.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const dateStr = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
   const { error } = await resend.emails.send({
     from: "Yos CRM Backup <onboarding@resend.dev>",
@@ -278,21 +232,19 @@ export async function GET(req: NextRequest) {
         <p style="color:#666;margin-top:0">Generated on ${dateStr}</p>
         <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
         <table style="width:100%;border-collapse:collapse">
-          <tr><td style="padding:6px 0;color:#555;font-size:14px">Total Members</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right">${membersRows.length - 1}</td></tr>
-          <tr><td style="padding:6px 0;color:#555;font-size:14px">New Members (since base)</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right;color:#16a34a">+${newMembers.length}</td></tr>
-          <tr><td style="padding:6px 0;color:#555;font-size:14px">YF Receipts</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right">${yfRows.length - 1}</td></tr>
-          <tr><td style="padding:6px 0;color:#555;font-size:14px">New YF Receipts</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right;color:#16a34a">+${yfPayments.length}</td></tr>
-          <tr><td style="padding:6px 0;color:#555;font-size:14px">YFS Receipts</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right">${yfsRows.length - 1}</td></tr>
-          <tr><td style="padding:6px 0;color:#555;font-size:14px">New YFS Receipts</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right;color:#16a34a">+${yfsPayments.length}</td></tr>
+          <tr><td style="padding:6px 0;color:#555;font-size:14px">Members</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right">${members.length}</td></tr>
+          <tr><td style="padding:6px 0;color:#555;font-size:14px">YF Receipts</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right">${yfPayments.length}</td></tr>
+          <tr><td style="padding:6px 0;color:#555;font-size:14px">YFS Receipts</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right">${yfsPayments.length}</td></tr>
+          <tr><td style="padding:6px 0;color:#555;font-size:14px">Total Revenue (YF)</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right">₹${yfPayments.reduce((s,p)=>s+fmtMoney(p.amount),0).toLocaleString("en-IN")}</td></tr>
         </table>
         <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
-        <p style="color:#888;font-size:12px">3 attachments match the original file format. Base data: up to 22 May 2026.</p>
+        <p style="color:#888;font-size:12px">3 attachments — full DB export in original file format.</p>
       </div>
     `,
     attachments: [
-      { filename: `Member Master.xlsx`,                      content: toB64(membersWb) },
-      { filename: `Yos fitness receipts.xlsx`,               content: toB64(yfWb) },
-      { filename: `Yos fitness Studio Receipts.xlsx`,        content: toB64(yfsWb) },
+      { filename: "Member Master.xlsx",               content: toB64(membersWb) },
+      { filename: "Yos fitness receipts.xlsx",        content: toB64(yfWb) },
+      { filename: "Yos fitness Studio Receipts.xlsx", content: toB64(yfsWb) },
     ],
   });
 
@@ -303,13 +255,10 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    totalMembers:      membersRows.length - 1,
-    newMembers:        newMembers.length,
-    totalYFReceipts:   yfRows.length - 1,
-    newYFReceipts:     yfPayments.length,
-    totalYFSReceipts:  yfsRows.length - 1,
-    newYFSReceipts:    yfsPayments.length,
-    emailedTo:         BACKUP_EMAIL,
-    timestamp:         new Date().toISOString(),
+    members:     members.length,
+    yfReceipts:  yfPayments.length,
+    yfsReceipts: yfsPayments.length,
+    emailedTo:   BACKUP_EMAIL,
+    timestamp:   new Date().toISOString(),
   });
 }
