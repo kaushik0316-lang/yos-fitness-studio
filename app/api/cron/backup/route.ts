@@ -6,11 +6,17 @@ import { Resend } from "resend";
 const BACKUP_EMAIL = process.env.BACKUP_EMAIL ?? "kaushik0316@gmail.com";
 
 function isAuthorized(req: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET ?? process.env.CRON_SECRET_1;
-  if (!secret) return false;
-  const manual = req.headers.get("x-cron-secret");
+  const cronSecret = process.env.CRON_SECRET;
+  const manualSecret = process.env.CRON_SECRET_1;
   const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  return manual === secret || bearer === secret;
+  const header = req.headers.get("x-cron-secret");
+  // Vercel sends Authorization: Bearer <CRON_SECRET> for automatic cron invocations
+  if (cronSecret && bearer === cronSecret) return true;
+  // Manual trigger via header (using CRON_SECRET_1)
+  if (manualSecret && header === manualSecret) return true;
+  // Manual trigger via Authorization: Bearer <CRON_SECRET_1>
+  if (manualSecret && bearer === manualSecret) return true;
+  return false;
 }
 
 function fmtDate(d: Date | null | undefined): string {
