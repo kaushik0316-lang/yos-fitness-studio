@@ -219,6 +219,7 @@ export async function GET(req: NextRequest) {
     success: true,
     members:    members.length,
     yfReceipts: yfPayments.length,
+    files:      3,
     emailedTo:  BACKUP_EMAIL,
     timestamp:  new Date().toISOString(),
   });
