@@ -6,7 +6,11 @@ import * as XLSX from "xlsx";
 import { Resend } from "resend";
 
 const BACKUP_EMAIL = process.env.BACKUP_EMAIL ?? "yosfitness@gmail.com";
-const BASE_DIR = path.join(process.cwd(), "data", "backup-base");
+// On Vercel, use path relative to this file (bundled together); fallback to project root
+const BASE_DIR = path.join(
+  process.env.VERCEL ? path.dirname(new URL(import.meta.url).pathname) : process.cwd(),
+  process.env.VERCEL ? "base" : "data/backup-base"
+);
 
 function isAuthorized(req: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET;
