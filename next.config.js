@@ -5,6 +5,11 @@ const nextConfig = {
       { protocol: "https", hostname: "**.supabase.co" },
     ],
   },
+  experimental: {
+    outputFileTracingIncludes: {
+      "/api/cron/backup": ["./data/backup-base/**"],
+    },
+  },
 };
 
 module.exports = nextConfig;
