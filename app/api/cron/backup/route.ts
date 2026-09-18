@@ -87,7 +87,9 @@ export async function GET(req: NextRequest) {
 
   // ── Fetch all data from DB ────────────────────────────────────────────────
   const [members, yfPayments, yfsPayments] = await Promise.all([
+    // Only YF members — reference file was YF-only (app# 101–2838 = YF-101 to YF-2838)
     prisma.member.findMany({
+      where: { memberId: { startsWith: "YF-", not: { startsWith: "YFS-" } } },
       orderBy: { memberId: "asc" },
       select: {
         memberId: true, fullName: true, gender: true, dateOfBirth: true,
@@ -114,22 +116,7 @@ export async function GET(req: NextRequest) {
       },
     }),
 
-    prisma.payment.findMany({
-      where: {
-        isVoided: false,
-        member: { memberId: { startsWith: "YFS-" } },
-      },
-      orderBy: [{ date: "asc" }, { receiptNumber: "asc" }],
-      select: {
-        receiptNumber: true, date: true,
-        member: { select: { memberId: true, fullName: true, phone: true } },
-        amount: true, pendingAmount: true,
-        paymentMode: true, splitPaymentMode: true, splitAmount: true,
-        package: { select: { name: true, durationDays: true } },
-        categoryLabel: true,
-        membership: { select: { startDate: true, expiryDate: true } },
-      },
-    }),
+    Promise.resolve([]),  // YFS: historical data not in DB — skip
   ]);
 
   // ── Build Members rows ────────────────────────────────────────────────────
@@ -181,40 +168,12 @@ export async function GET(req: NextRequest) {
     ]);
   }
 
-  // ── Build YFS receipt rows ────────────────────────────────────────────────
-  const yfsRows: (string | number | "")[][] = [YFS_HEADER];
-  let autoReceiptYfs = 0;
-  for (const p of yfsPayments) {
-    const modeStr = p.splitPaymentMode && p.splitAmount
-      ? `${p.paymentMode} + ${p.splitPaymentMode}`
-      : (p.paymentMode ?? "");
-    yfsRows.push([
-      toXL(p.date, 2000),
-      p.receiptNumber ?? ++autoReceiptYfs,
-      p.member.fullName.toUpperCase(),
-      p.member.phone,
-      numericId(p.member.memberId),
-      p.categoryLabel ?? "",
-      modeStr.toUpperCase(),
-      p.package?.name ?? "",
-      getDuration(p.package?.durationDays),
-      toXL(p.membership?.startDate),
-      toXL(p.membership?.expiryDate),
-      fmtMoney(p.amount),
-      p.pendingAmount ? fmtMoney(p.pendingAmount) : "NIL",
-      "",  // COUPLE OFFER
-    ]);
-  }
-
   // ── Build workbooks ───────────────────────────────────────────────────────
   const membersWb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(membersWb, makeSheet(memberRows, [3, 16, 17]), "Sheet1");
 
   const yfWb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(yfWb, makeSheet(yfRows, [0, 9, 10]), "Sheet1");
-
-  const yfsWb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(yfsWb, makeSheet(yfsRows, [0, 9, 10]), "Sheet1");
 
   const toB64 = (wb: XLSX.WorkBook) =>
     Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" })).toString("base64");
@@ -234,17 +193,15 @@ export async function GET(req: NextRequest) {
         <table style="width:100%;border-collapse:collapse">
           <tr><td style="padding:6px 0;color:#555;font-size:14px">Members</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right">${members.length}</td></tr>
           <tr><td style="padding:6px 0;color:#555;font-size:14px">YF Receipts</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right">${yfPayments.length}</td></tr>
-          <tr><td style="padding:6px 0;color:#555;font-size:14px">YFS Receipts</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right">${yfsPayments.length}</td></tr>
-          <tr><td style="padding:6px 0;color:#555;font-size:14px">Total Revenue (YF)</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right">₹${yfPayments.reduce((s,p)=>s+fmtMoney(p.amount),0).toLocaleString("en-IN")}</td></tr>
+          <tr><td style="padding:6px 0;color:#555;font-size:14px">Total Revenue</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right">₹${yfPayments.reduce((s,p)=>s+fmtMoney(p.amount),0).toLocaleString("en-IN")}</td></tr>
         </table>
         <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
-        <p style="color:#888;font-size:12px">3 attachments — full DB export in original file format.</p>
+        <p style="color:#888;font-size:12px">2 attachments — full DB export in original file format.</p>
       </div>
     `,
     attachments: [
-      { filename: "Member Master.xlsx",               content: toB64(membersWb) },
-      { filename: "Yos fitness receipts.xlsx",        content: toB64(yfWb) },
-      { filename: "Yos fitness Studio Receipts.xlsx", content: toB64(yfsWb) },
+      { filename: "Member Master.xlsx",        content: toB64(membersWb) },
+      { filename: "Yos fitness receipts.xlsx", content: toB64(yfWb) },
     ],
   });
 
@@ -255,10 +212,9 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    members:     members.length,
-    yfReceipts:  yfPayments.length,
-    yfsReceipts: yfsPayments.length,
-    emailedTo:   BACKUP_EMAIL,
-    timestamp:   new Date().toISOString(),
+    members:    members.length,
+    yfReceipts: yfPayments.length,
+    emailedTo:  BACKUP_EMAIL,
+    timestamp:  new Date().toISOString(),
   });
 }
