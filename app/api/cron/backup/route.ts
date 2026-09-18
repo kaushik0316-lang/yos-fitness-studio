@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { Resend } from "resend";
+import { yfsReceiptsBase64 } from "./yfs-base-data";
 
 const BACKUP_EMAIL = process.env.BACKUP_EMAIL ?? "yosfitness@gmail.com";
 
@@ -178,6 +179,9 @@ export async function GET(req: NextRequest) {
   const toB64 = (wb: XLSX.WorkBook) =>
     Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" })).toString("base64");
 
+  // YFS: historical data not in DB — send base file unchanged
+  const yfsB64 = yfsReceiptsBase64;
+
   // ── Email ─────────────────────────────────────────────────────────────────
   const dateStr = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
@@ -196,12 +200,13 @@ export async function GET(req: NextRequest) {
           <tr><td style="padding:6px 0;color:#555;font-size:14px">Total Revenue</td><td style="padding:6px 0;font-weight:700;font-size:14px;text-align:right">₹${yfPayments.reduce((s,p)=>s+fmtMoney(p.amount),0).toLocaleString("en-IN")}</td></tr>
         </table>
         <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
-        <p style="color:#888;font-size:12px">2 attachments — full DB export in original file format.</p>
+        <p style="color:#888;font-size:12px">3 attachments — Members &amp; YF receipts from DB; YFS receipts from base file (historical data).</p>
       </div>
     `,
     attachments: [
-      { filename: "Member Master.xlsx",        content: toB64(membersWb) },
-      { filename: "Yos fitness receipts.xlsx", content: toB64(yfWb) },
+      { filename: "Member Master.xlsx",               content: toB64(membersWb) },
+      { filename: "Yos fitness receipts.xlsx",        content: toB64(yfWb) },
+      { filename: "Yos fitness Studio Receipts.xlsx", content: yfsB64 },
     ],
   });
 
