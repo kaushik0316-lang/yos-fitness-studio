@@ -7,7 +7,7 @@ const nextConfig = {
   },
   experimental: {
     outputFileTracingIncludes: {
-      "/api/cron/backup": ["./data/backup-base/**"],
+      "/api/cron/backup": ["./app/api/cron/backup/base/**"],
     },
   },
 };
