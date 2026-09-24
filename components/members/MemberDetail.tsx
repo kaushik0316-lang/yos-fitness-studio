@@ -376,7 +376,7 @@ export function MemberDetail({ member, packages, trainers, userRole, userId, waL
             {/* WA History */}
             <div className="pt-4 border-t border-gray-100">
               <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <MessageSquare className="h-3.5 w-3.5" /> WhatsApp History ({waLogs.length})
+                <MessageSquare className="h-3.5 w-3.5" /> WhatsApp Business History ({waLogs.length})
               </h3>
               <WaHistory logs={waLogs} />
             </div>

@@ -489,7 +489,7 @@ export default function StaffDashboardPage() {
                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-white"
                   style={{ background: "#1ebe5d" }}>
                   <MessageCircle className="h-4 w-4" />
-                  Send via WhatsApp
+                  Send via WhatsApp Business
                 </button>
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={copyLink}

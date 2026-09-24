@@ -241,7 +241,7 @@ export function StaffToolsClient({
                         className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-bold text-white transition-opacity hover:opacity-90"
                         style={{ background: "#25D366" }}>
                         <MessageCircle className="h-3.5 w-3.5" />
-                        Send via WhatsApp
+                        Send via WhatsApp Business
                       </button>
                       <div className="flex gap-2">
                         <button onClick={copyLink}

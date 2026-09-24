@@ -42,7 +42,7 @@ export default async function OutreachPage() {
 
   return (
     <>
-      <Header title="Outreach" subtitle="Send WhatsApp messages to members" />
+      <Header title="Outreach" subtitle="Send WhatsApp Business messages to members" />
       <div className="flex-1 overflow-y-auto p-6">
         <OutreachClient members={serialized} />
       </div>

@@ -122,7 +122,7 @@ export function AddMemberDialog({ open, onClose, packages, trainers, userId }: P
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-bold text-white text-sm"
               style={{ background: "#25d366" }}>
               <MessageSquare className="h-4 w-4" />
-              Send T&amp;C via WhatsApp
+              Send T&amp;C via WhatsApp Business
             </a>
             <button onClick={handleClose}
               className="w-full py-3 rounded-2xl text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">

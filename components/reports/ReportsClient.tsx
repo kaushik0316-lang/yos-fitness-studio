@@ -289,7 +289,7 @@ export function ReportsClient({
                     target="_blank" rel="noopener noreferrer"
                     className="text-xs font-semibold px-3 py-1.5 rounded-lg"
                     style={{ background: "rgba(37,211,102,0.12)", color: "#25d366", border: "1px solid rgba(37,211,102,0.2)" }}>
-                    WhatsApp
+                    WhatsApp Business
                   </a>
                 </div>
               </div>

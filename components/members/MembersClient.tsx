@@ -146,7 +146,7 @@ function BulkWelcomeList({ members, waTemplates }: { members: Member[]; waTempla
         ))}
       </div>
       <div className="px-5 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-        <p className="text-xs text-gray-600">Opens WhatsApp for each member · sends are logged to their WA history</p>
+        <p className="text-xs text-gray-600">Opens WhatsApp Business for each member · sends are logged to their WA history</p>
       </div>
     </>
   );
@@ -562,7 +562,7 @@ export function MembersClient({
               style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
               <div>
                 <h3 className="text-white font-bold">Send Welcome Messages</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Click each member to open WhatsApp</p>
+                <p className="text-xs text-gray-500 mt-0.5">Click each member to open WhatsApp Business</p>
               </div>
               <button onClick={() => setShowWelcome(false)} className="text-gray-500 hover:text-white transition-colors">
                 <X className="h-5 w-5" />

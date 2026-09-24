@@ -63,7 +63,7 @@ export function WaConfirmButton({
         onClick={handleClick}
         className={className}
         style={style}
-        title={`Send ${typeLabel} via WhatsApp`}
+        title={`Send ${typeLabel} via WhatsApp Business`}
       >
         <MessageCircle className={iconOnly ? "h-4 w-4" : "h-3.5 w-3.5"} />
         {!iconOnly && (label ?? "WA")}

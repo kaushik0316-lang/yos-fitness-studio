@@ -405,7 +405,7 @@ export function EnquiriesClient({ enquiries: initial, employees, funnel, userId,
                         <a href={waLink(e.phone, buildEnquiryTemplate(e.name, e.status, e.interest))} target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg"
                           style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}>
-                          <MessageCircle className="h-3 w-3" />WhatsApp
+                          <MessageCircle className="h-3 w-3" />WhatsApp Business
                         </a>
                         {isAdmin && (
                           <button
@@ -764,7 +764,7 @@ function DetailDrawer({ enquiry, isAdmin, loggingId, onClose, onEdit, onDelete, 
           <a href={waLink(enquiry.phone, buildEnquiryTemplate(enquiry.name, enquiry.status, enquiry.interest))} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold"
             style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}>
-            <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+            <MessageCircle className="h-3.5 w-3.5" /> WhatsApp Business
           </a>
           {isAdmin && (
             <button

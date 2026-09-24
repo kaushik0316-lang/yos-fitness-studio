@@ -42,7 +42,7 @@ export function WhatsAppButton({ memberId, phone, memberName, amount, receiptNo,
       phone={phone}
       message={message}
       waType="PAYMENT"
-      label="Send via WhatsApp"
+      label="Send via WhatsApp Business"
       className="no-print flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-md"
       style={{ background: "#25D366", color: "#fff", boxShadow: "0 4px 12px rgba(37,211,102,0.3)" }}
     />
