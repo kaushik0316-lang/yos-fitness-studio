@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { MessageCircle, Check, X } from "lucide-react";
 import { logManualWA } from "@/lib/actions/whatsapp";
 import { WaType, WA_TYPE_LABELS } from "@/lib/utils/waTypes";
+import { waBusinessLink } from "@/lib/utils/waBusinessLink";
 
 type Props = {
   memberId: string;
@@ -16,12 +17,6 @@ type Props = {
   iconOnly?: boolean;
 };
 
-function buildWaUrl(phone: string, message: string) {
-  const digits = phone.replace(/\D/g, "");
-  const num = digits.startsWith("91") && digits.length === 12 ? digits : `91${digits.slice(-10)}`;
-  return `https://wa.me/${num}?text=${encodeURIComponent(message)}`;
-}
-
 export function WaConfirmButton({
   memberId, phone, message, waType, label, className, style, iconOnly,
 }: Props) {
@@ -29,8 +24,8 @@ export function WaConfirmButton({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function handleClick() {
-    // Open WhatsApp
-    window.open(buildWaUrl(phone, message), "_blank", "noopener,noreferrer");
+    // Open WhatsApp Business (Android intent) or wa.me fallback
+    window.open(waBusinessLink(phone, message), "_blank", "noopener,noreferrer");
     // Show confirmation bar
     setState("confirming");
     // Auto-dismiss after 30s if no action

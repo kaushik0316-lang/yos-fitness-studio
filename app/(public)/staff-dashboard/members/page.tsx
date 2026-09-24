@@ -74,7 +74,7 @@ const PAYMENT_MODE_LABELS: Record<string, string> = {
 function waLink(phone: string) {
   const digits = phone.replace(/\D/g, "");
   const num = digits.startsWith("91") && digits.length === 12 ? digits : `91${digits.slice(-10)}`;
-  return `https://wa.me/${num}`;
+  return `https://api.whatsapp.com/send?phone=${num}`;
 }
 function formatDate(d: string | null) {
   if (!d) return "";

@@ -9,6 +9,7 @@ import {
   PieChart, Pie, Cell, LineChart, Line, CartesianGrid,
 } from "recharts";
 import { formatCurrency, getMonthName } from "@/lib/utils";
+import { waBusinessLink } from "@/lib/utils/waBusinessLink";
 import type { UserRole, Company, MemberStatus } from "@prisma/client";
 
 const COLORS = ["#f97316", "#6366f1", "#22c55e", "#eab308", "#ec4899", "#14b8a6"];
@@ -285,7 +286,7 @@ export function ReportsClient({
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-sm font-bold" style={{ color: "#f59e0b" }}>{m.checkIns} visits</span>
-                  <a href={`https://wa.me/91${m.phone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(`Hi ${toTitleCase(m.fullName)}! We've noticed you've been super consistent at Yos — that's amazing!\n\nWe'd love to help you take it to the next level. With Personal Training or Semi-Private Coaching, you get a structured plan built around your goals, proper form guidance to avoid injuries, and a trainer who tracks your progress every session.\n\nMost members see better results in 4-6 weeks compared to months of solo training.\n\nInterested? Come chat with us at the studio or just reply here — we'll walk you through the options!\n\n– Team Yos`)}`}
+                  <a href={waBusinessLink(m.phone, `Hi ${toTitleCase(m.fullName)}! We've noticed you've been super consistent at Yos — that's amazing!\n\nWe'd love to help you take it to the next level. With Personal Training or Semi-Private Coaching, you get a structured plan built around your goals, proper form guidance to avoid injuries, and a trainer who tracks your progress every session.\n\nMost members see better results in 4-6 weeks compared to months of solo training.\n\nInterested? Come chat with us at the studio or just reply here — we'll walk you through the options!\n\n– Team Yos`)}
                     target="_blank" rel="noopener noreferrer"
                     className="text-xs font-semibold px-3 py-1.5 rounded-lg"
                     style={{ background: "rgba(37,211,102,0.12)", color: "#25d366", border: "1px solid rgba(37,211,102,0.2)" }}>

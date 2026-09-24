@@ -16,6 +16,7 @@ import { formatTime, daysAgo } from "@/lib/utils";
 import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import { format, addDays, subDays, differenceInMinutes, parseISO } from "date-fns";
 import type { UserRole } from "@prisma/client";
+import { waBusinessLink } from "@/lib/utils/waBusinessLink";
 
 type AttendanceRecord = {
   id: string;
@@ -647,7 +648,7 @@ export function AttendanceClient({
                         ? `Hi ${firstName}! Your Yos membership has expired. Come in today to renew and get back on track!`
                         : `Hi ${firstName}! We missed you at Yos today. See you tomorrow?`;
                       return (
-                        <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(nudge)}`}
+                        <a href={waBusinessLink(phone, nudge)}
                           target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-1 px-2.5 py-2 rounded-xl text-xs font-bold transition-all"
                           style={{ background: "rgba(37,211,102,0.12)", color: "#25d366", border: "1px solid rgba(37,211,102,0.2)" }}>

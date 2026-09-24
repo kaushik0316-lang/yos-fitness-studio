@@ -20,6 +20,7 @@ interface MemberData {
 const TOTAL_DIGITS   = 4;
 const NUMPAD_KEYS    = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
 const GYM_WHATSAPP   = "919840690418";
+const waLink = (text: string) => `https://api.whatsapp.com/send?phone=${GYM_WHATSAPP}&text=${encodeURIComponent(text)}`;
 
 function todayLabel() {
   return new Date().toLocaleDateString("en-IN", {
@@ -646,7 +647,7 @@ export default function MemberPortalPage() {
                 style={{ background: "#111", border: "1px solid rgba(255,255,255,0.07)" }}>
                 <p className="font-bold text-white text-sm mb-1">{a.title}</p>
                 <p className="text-gray-500 text-xs leading-relaxed mb-4">{a.body}</p>
-                <a href={`https://wa.me/${GYM_WHATSAPP}?text=${encodeURIComponent(a.ctaLabel + " — " + a.title)}`}
+                <a href={waLink(a.ctaLabel + " — " + a.title)}
                   target="_blank" rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-bold text-sm"
                   style={{ background: "rgba(37,211,102,0.1)", color: "#25d366", border: "1px solid rgba(37,211,102,0.2)" }}>
@@ -798,7 +799,7 @@ export default function MemberPortalPage() {
             <p className="text-gray-500 text-sm mt-1 mb-4">
               Renew now to keep your streak going and avoid a gap in your training.
             </p>
-            <a href={`https://wa.me/${GYM_WHATSAPP}?text=Hi%2C%20I%27d%20like%20to%20renew%20my%20membership%20(${encodeURIComponent(member?.memberId ?? "")})`}
+            <a href={waLink(`Hi, I'd like to renew my membership (${member?.memberId ?? ""})`)}
               target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl font-bold text-sm"
               style={{ background: "rgba(249,115,22,0.12)", color: "#fb923c", border: "1px solid rgba(249,115,22,0.2)" }}>
@@ -815,7 +816,7 @@ export default function MemberPortalPage() {
             <p className="text-gray-500 text-sm mt-1 mb-4">
               Your membership expired on {fmtExpiry(member?.expiryDate ?? null)}. Visit the front desk or WhatsApp us to renew and continue training.
             </p>
-            <a href={`https://wa.me/${GYM_WHATSAPP}?text=Hi%2C%20I%27d%20like%20to%20renew%20my%20membership%20(${encodeURIComponent(member?.memberId ?? "")})`}
+            <a href={waLink(`Hi, I'd like to renew my membership (${member?.memberId ?? ""})`)}
               target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl font-bold text-sm"
               style={{ background: "rgba(34,197,94,0.12)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.2)" }}>

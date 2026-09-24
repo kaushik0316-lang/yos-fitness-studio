@@ -291,7 +291,7 @@ export default function LoginPage() {
             <p className="text-center text-[11px] text-gray-600 mt-6 uppercase tracking-wide">
               Forgot your password?{" "}
               <a
-                href="https://wa.me/919840690418?text=Hi%2C+I+need+help+resetting+my+Yos+CRM+login+password."
+                href="https://api.whatsapp.com/send?phone=919840690418&text=Hi%2C+I+need+help+resetting+my+Yos+CRM+login+password."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-orange-500 hover:text-orange-400 font-bold uppercase transition-colors"

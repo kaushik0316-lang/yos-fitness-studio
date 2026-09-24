@@ -8,6 +8,7 @@ import { formatDate, daysAgo, daysUntil } from "@/lib/utils";
 import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import { buildRenewalMessage } from "@/lib/utils/renewalTemplate";
 import { WaConfirmButton } from "@/components/whatsapp/WaConfirmButton";
+import { waBusinessLink } from "@/lib/utils/waBusinessLink";
 import { WaSentSummary } from "@/components/whatsapp/WaSentSummary";
 import type { UserRole } from "@prisma/client";
 
@@ -116,7 +117,7 @@ function BulkWaPanel({
                   </span>
                 ) : (
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`}
+                    <a href={waBusinessLink(phone, msg)}
                       target="_blank" rel="noopener noreferrer"
                       onClick={() => setRowState((r) => ({ ...r, [ms.id]: "opened" }))}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
@@ -144,9 +145,7 @@ function BulkWaPanel({
 }
 
 function waLink(phone: string, message?: string) {
-  const digits = phone.replace(/\D/g, "");
-  const num = digits.startsWith("91") && digits.length === 12 ? digits : `91${digits.slice(-10)}`;
-  return message ? `https://wa.me/${num}?text=${encodeURIComponent(message)}` : `https://wa.me/${num}`;
+  return waBusinessLink(phone, message);
 }
 
 function buildRenewalTemplate(member: { fullName: string }, expiryDate: Date | null, pkgName: string | null, isExpired: boolean, isWinBack = false, templates?: Record<string, string>): string {
@@ -248,7 +247,7 @@ export function RenewalsClient({ expiredMemberships, expiringToday, expiringTomo
   function shareOnWhatsApp() {
     const selectedMemberships = filteredList.filter((ms) => selected.has(ms.id));
     const msg = buildWhatsAppMessage(selectedMemberships, activeTabConfig.label);
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank"); // bulk share — no specific number
   }
 
   return (

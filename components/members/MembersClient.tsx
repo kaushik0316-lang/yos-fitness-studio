@@ -17,6 +17,7 @@ import { buildOnboardingMessage } from "@/lib/utils/renewalTemplate";
 import { WaConfirmButton } from "@/components/whatsapp/WaConfirmButton";
 import { WaSentSummary } from "@/components/whatsapp/WaSentSummary";
 import { logManualWA } from "@/lib/actions/whatsapp";
+import { waBusinessLink } from "@/lib/utils/waBusinessLink";
 import type { Company, MemberStatus, UserRole } from "@prisma/client";
 
 type Member = {
@@ -66,9 +67,7 @@ const SORT_OPTS = [
 ];
 
 function waLink(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  const num = digits.startsWith("91") && digits.length === 12 ? digits : `91${digits.slice(-10)}`;
-  return `https://wa.me/${num}`;
+  return waBusinessLink(phone);
 }
 
 // Normalize package/category label — strip duration prefixes, expand abbreviations
@@ -111,7 +110,7 @@ function BulkWelcomeList({ members, waTemplates }: { members: Member[]; waTempla
   async function handleSend(m: Member) {
     const msg = buildOnboardingMessage(m.fullName, m.memberId, null, waTemplates, m.gender);
     const digits = (m.whatsapp ?? m.phone).replace(/\D/g, "").slice(-10);
-    window.open(`https://wa.me/91${digits}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+    window.open(waBusinessLink(digits, msg), "_blank", "noopener,noreferrer");
     try {
       await logManualWA(m.id, "WELCOME", msg);
       setSent((s) => new Set(s).add(m.id));
@@ -362,7 +361,7 @@ export function MembersClient({
                           <p className="text-xs text-gray-600 mt-0.5">{m.memberId} · {dobStr}</p>
                         </div>
                         {phone && (
-                          <a href={`https://wa.me/91${phone}?text=${encodeURIComponent(bdayMsg)}`}
+                          <a href={waBusinessLink(phone, bdayMsg)}
                             target="_blank" rel="noopener noreferrer"
                             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold flex-shrink-0 transition-opacity hover:opacity-80"
                             style={{ background: "rgba(37,211,102,0.15)", color: "#25d366", border: "1px solid rgba(37,211,102,0.25)" }}>
