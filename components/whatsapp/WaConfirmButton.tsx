@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { MessageCircle, Check, X } from "lucide-react";
 import { logManualWA } from "@/lib/actions/whatsapp";
 import { WaType, WA_TYPE_LABELS } from "@/lib/utils/waTypes";
-import { waBusinessLink } from "@/lib/utils/waBusinessLink";
+import { openWaBusinessLink } from "@/lib/utils/waBusinessLink";
 
 type Props = {
   memberId: string;
@@ -24,8 +24,7 @@ export function WaConfirmButton({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function handleClick() {
-    // Open WhatsApp Business (Android intent) or wa.me fallback
-    window.open(waBusinessLink(phone, message), "_blank", "noopener,noreferrer");
+    openWaBusinessLink(phone, message);
     // Show confirmation bar
     setState("confirming");
     // Auto-dismiss after 30s if no action

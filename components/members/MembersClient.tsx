@@ -17,7 +17,7 @@ import { buildOnboardingMessage } from "@/lib/utils/renewalTemplate";
 import { WaConfirmButton } from "@/components/whatsapp/WaConfirmButton";
 import { WaSentSummary } from "@/components/whatsapp/WaSentSummary";
 import { logManualWA } from "@/lib/actions/whatsapp";
-import { waBusinessLink } from "@/lib/utils/waBusinessLink";
+import { waBusinessLink, openWaBusinessLink } from "@/lib/utils/waBusinessLink";
 import type { Company, MemberStatus, UserRole } from "@prisma/client";
 
 type Member = {
@@ -110,7 +110,7 @@ function BulkWelcomeList({ members, waTemplates }: { members: Member[]; waTempla
   async function handleSend(m: Member) {
     const msg = buildOnboardingMessage(m.fullName, m.memberId, null, waTemplates, m.gender);
     const digits = (m.whatsapp ?? m.phone).replace(/\D/g, "").slice(-10);
-    window.open(waBusinessLink(digits, msg), "_blank", "noopener,noreferrer");
+    openWaBusinessLink(digits, msg);
     try {
       await logManualWA(m.id, "WELCOME", msg);
       setSent((s) => new Set(s).add(m.id));

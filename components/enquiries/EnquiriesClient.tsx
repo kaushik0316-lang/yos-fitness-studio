@@ -5,7 +5,7 @@ import { Plus, Phone, MessageCircle, Search, X, ChevronDown, UserCircle, Calenda
 import { formatDate } from "@/lib/utils";
 import { toTitleCase, getFirstName } from "@/lib/utils/titleCase";
 import { createEnquiry, updateEnquiry, deleteEnquiry, convertEnquiry, searchMembersForLink } from "@/lib/actions/enquiries";
-import { waBusinessLink } from "@/lib/utils/waBusinessLink";
+import { waBusinessLink, openWaBusinessLink } from "@/lib/utils/waBusinessLink";
 import type { UserRole } from "@prisma/client";
 
 type Employee = { id: string; fullName: string; role: string };
@@ -404,7 +404,7 @@ export function EnquiriesClient({ enquiries: initial, employees, funnel, userId,
                           <Phone className="h-3 w-3" />{e.phone}
                         </a>
                         <button
-                          onClick={(ev) => { ev.stopPropagation(); window.open(waBusinessLink(e.phone, buildEnquiryTemplate(e.name, e.status, e.interest)), "_blank", "noopener,noreferrer"); }}
+                          onClick={(ev) => { ev.stopPropagation(); openWaBusinessLink(e.phone, buildEnquiryTemplate(e.name, e.status, e.interest)); }}
                           className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg"
                           style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}>
                           <MessageCircle className="h-3 w-3" />WhatsApp Business
@@ -764,7 +764,7 @@ function DetailDrawer({ enquiry, isAdmin, loggingId, onClose, onEdit, onDelete, 
             <Phone className="h-3.5 w-3.5" /> Call
           </a>
           <button
-            onClick={() => window.open(waBusinessLink(enquiry.phone, buildEnquiryTemplate(enquiry.name, enquiry.status, enquiry.interest)), "_blank", "noopener,noreferrer")}
+            onClick={() => openWaBusinessLink(enquiry.phone, buildEnquiryTemplate(enquiry.name, enquiry.status, enquiry.interest))}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold"
             style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}>
             <MessageCircle className="h-3.5 w-3.5" /> WhatsApp Business
