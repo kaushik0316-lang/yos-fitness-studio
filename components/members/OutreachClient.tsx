@@ -120,7 +120,7 @@ function BulkWaPanel({ members, selected, onClose }: {
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export function OutreachClient({ members, logs = [] }: { members: Member[]; logs?: LogEntry[] }) {
+export function OutreachClient({ members, logs = [] }: { members: Member[]; logs?: LogEntry[]; onRefresh?: () => void }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
   const [showBulkPanel, setShowBulkPanel] = useState(false);
