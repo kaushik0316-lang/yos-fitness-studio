@@ -216,6 +216,8 @@ model Member {
   payments         Payment[]
   renewalFollowUps RenewalFollowUp[]
   messageLogs      MessageLog[]
+  lockers          Locker[]
+  lockerHistory    LockerHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -414,6 +416,8 @@ model Employee {
   enquiries          Enquiry[]
   trainerCommissions TrainerCommission[]
   shiftHistory       EmployeeShiftHistory[]
+  lockers            Locker[]
+  lockerHistory      LockerHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -738,4 +742,55 @@ model GymHoliday {
   createdAt DateTime @default(now())
 
   @@map("gym_holidays")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOCKERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum LockerStatus {
+  VACANT
+  OCCUPIED
+}
+
+model Locker {
+  id            String       @id @default(cuid())
+  number        Int          @unique
+  status        LockerStatus @default(VACANT)
+
+  holderName    String? // free-text — used when holder isn't a linked member/employee
+  memberId      String?
+  member        Member?      @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  employeeId    String?
+  employee      Employee?    @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  allocatedDate DateTime?
+  notes         String?
+
+  history       LockerHistory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("lockers")
+}
+
+model LockerHistory {
+  id            String    @id @default(cuid())
+  lockerId      String
+  locker        Locker    @relation(fields: [lockerId], references: [id], onDelete: Cascade)
+
+  holderName    String
+  memberId      String?
+  member        Member?   @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  employeeId    String?
+  employee      Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  allocatedDate DateTime?
+  vacatedDate   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([lockerId])
+  @@map("locker_history")
 }
