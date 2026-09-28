@@ -17,6 +17,7 @@ type Locker = {
   allocatedDate: string | null;
   member: Person | null;
   employee: Person | null;
+  linked: Person[];
 };
 
 type HistoryRow = {
@@ -210,6 +211,78 @@ function AssignModal({ locker, employees, onClose, onAssigned }: {
   );
 }
 
+// ── Link members modal ─────────────────────────────────────────────────────────
+function LinkModal({ locker, onClose, onChange }: {
+  locker: Locker; onClose: () => void; onChange: (linked: Person[]) => void;
+}) {
+  const [linked, setLinked] = useState<Person[]>(locker.linked);
+  const [busy, setBusy] = useState(false);
+
+  async function add(m: Person) {
+    if (linked.some(x => x.id === m.id)) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/lockers/${locker.id}/members`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberIds: [m.id] }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setLinked(data.linked); onChange(data.linked);
+    } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
+    finally { setBusy(false); }
+  }
+
+  async function remove(id: string) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/lockers/${locker.id}/members?memberId=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setLinked(data.linked); onChange(data.linked);
+    } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.7)" }} onClick={onClose}>
+      <div className="w-full max-w-sm rounded-3xl overflow-visible"
+        style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.1)" }}
+        onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+          <div>
+            <p className="font-bold text-white">Link Members — Locker #{locker.number}</p>
+            <p className="text-xs text-gray-500 mt-0.5">Holder: {toTitleCase(locker.holderName ?? "")}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
+            <X className="h-4 w-4 text-gray-400" />
+          </button>
+        </div>
+        <div className="p-5 flex flex-col gap-3">
+          <MemberSearch onSelect={add} />
+          {linked.length === 0 ? (
+            <p className="text-xs text-gray-600 text-center py-3">No members linked yet. Search above to add one or more.</p>
+          ) : linked.map(m => (
+            <div key={m.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl"
+              style={{ background: "rgba(37,211,102,0.08)", border: "1px solid rgba(37,211,102,0.2)" }}>
+              <div>
+                <p className="text-sm text-white">{toTitleCase(m.fullName)}</p>
+                <p className="text-[10px] text-gray-600 font-mono">{m.memberId}</p>
+              </div>
+              <button disabled={busy} onClick={() => remove(m.id)} className="p-1.5 rounded-lg hover:bg-white/10 disabled:opacity-40">
+                <X className="h-3.5 w-3.5 text-gray-500" />
+              </button>
+            </div>
+          ))}
+          <button onClick={onClose} className="w-full py-2.5 rounded-xl text-sm font-bold text-white"
+            style={{ background: "linear-gradient(135deg,#f97316,#ea580c)" }}>Done</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── History modal ───────────────────────────────────────────────────────────────
 function HistoryModal({ locker, onClose }: { locker: Locker; onClose: () => void }) {
   const [history, setHistory] = useState<HistoryRow[] | null>(null);
@@ -264,8 +337,8 @@ function HistoryModal({ locker, onClose }: { locker: Locker; onClose: () => void
 }
 
 // ── Locker card ──────────────────────────────────────────────────────────────
-function LockerCard({ locker, onAssign, onVacate, onHistory }: {
-  locker: Locker; onAssign: () => void; onVacate: () => void; onHistory: () => void;
+function LockerCard({ locker, onAssign, onVacate, onHistory, onLink }: {
+  locker: Locker; onAssign: () => void; onVacate: () => void; onHistory: () => void; onLink: () => void;
 }) {
   const occupied = locker.status === "OCCUPIED";
   const holder = locker.member?.fullName ?? locker.employee?.fullName ?? locker.holderName;
@@ -295,7 +368,20 @@ function LockerCard({ locker, onAssign, onVacate, onHistory }: {
             {locker.member && <span className="text-gray-700"> · member</span>}
             {locker.employee && <span className="text-gray-700"> · staff</span>}
           </div>
-          <div className="flex gap-1.5 mt-1">
+          {locker.linked.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {locker.linked.map(m => (
+                <span key={m.id} className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold"
+                  style={{ background: "rgba(37,211,102,0.1)", color: "#25d366" }}>{toTitleCase(m.fullName).split(" ")[0]}</span>
+              ))}
+            </div>
+          )}
+          <button onClick={onLink}
+            className="w-full py-1.5 rounded-lg text-[10px] font-bold transition-colors"
+            style={{ background: "rgba(59,130,246,0.12)", color: "#60a5fa" }}>
+            {locker.linked.length > 0 ? `Members (${locker.linked.length})` : "Link Members"}
+          </button>
+          <div className="flex gap-1.5">
             <button onClick={onVacate}
               className="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-colors"
               style={{ background: "rgba(239,68,68,0.1)", color: "#f87171" }}>
@@ -338,6 +424,7 @@ export function LockersClient({ lockers: initial, employees }: {
   const [filter, setFilter] = useState<"all" | "occupied" | "vacant">("all");
   const [assignTarget, setAssignTarget] = useState<Locker | null>(null);
   const [historyTarget, setHistoryTarget] = useState<Locker | null>(null);
+  const [linkTarget, setLinkTarget] = useState<string | null>(null);
   const [vacating, setVacating] = useState<string | null>(null);
 
   const occupiedCount = lockers.filter(l => l.status === "OCCUPIED").length;
@@ -370,7 +457,7 @@ export function LockersClient({ lockers: initial, employees }: {
       const res = await fetch(`/api/lockers/${locker.id}/vacate`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      updateLocker(data.locker);
+      updateLocker({ ...data.locker, linked: [] });
       toast({ title: `Locker #${locker.number} vacated` });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -432,6 +519,7 @@ export function LockersClient({ lockers: initial, employees }: {
               onAssign={() => setAssignTarget(l)}
               onVacate={() => handleVacate(l)}
               onHistory={() => setHistoryTarget(l)}
+              onLink={() => setLinkTarget(l.id)}
             />
           ))
         )}
@@ -442,7 +530,14 @@ export function LockersClient({ lockers: initial, employees }: {
           locker={assignTarget}
           employees={employees}
           onClose={() => setAssignTarget(null)}
-          onAssigned={updateLocker}
+          onAssigned={l => updateLocker({ ...l, linked: [] })}
+        />
+      )}
+      {linkTarget && lockers.find(l => l.id === linkTarget) && (
+        <LinkModal
+          locker={lockers.find(l => l.id === linkTarget)!}
+          onClose={() => setLinkTarget(null)}
+          onChange={linked => setLockers(prev => prev.map(l => l.id === linkTarget ? { ...l, linked } : l))}
         />
       )}
       {historyTarget && (

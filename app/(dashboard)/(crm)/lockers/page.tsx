@@ -15,6 +15,7 @@ export default async function LockersPage() {
       include: {
         member: { select: { id: true, fullName: true, memberId: true, phone: true } },
         employee: { select: { id: true, fullName: true, employeeId: true } },
+        linkedMembers: { select: { member: { select: { id: true, fullName: true, memberId: true } } } },
       },
     }),
     prisma.employee.findMany({
@@ -32,18 +33,19 @@ export default async function LockersPage() {
     allocatedDate: l.allocatedDate ? l.allocatedDate.toISOString() : null,
     member: l.member,
     employee: l.employee,
+    linked: l.linkedMembers.map((x) => x.member),
   }));
 
   return (
-    <div>
+    <>
       <Header title="Lockers" subtitle="Assign, track and manage locker allocations" />
-      <div className="p-6">
+      <div className="flex-1 overflow-y-auto p-6">
         <LockersClient
           lockers={serialized}
           employees={employees}
           isAdmin={session?.user?.role === "ADMIN"}
         />
       </div>
-    </div>
+    </>
   );
 }

@@ -218,6 +218,7 @@ model Member {
   messageLogs      MessageLog[]
   lockers          Locker[]
   lockerHistory    LockerHistory[]
+  lockerLinks      LockerMember[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -768,6 +769,7 @@ model Locker {
   notes         String?
 
   history       LockerHistory[]
+  linkedMembers LockerMember[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -793,4 +795,17 @@ model LockerHistory {
 
   @@index([lockerId])
   @@map("locker_history")
+}
+
+model LockerMember {
+  id       String @id @default(cuid())
+  lockerId String
+  locker   Locker @relation(fields: [lockerId], references: [id], onDelete: Cascade)
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([lockerId, memberId])
+  @@map("locker_members")
 }
