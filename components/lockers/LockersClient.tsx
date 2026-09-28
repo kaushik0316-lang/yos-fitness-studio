@@ -341,7 +341,9 @@ function LockerCard({ locker, onAssign, onVacate, onHistory, onLink }: {
   locker: Locker; onAssign: () => void; onVacate: () => void; onHistory: () => void; onLink: () => void;
 }) {
   const occupied = locker.status === "OCCUPIED";
-  const holder = locker.member?.fullName ?? locker.employee?.fullName ?? locker.holderName;
+  const holder = locker.linked.length > 0
+    ? locker.linked.map(m => toTitleCase(m.fullName)).join(", ")
+    : locker.member?.fullName ?? locker.employee?.fullName ?? locker.holderName;
 
   return (
     <div className="rounded-2xl p-4 flex flex-col gap-2.5 transition-all"
@@ -358,9 +360,9 @@ function LockerCard({ locker, onAssign, onVacate, onHistory, onLink }: {
 
       {occupied ? (
         <>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <User className="h-3 w-3 text-gray-600 flex-shrink-0" />
-            <span className="text-xs font-semibold text-white truncate">{toTitleCase(holder ?? "")}</span>
+          <div className="flex items-start gap-1.5 min-w-0">
+            <User className="h-3 w-3 text-gray-600 flex-shrink-0 mt-0.5" />
+            <span className="text-xs font-semibold text-white break-words">{toTitleCase(holder ?? "")}</span>
           </div>
           <div className="flex items-center gap-1 text-[10px] text-gray-600">
             <Clock className="h-2.5 w-2.5" />
@@ -368,14 +370,6 @@ function LockerCard({ locker, onAssign, onVacate, onHistory, onLink }: {
             {locker.member && <span className="text-gray-700"> · member</span>}
             {locker.employee && <span className="text-gray-700"> · staff</span>}
           </div>
-          {locker.linked.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {locker.linked.map(m => (
-                <span key={m.id} className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold"
-                  style={{ background: "rgba(37,211,102,0.1)", color: "#25d366" }}>{toTitleCase(m.fullName).split(" ")[0]}</span>
-              ))}
-            </div>
-          )}
           <button onClick={onLink}
             className="w-full py-1.5 rounded-lg text-[10px] font-bold transition-colors"
             style={{ background: "rgba(59,130,246,0.12)", color: "#60a5fa" }}>
