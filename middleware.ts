@@ -51,6 +51,7 @@ const PROTECTED_PREFIXES = [
   "/challenge",
   "/outreach",
   "/renewals",
+  "/lockers",
   "/sales",
   "/reports",
   "/settings",
