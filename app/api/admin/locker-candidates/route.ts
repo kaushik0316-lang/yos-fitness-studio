@@ -3,31 +3,33 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-// Temporary read-only helper: candidate member matches for occupied lockers.
+// Temporary: links members to occupied lockers when a name token matches exactly
+// one member (or exactly one ACTIVE member). Skips lockers already linked.
 export async function GET(req: NextRequest) {
   if (req.nextUrl.searchParams.get("secret") !== "yos-admin-2026") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const apply = req.nextUrl.searchParams.get("apply") === "1";
   const lockers = await prisma.locker.findMany({
     where: { status: "OCCUPIED" },
     orderBy: { number: "asc" },
-    select: { number: true, holderName: true },
+    select: { id: true, number: true, holderName: true, _count: { select: { linkedMembers: true } } },
   });
-  const out = [];
+  const linked: string[] = [], skipped: string[] = [], alreadyLinked: number[] = [];
   for (const l of lockers) {
-    const tokens = (l.holderName ?? "").split("/").map((t) => t.trim()).filter(Boolean);
-    const matches = [];
-    for (const t of tokens) {
-      const words = t.split(/\s+/);
+    if (l._count.linkedMembers > 0) { alreadyLinked.push(l.number); continue; }
+    for (const t of (l.holderName ?? "").split("/").map((s) => s.trim()).filter(Boolean)) {
       const found = await prisma.member.findMany({
-        where: { AND: words.map((w) => ({ fullName: { contains: w, mode: "insensitive" as const } })) },
+        where: { AND: t.split(/\s+/).map((w) => ({ fullName: { contains: w, mode: "insensitive" as const } })) },
         select: { id: true, fullName: true, memberId: true, status: true },
-        orderBy: { status: "asc" },
-        take: 6,
+        take: 20,
       });
-      matches.push({ token: t, found: found.map((m) => `${m.memberId} ${m.fullName} [${m.status}]`) });
+      const active = found.filter((m) => m.status === "ACTIVE");
+      const pick = found.length === 1 ? found[0] : active.length === 1 ? active[0] : null;
+      if (!pick) { skipped.push(`#${l.number} ${t} (${found.length} matches)`); continue; }
+      if (apply) await prisma.lockerMember.createMany({ data: [{ lockerId: l.id, memberId: pick.id }], skipDuplicates: true });
+      linked.push(`#${l.number} ${t} -> ${pick.memberId} ${pick.fullName}`);
     }
-    out.push({ n: l.number, holder: l.holderName, matches });
   }
-  return NextResponse.json(out);
+  return NextResponse.json({ apply, linked, skipped, alreadyLinked });
 }
