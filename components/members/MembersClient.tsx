@@ -926,6 +926,8 @@ export function MembersClient({
           </table>
         </div>
 
+      </div>
+      <div className={totalPages > 1 ? "rounded-2xl overflow-hidden mt-3" : "hidden"} style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.06)" }}>
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-5 py-4"
