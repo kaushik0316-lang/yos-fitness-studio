@@ -22,8 +22,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     orderBy: { allocatedDate: "desc" },
   });
 
-  const [, , updated] = await prisma.$transaction([
+  const [, , , updated] = await prisma.$transaction([
     prisma.lockerMember.deleteMany({ where: { lockerId: locker.id } }),
+    prisma.lockerStaff.deleteMany({ where: { lockerId: locker.id } }),
     openHistory
       ? prisma.lockerHistory.update({ where: { id: openHistory.id }, data: { vacatedDate: now } })
       : prisma.lockerHistory.create({

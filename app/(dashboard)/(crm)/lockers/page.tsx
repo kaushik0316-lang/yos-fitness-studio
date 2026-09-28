@@ -15,6 +15,7 @@ export default async function LockersPage() {
       include: {
         member: { select: { id: true, fullName: true, memberId: true, phone: true } },
         employee: { select: { id: true, fullName: true, employeeId: true } },
+        linkedStaff: { select: { employee: { select: { id: true, fullName: true, employeeId: true } } } },
         linkedMembers: { select: { member: { select: { id: true, fullName: true, memberId: true } } } },
       },
     }),
@@ -34,6 +35,7 @@ export default async function LockersPage() {
     member: l.member,
     employee: l.employee,
     linked: l.linkedMembers.map((x) => x.member),
+    linkedStaff: l.linkedStaff.map((x) => x.employee),
   }));
 
   return (

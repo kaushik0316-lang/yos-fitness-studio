@@ -419,6 +419,7 @@ model Employee {
   shiftHistory       EmployeeShiftHistory[]
   lockers            Locker[]
   lockerHistory      LockerHistory[]
+  lockerLinks        LockerStaff[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -770,6 +771,7 @@ model Locker {
 
   history       LockerHistory[]
   linkedMembers LockerMember[]
+  linkedStaff   LockerStaff[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -795,6 +797,19 @@ model LockerHistory {
 
   @@index([lockerId])
   @@map("locker_history")
+}
+
+model LockerStaff {
+  id         String   @id @default(cuid())
+  lockerId   String
+  locker     Locker   @relation(fields: [lockerId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([lockerId, employeeId])
+  @@map("locker_staff")
 }
 
 model LockerMember {
