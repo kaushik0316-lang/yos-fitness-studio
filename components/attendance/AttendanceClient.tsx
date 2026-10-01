@@ -6,7 +6,6 @@ import {
   Search, CheckCircle2, Clock, CalendarCheck, ChevronLeft, ChevronRight,
   LogOut, Dumbbell, Users, Timer, TrendingUp, Calendar, Pencil, Send,
 } from "lucide-react";
-import { OutreachClient } from "@/components/members/OutreachClient";
 import Link from "next/link";
 import { MarkAttendanceDialog } from "@/components/members/MarkAttendanceDialog";
 import { ManualAttendanceDialog } from "@/components/attendance/ManualAttendanceDialog";
@@ -98,10 +97,7 @@ export function AttendanceClient({
   selectedDate, isToday, weekVisitsMap, streakMap,
 }: Props) {
   const router = useRouter();
-  const [activeTab, setActiveTab]       = useState<"inGym" | "visited" | "pending" | "outreach">("inGym");
-  const [outreachMembers, setOutreachMembers] = useState<any[] | null>(null);
-  const [outreachLogs, setOutreachLogs]       = useState<any[]>([]);
-  const [outreachLoading, setOutreachLoading] = useState(false);
+  const [activeTab, setActiveTab]       = useState<"inGym" | "visited" | "pending">("inGym");
   const [search, setSearch]             = useState("");
   const [markFor, setMarkFor]           = useState<Member | null>(null);
   const [manualOpen, setManualOpen]     = useState(false);
@@ -124,39 +120,6 @@ export function AttendanceClient({
       .finally(() => setPendingLoading(false));
   }, [activeTab, selectedDate]);
 
-  const outreachFetched = useRef(false);
-
-  function applyOutreachData(data: any) {
-    if (Array.isArray(data)) {
-      setOutreachMembers(data);
-    } else if (data.members) {
-      setOutreachMembers(data.members);
-      setOutreachLogs(data.logs ?? []);
-    }
-  }
-
-  function fetchOutreach() {
-    setOutreachLoading(true);
-    fetch("/api/outreach")
-      .then((r) => r.json())
-      .then(applyOutreachData)
-      .finally(() => setOutreachLoading(false));
-  }
-
-  // Silent refresh — updates logs without unmounting OutreachClient
-  function refreshOutreachLogs() {
-    fetch("/api/outreach")
-      .then((r) => r.json())
-      .then(applyOutreachData)
-      .catch(() => {});
-  }
-
-  useEffect(() => {
-    if (activeTab !== "outreach") return;
-    if (outreachFetched.current) return;
-    outreachFetched.current = true;
-    fetchOutreach();
-  }, [activeTab]);
 
   const inGym    = useMemo(() => todayAttendance.filter((a) => !a.checkOutTime), [todayAttendance]);
   const visited  = todayAttendance;
@@ -389,7 +352,6 @@ export function AttendanceClient({
                 { key: "inGym"    as const, label: `In Gym`,  count: inGym.length,                          accent: "#10b981" },
                 { key: "visited"  as const, label: `Visited`, count: todayAttendance.length,                accent: "#a855f7" },
                 { key: "pending"  as const, label: `Pending`, count: totalActive - todayAttendance.length, accent: "#f97316" },
-                { key: "outreach" as const, label: `Outreach`, count: null,                                accent: "#f97316" },
               ]).map((tab) => (
                 <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
@@ -669,20 +631,6 @@ export function AttendanceClient({
                 </div>
               );
             })}
-          </div>
-        )}
-
-        {/* ── Outreach ── */}
-        {activeTab === "outreach" && (
-          <div className="p-4">
-            {outreachLoading ? (
-              <div className="flex items-center justify-center py-12 gap-3 text-gray-500 text-sm">
-                <div className="w-4 h-4 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />
-                Loading members…
-              </div>
-            ) : (
-              <OutreachClient members={outreachMembers ?? []} logs={outreachLogs} onRefresh={refreshOutreachLogs} />
-            )}
           </div>
         )}
 
