@@ -523,7 +523,7 @@ export default function MemberPortalPage() {
               <button onClick={() => setPhase("setup")}
                 className="text-xs font-medium uppercase tracking-widest transition-colors"
                 style={{ color: "#374151" }}>
-                New member? Set up your PIN →
+                New member or forgot your PIN? Set it up →
               </button>
             </div>
           </div>

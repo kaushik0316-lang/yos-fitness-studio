@@ -514,7 +514,7 @@ export default function MemberCheckinPage() {
             <div>
               <Link href="/member-portal?setup=1"
                 className="text-[11px] text-green-600/60 hover:text-green-500 transition-colors">
-                New member? Set up your PIN →
+                New member or forgot your PIN? Set it up →
               </Link>
             </div>
           </div>
