@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { OutreachClient } from "@/components/members/OutreachClient";
 import { MemberStatus } from "@prisma/client";
 import { subDays } from "date-fns";
+import { getWaLogsByType } from "@/lib/actions/whatsapp";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Outreach" };
@@ -15,7 +16,6 @@ export default async function OutreachPage() {
   if (!["ADMIN", "FRONT_DESK"].includes(session.user.role)) redirect("/dashboard");
 
   const cutoff = subDays(new Date(), 30);
-  const logSince = subDays(new Date(), 90);
 
   const [members, logs] = await Promise.all([
     prisma.member.findMany({
@@ -38,20 +38,7 @@ export default async function OutreachPage() {
       },
       orderBy: { lastAttendanceDate: "asc" }, // least recent first
     }),
-    prisma.messageLog.findMany({
-      where: {
-        isManual: true,
-        channel: "WHATSAPP",
-        createdAt: { gte: logSince },
-        OR: [{ waType: "OUTREACH" }, { waType: null }],
-      },
-      orderBy: { createdAt: "desc" },
-      take: 200,
-      select: {
-        id: true, memberId: true, sentByName: true, sentAt: true, createdAt: true,
-        member: { select: { fullName: true } },
-      },
-    }),
+    getWaLogsByType("OUTREACH", 90),
   ]);
 
   const serializedMembers = members.map(m => ({
@@ -70,7 +57,7 @@ export default async function OutreachPage() {
   const serializedLogs = logs.map(l => ({
     id:         l.id,
     memberId:   l.memberId,
-    memberName: l.member?.fullName ?? "Unknown",
+    memberName: l.memberName,
     sentByName: l.sentByName,
     sentAt:     l.sentAt?.toISOString() ?? null,
     createdAt:  l.createdAt.toISOString(),
