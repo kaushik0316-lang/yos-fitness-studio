@@ -442,7 +442,7 @@ export function RenewalsClient({ expiredMemberships, expiringToday, expiringTomo
                             phone={waNumber}
                             message={buildRenewalTemplate(ms.member, ms.expiryDate, pkgName, isExpired, activeTab === "winback", waTemplates)}
                             waType="RENEWAL"
-                            label="WhatsApp Business"
+                            label="Message"
                             className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors"
                             style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}
                           />
