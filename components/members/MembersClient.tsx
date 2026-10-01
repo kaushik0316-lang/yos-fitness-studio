@@ -104,6 +104,113 @@ type BirthdayMember = {
 
 type WaLog = { id: string; memberName: string; sentByName: string | null; sentAt: Date | null; createdAt: Date };
 
+const BULK_WA_DEFAULT = `Hi {name}!\n\nThis is a quick message from Yos Fitness Studio.\n\n– Team Yos Fitness Studio`;
+
+function interpolateBulkMessage(tpl: string, m: Member): string {
+  return tpl
+    .replace(/\{name\}/g, getFirstName(toTitleCase(m.fullName)))
+    .replace(/\{expiry\}/g, m.expiryDate ? formatDate(m.expiryDate) : "—")
+    .replace(/\{package\}/g, m.currentPackage?.name ?? "—");
+}
+
+function BulkWaPanel({ members, onClose }: { members: Member[]; onClose: () => void }) {
+  const [message, setMessage] = useState(BULK_WA_DEFAULT);
+  const [editing, setEditing] = useState(true);
+  const [rowState, setRowState] = useState<Record<string, "idle" | "opened" | "sent">>({});
+  const sentCount = Object.values(rowState).filter((s) => s === "sent").length;
+
+  async function markSent(m: Member, msg: string) {
+    setRowState((r) => ({ ...r, [m.id]: "sent" }));
+    try { await logManualWA(m.id, "GENERAL", msg); } catch { /* silent */ }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.7)" }} onClick={onClose}>
+      <div className="w-full max-w-md rounded-3xl overflow-hidden"
+        style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.1)", maxHeight: "85vh" }}
+        onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+          <div>
+            <p className="font-bold text-white">Bulk WhatsApp Business</p>
+            <p className="text-xs text-gray-500 mt-0.5">{members.length} members · {sentCount} logged as sent</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 transition-colors">
+            <X className="h-4 w-4 text-gray-400" />
+          </button>
+        </div>
+
+        {editing ? (
+          <div className="p-5 flex flex-col gap-3">
+            <div className="rounded-2xl overflow-hidden" style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.07)" }}>
+              <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Message</p>
+                <span className="text-[10px] text-gray-700">Use <code className="text-orange-600">{"{name}"}</code> <code className="text-orange-600">{"{expiry}"}</code> <code className="text-orange-600">{"{package}"}</code></span>
+              </div>
+              <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={7}
+                className="w-full bg-transparent text-sm text-white resize-none outline-none leading-relaxed px-4 py-3"
+                style={{ caretColor: "#f97316" }} />
+            </div>
+            <button onClick={() => setEditing(false)} disabled={!message.trim()}
+              className="w-full py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg,#25d366,#128c7e)" }}>
+              Continue to Send
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-y-auto" style={{ maxHeight: "calc(85vh - 140px)" }}>
+              {members.map((m) => {
+                const phone = (m.whatsapp ?? m.phone ?? "").replace(/\D/g, "").slice(-10);
+                const msg = interpolateBulkMessage(message, m);
+                const state = rowState[m.id] ?? "idle";
+                return (
+                  <div key={m.id} className="flex items-center gap-3 px-5 py-3.5 border-b border-white/5">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-white text-sm">{toTitleCase(m.fullName)}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{m.phone}</p>
+                    </div>
+                    {!phone ? (
+                      <span className="text-xs text-gray-600 px-3">No phone</span>
+                    ) : state === "sent" ? (
+                      <span className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold"
+                        style={{ background: "rgba(34,197,94,0.12)", color: "#4ade80" }}>
+                        <CheckCircle className="h-3.5 w-3.5" /> Sent
+                      </span>
+                    ) : (
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <a href={waBusinessLink(phone, msg)} target="_blank" rel="noopener noreferrer"
+                          onClick={() => setRowState((r) => ({ ...r, [m.id]: "opened" }))}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
+                          style={{ background: "rgba(37,211,102,0.12)", color: "#25d366", border: "1px solid rgba(37,211,102,0.2)" }}>
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          {state === "opened" ? "Re-open" : "Open Chat"}
+                        </a>
+                        {state === "opened" && (
+                          <button onClick={() => markSent(m, msg)}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors"
+                            style={{ background: "rgba(34,197,94,0.15)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.3)" }}>
+                            <CheckCircle className="h-3.5 w-3.5" /> Sent?
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="px-5 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              <button onClick={() => setEditing(true)} className="text-xs text-gray-500 hover:text-gray-300">
+                ‹ Edit message
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function BulkWelcomeList({ members, waTemplates }: { members: Member[]; waTemplates?: Record<string, string> }) {
   const [sent, setSent] = useState<Set<string>>(new Set());
 
@@ -165,6 +272,7 @@ export function MembersClient({
   const [search, setSearch]           = useState(searchParams.get("search") ?? "");
   const [selected, setSelected]       = useState<Set<string>>(new Set());
   const [showWelcome, setShowWelcome]       = useState(false);
+  const [showBulkWa, setShowBulkWa]         = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting]             = useState(false);
   const [deleteResults, setDeleteResults]   = useState<{ ok: string[]; failed: string[] } | null>(null);
@@ -475,6 +583,16 @@ export function MembersClient({
               Send Welcome ({selected.size})
             </button>
           )}
+          {(userRole === "ADMIN" || userRole === "FRONT_DESK") && (
+            <button
+              onClick={() => setShowBulkWa(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all"
+              style={{ background: "linear-gradient(135deg,#25d366,#128c7e)" }}
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              Bulk WhatsApp Business ({selected.size})
+            </button>
+          )}
           <button
             onClick={exportSelected}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all"
@@ -573,6 +691,13 @@ export function MembersClient({
             />
           </div>
         </div>
+      )}
+
+      {showBulkWa && (
+        <BulkWaPanel
+          members={members.filter((m) => selected.has(m.id))}
+          onClose={() => setShowBulkWa(false)}
+        />
       )}
 
       {/* ── Mobile card list (hidden on md+) ── */}
