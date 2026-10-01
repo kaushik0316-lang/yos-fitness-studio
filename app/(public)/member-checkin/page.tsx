@@ -7,7 +7,7 @@ import Image from "next/image";
 
 type Phase = "input" | "locating" | "loading" | "success" | "checkoutSuccess" | "error";
 
-interface SuccessData { fullName: string; time: string; streak?: number; totalVisits?: number; durationMins?: number; }
+interface SuccessData { fullName: string; time: string; streak?: number; totalVisits?: number; durationMins?: number; attendanceId?: string; session?: number; }
 
 const TOTAL_DIGITS  = 4;
 const NUMPAD_KEYS   = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
@@ -95,6 +95,7 @@ export default function MemberCheckinPage() {
   const [successData, setSuccess]           = useState<SuccessData | null>(null);
   const [errorMsg, setErrorMsg]             = useState("");
   const [shaking, setShaking]               = useState(false);
+  const [undoing, setUndoing]               = useState(false);
   const [liveTime, setLiveTime]             = useState(currentTimeIST);
   const submittingRef                       = useRef(false);
   const hiddenInputRef                      = useRef<HTMLInputElement>(null);
@@ -129,7 +130,20 @@ export default function MemberCheckinPage() {
 
   function resetForm() {
     setPin(""); setPhase("input"); setSuccess(null);
-    setErrorMsg(""); submittingRef.current = false;
+    setErrorMsg(""); submittingRef.current = false; setUndoing(false);
+  }
+
+  async function undoCheckin() {
+    if (!successData?.attendanceId || undoing) return;
+    setUndoing(true);
+    try {
+      await fetch("/api/member-checkin/undo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attendanceId: successData.attendanceId, session: successData.session }),
+      });
+    } catch { /* kiosk has no staff to notify — worst case the record stays, fixable at the front desk */ }
+    resetForm();
   }
 
   function pressKey(key: string) {
@@ -195,7 +209,10 @@ export default function MemberCheckinPage() {
         await performCheckout(data.attendanceId, data.fullName, data.session ?? 1);
       } else {
         sessionStorage.setItem("member_pin", enteredPin);
-        setSuccess({ fullName: data.fullName, time: data.time, streak: data.streak, totalVisits: data.totalVisits });
+        setSuccess({
+          fullName: data.fullName, time: data.time, streak: data.streak, totalVisits: data.totalVisits,
+          attendanceId: data.attendanceId, session: data.session ?? 1,
+        });
         setPhase("success");
       }
     } catch {
@@ -310,6 +327,13 @@ export default function MemberCheckinPage() {
               style={{ background: "#1e1e1e", color: "#6b7280", border: "1px solid #2a2a2a" }}>
               Done
             </button>
+            {successData.attendanceId && (
+              <button onClick={undoCheckin} disabled={undoing}
+                className="w-full py-3 mt-3 rounded-2xl font-semibold text-xs uppercase tracking-wide disabled:opacity-50"
+                style={{ background: "transparent", color: "#f87171", border: "1px solid rgba(248,113,113,0.3)" }}>
+                {undoing ? "Undoing…" : "Not you? Undo check-in"}
+              </button>
+            )}
           </div>
         </div>
       </Screen>

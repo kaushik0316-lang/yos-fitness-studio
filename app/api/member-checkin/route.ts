@@ -143,6 +143,7 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({
         ok:       true,
+        attendanceId: existing.id,
         fullName: member.fullName,
         memberId: member.memberId,
         time:     s2TimeStr,
@@ -168,7 +169,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Mark attendance + update lastAttendanceDate
-    await prisma.$transaction([
+    const [newAttendance] = await prisma.$transaction([
       prisma.memberAttendance.create({
         data: {
           memberId:    member.id,
@@ -204,6 +205,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok:       true,
+      attendanceId: newAttendance.id,
       fullName: member.fullName,
       memberId: member.memberId,
       time:     timeStr,
