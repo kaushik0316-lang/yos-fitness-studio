@@ -23,7 +23,7 @@ const DEFAULT_TEMPLATE =
 
 function interpolateMessage(tpl: string, member: Member): string {
   return tpl
-    .replace(/\{name\}/g, toTitleCase(member.fullName).split(" ")[0])
+    .replace(/\{name\}/g, toTitleCase(member.fullName))
     .replace(/\{expiry\}/g, member.expiryDate ? format(new Date(member.expiryDate), "dd MMM yyyy") : "—")
     .replace(/\{trainer\}/g, member.trainerName ? toTitleCase(member.trainerName) : "your trainer");
 }
