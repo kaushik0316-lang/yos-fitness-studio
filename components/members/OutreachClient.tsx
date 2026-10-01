@@ -204,7 +204,7 @@ export function OutreachClient({ members, logs = [] }: { members: Member[]; logs
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap"
             style={{ background: allSelected ? "rgba(249,115,22,0.12)" : "rgba(255,255,255,0.05)", color: allSelected ? "#f97316" : "#6b7280", border: `1px solid ${allSelected ? "rgba(249,115,22,0.2)" : "transparent"}` }}>
             {allSelected ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
-            All ({eligible.length})
+            Select all ({eligible.length})
 
           </button>
         </div>
@@ -268,7 +268,7 @@ export function OutreachClient({ members, logs = [] }: { members: Member[]; logs
 
                       {/* Row 2: package + expiry + last seen */}
                       <div className="flex items-center gap-3 mt-1 flex-wrap">
-                        <span className="text-xs text-gray-500">{m.packageName ?? "—"} · exp {expiry}</span>
+                        <span className="text-xs text-gray-500">{m.packageName ? `${m.packageName} · ` : ""}exp {expiry}</span>
                         <span className="flex items-center gap-1 text-xs text-gray-600">
                           <Clock className="h-3 w-3" />{lastSeen}
                         </span>
@@ -291,7 +291,7 @@ export function OutreachClient({ members, logs = [] }: { members: Member[]; logs
                             phone={waNumber}
                             message={msg}
                             waType="OUTREACH"
-                            label="WhatsApp Business"
+                            label="Message"
                             className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors"
                             style={{ background: "rgba(37,211,102,0.12)", color: "#25d366" }}
                           />
