@@ -99,7 +99,11 @@ export function EnquiriesClient({ enquiries: initial, employees, funnel, userId,
   const isAdmin = userRole === "ADMIN";
 
   const filtered = enquiries.filter((e) => {
-    if (statusFilter !== "ALL" && e.status !== statusFilter) return false;
+    if (statusFilter === "ALL") {
+      if (e.status === "CONVERTED") return false;
+    } else if (e.status !== statusFilter) {
+      return false;
+    }
     if (search) {
       const q = search.toLowerCase();
       return e.name.toLowerCase().includes(q) || e.phone.includes(q) || e.interest?.toLowerCase().includes(q);
@@ -107,7 +111,7 @@ export function EnquiriesClient({ enquiries: initial, employees, funnel, userId,
     return true;
   });
 
-  const counts: Record<string, number> = { ALL: enquiries.length };
+  const counts: Record<string, number> = { ALL: enquiries.filter((e) => e.status !== "CONVERTED").length };
   for (const s of STATUSES) counts[s] = enquiries.filter((e) => e.status === s).length;
 
   function refresh() { window.location.reload(); }
