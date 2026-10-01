@@ -416,7 +416,7 @@ export function EnquiriesClient({ enquiries: initial, employees, funnel, userId,
                             className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50"
                             style={{ background: "rgba(99,102,241,0.12)", color: "#818cf8" }}
                             title="Mark WhatsApp as sent">
-                            <CheckCheck className="h-3 w-3" />Sent
+                            <CheckCheck className="h-3 w-3" />Mark Sent
                           </button>
                         )}
                         {isAdmin && (e.messages?.length ?? 0) > 0 && (
