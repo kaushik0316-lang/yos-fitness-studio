@@ -9,7 +9,6 @@ import { WhatsAppButton } from "@/components/receipts/WhatsAppButton";
 import { EditReceiptButton } from "@/components/receipts/EditReceiptButton";
 import { SendPDFButton } from "@/components/receipts/SendPDFButton";
 import { CopyReceiptButton } from "@/components/receipts/CopyReceiptButton";
-import { OpenChatButton } from "@/components/receipts/OpenChatButton";
 import { ReassignMemberButton } from "@/components/receipts/ReassignMemberButton";
 import { VoidReceiptButton } from "@/components/receipts/VoidReceiptButton";
 import { AssignCommissionButton } from "@/components/receipts/AssignCommissionButton";
@@ -208,8 +207,8 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
           receiptNo={payment.receiptNumber}
           memberName={payment.member.fullName}
         />
-        <OpenChatButton memberId={payment.member.id} phone={payment.member.phone} />
         <SendPDFButton
+          memberId={payment.member.id}
           phone={payment.member.phone}
           memberName={payment.member.fullName}
           receiptNo={payment.receiptNumber}
