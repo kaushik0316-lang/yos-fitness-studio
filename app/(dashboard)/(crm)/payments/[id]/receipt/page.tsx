@@ -32,6 +32,12 @@ const PAYMENT_TYPE_LABELS: Record<string, string> = {
   UPGRADE: "Upgrade",
 };
 
+function fmtPhone(p: string | null | undefined) {
+  const d = (p ?? "").replace(/\D/g, "");
+  const ten = d.length === 12 && d.startsWith("91") ? d.slice(2) : d;
+  return ten.length === 10 ? `${ten.slice(0, 5)} ${ten.slice(5)}` : (p ?? "");
+}
+
 function formatIndian(n: number) {
   return new Intl.NumberFormat("en-IN").format(n);
 }
@@ -308,7 +314,7 @@ export default async function ReceiptPage({ params, searchParams }: Props) {
               {toTitleCase(payment.member.fullName)}
             </p>
             <p style={{ fontSize: "12px", color: "#6b7280", margin: "3px 0 0" }}>
-              {payment.member.phone}
+              {fmtPhone(payment.member.phone)}
             </p>
           </div>
 
