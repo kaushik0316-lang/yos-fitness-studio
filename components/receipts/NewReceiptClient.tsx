@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createReceipt } from "@/lib/actions/receipts";
+import { createPaymentLink } from "@/lib/actions/paymentLinks";
+import { PaymentLinkDialog } from "@/components/receipts/PaymentLinkDialog";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { Button } from "@/components/ui/button";
 
@@ -75,6 +77,8 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [linkResult, setLinkResult] = useState<{ url: string; amount: number; validDays: number } | null>(null);
 
   // Form state
   const [company, setCompany] = useState<"YOS_FITNESS" | "YOS_FITNESS_STUDIO">("YOS_FITNESS");
@@ -333,6 +337,39 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
     } catch (err: any) {
       setError(err?.message ?? "Something went wrong. Please try again.");
       setLoading(false);
+    }
+  }
+
+  async function handleSendLink() {
+    setError(null);
+    if (!selectedMemberId) { setError("Select an existing member to send a payment link."); return; }
+    if ((Number(amount) || 0) - (Number(discount) || 0) < 1) { setError("Enter the amount first."); return; }
+
+    setLinkLoading(true);
+    try {
+      const res = await createPaymentLink({
+        memberId: selectedMemberId,
+        company,
+        paymentType,
+        categoryLabel: categoryInput,
+        periodLabel: periodInput,
+        amount: Number(amount),
+        discount: Number(discount) || 0,
+        pendingAmount: Number(pendingAmount) || 0,
+        startDate,
+        expiryDate,
+        previousReceiptNo: prevReceiptNo ? Number(prevReceiptNo) : undefined,
+        previousAmount: prevAmount ? Number(prevAmount) : undefined,
+        notes: notes || undefined,
+        soldById: soldById ?? undefined,
+        soldById2: soldById && soldById2 ? soldById2 : undefined,
+        soldByPct: soldById && soldById2 ? soldByPct : undefined,
+      });
+      setLinkResult({ url: res.shortUrl, amount: res.amount, validDays: res.validDays });
+    } catch (err: any) {
+      setError(err?.message ?? "Could not create the payment link.");
+    } finally {
+      setLinkLoading(false);
     }
   }
 
@@ -977,6 +1014,16 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
         >
           {loading ? "Creating Receipt…" : "Create Receipt & Print"}
         </Button>
+        {!isNewMember && selectedMemberId && !splitEnabled && (
+          <button
+            type="button"
+            onClick={handleSendLink}
+            disabled={linkLoading}
+            className="px-5 py-3 border-2 border-green-500 text-green-700 rounded-xl text-sm font-bold hover:bg-green-50 transition-colors disabled:opacity-60"
+          >
+            {linkLoading ? "Creating link…" : "Send payment link"}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => router.push("/payments")}
@@ -985,6 +1032,19 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
           Cancel
         </button>
       </div>
+
+      {linkResult && selectedMember && (
+        <PaymentLinkDialog
+          url={linkResult.url}
+          amount={linkResult.amount}
+          validDays={linkResult.validDays}
+          memberId={selectedMember.id}
+          memberName={selectedMember.fullName}
+          phone={selectedMember.phone ?? ""}
+          description={`${categoryInput} — ${periodInput}`}
+          onClose={() => setLinkResult(null)}
+        />
+      )}
     </form>
   );
 }

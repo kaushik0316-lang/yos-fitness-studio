@@ -219,6 +219,7 @@ model Member {
   lockers          Locker[]
   lockerHistory    LockerHistory[]
   lockerLinks      LockerMember[]
+  paymentLinks     PaymentLink[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -823,4 +824,39 @@ model LockerMember {
 
   @@unique([lockerId, memberId])
   @@map("locker_members")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RAZORPAY PAYMENT LINKS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PaymentLinkStatus {
+  CREATED
+  PAID
+  EXPIRED
+  CANCELLED
+}
+
+model PaymentLink {
+  id                String            @id @default(cuid())
+  memberId          String
+  member            Member            @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  createdById       String
+  company           Company
+
+  amount            Decimal           @db.Decimal(10, 2) // net payable (amount - discount)
+  payload           Json              // full receipt details, applied when the link is paid
+  status            PaymentLinkStatus @default(CREATED)
+
+  razorpayLinkId    String?           @unique
+  shortUrl          String?
+  razorpayPaymentId String?           @unique
+  paymentId         String?           @unique // the Payment (receipt) created once paid
+  paidAt            DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([memberId])
+  @@map("payment_links")
 }

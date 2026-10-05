@@ -14,6 +14,7 @@ const PUBLIC_PAGES = new Set([
   "/strength-training-mylapore",
   "/checkin",
   "/checkin/poster",
+  "/payment-received",
   "/staff-dashboard",
   "/staff-dashboard-qr",
   "/staff-dashboard/new-receipt",
