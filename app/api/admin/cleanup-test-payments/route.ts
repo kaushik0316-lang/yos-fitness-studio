@@ -26,7 +26,6 @@ export async function GET(req: NextRequest) {
       id: true, receiptNumber: true, company: true, amount: true, discount: true, isVoided: true,
       paymentMode: true, date: true, transactionRef: true,
       membership: { select: { id: true } },
-      _count: { select: { trainerCommissions: true } },
     },
   });
   const links = await prisma.paymentLink.findMany({
@@ -47,7 +46,7 @@ export async function GET(req: NextRequest) {
     payments: payments.map((p) => ({
       id: p.id, receipt: p.receiptNumber, company: p.company, amount: String(p.amount), discount: String(p.discount),
       voided: p.isVoided, mode: p.paymentMode, date: p.date, ref: p.transactionRef,
-      hasMembership: !!p.membership, commissions: p._count.trainerCommissions,
+      hasMembership: !!p.membership,
     })),
     paymentLinks: links.map((l) => ({ ...l, amount: String(l.amount) })),
     topReceiptsPerCompany: top,
