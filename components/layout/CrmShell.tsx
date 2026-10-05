@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { TitleCaseInput } from "./TitleCaseInput";
 import { GlobalSearch } from "./GlobalSearch";
+import { useNewEnquiryCount } from "@/hooks/useNewEnquiryCount";
 import type { UserRole } from "@prisma/client";
 
 type Props = {
@@ -16,6 +17,7 @@ type Props = {
 
 export function CrmShell({ userRole, userName, userEmail, children }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const newEnquiries = useNewEnquiryCount(["ADMIN", "FRONT_DESK", "TRAINER"].includes(userRole));
 
   // Apply dark class to <html> so Radix portals (dialogs, popovers) also use dark CSS variables
   useEffect(() => {
@@ -39,6 +41,7 @@ export function CrmShell({ userRole, userName, userEmail, children }: Props) {
         userName={userName}
         userEmail={userEmail}
         mobileOpen={sidebarOpen}
+        newEnquiries={newEnquiries}
         onMobileClose={() => setSidebarOpen(false)}
       />
 
@@ -53,9 +56,12 @@ export function CrmShell({ userRole, userName, userEmail, children }: Props) {
         >
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/8 transition-colors"
+            className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/8 transition-colors"
           >
             <Menu className="h-5 w-5" />
+            {newEnquiries > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ background: "#f97316" }} />
+            )}
           </button>
           <div className="flex items-center gap-2">
             <div className="bg-orange-500 rounded-lg p-1.5">

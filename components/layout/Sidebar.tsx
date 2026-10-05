@@ -53,9 +53,10 @@ type Props = {
   userEmail: string;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  newEnquiries?: number;
 };
 
-export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onMobileClose }: Props) {
+export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onMobileClose, newEnquiries = 0 }: Props) {
   const pathname = usePathname();
   const initials = userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -142,6 +143,12 @@ export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onM
                     >
                       <item.icon className="h-4 w-4 flex-shrink-0" style={isActive ? { color: "#f97316" } : undefined} />
                       <span className="flex-1 truncate text-[13px]">{item.label}</span>
+                      {item.href === "/enquiries" && newEnquiries > 0 && (
+                        <span className="flex-shrink-0 min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+                          style={{ background: "#f97316" }}>
+                          {newEnquiries > 99 ? "99+" : newEnquiries}
+                        </span>
+                      )}
                       {isActive && <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: "#f97316" }} />}
                     </Link>
                   );
