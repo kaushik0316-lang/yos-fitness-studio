@@ -45,7 +45,7 @@ export function PaymentLinkDialog({ url, amount, validDays, memberId, memberName
             <p className="font-bold text-gray-900">Payment link ready</p>
             <p className="text-xs text-gray-500 mt-0.5">₹{amountStr} · {description}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
+          <button type="button" onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100"><X className="h-4 w-4 text-gray-500" /></button>
         </div>
         <div className="p-5 space-y-4">
           <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 break-all font-mono">{url}</div>

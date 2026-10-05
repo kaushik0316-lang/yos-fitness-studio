@@ -54,6 +54,7 @@ export function WaConfirmButton({
     <span className="relative inline-block">
       {/* Main button */}
       <button
+        type="button"
         onClick={handleClick}
         className={className}
         style={style}
@@ -85,12 +86,14 @@ export function WaConfirmButton({
               <MessageCircle className="h-4 w-4 text-green-400 flex-shrink-0" />
               <span className="flex-1 text-gray-300">Did you send the <span className="text-white">{typeLabel}</span>?</span>
               <button
+                type="button"
                 onClick={handleYes}
                 className="px-3 py-1 rounded-lg text-xs font-bold bg-green-500 hover:bg-green-600 text-white transition-colors"
               >
                 Yes, sent
               </button>
               <button
+                type="button"
                 onClick={handleNo}
                 className="px-3 py-1 rounded-lg text-xs font-bold bg-transparent hover:bg-white/10 text-gray-400 transition-colors"
               >
