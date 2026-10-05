@@ -22,6 +22,7 @@ const PAYMENT_MODE_LABELS: Record<string, string> = {
   CARD: "Card",
   CHEQUE: "Cheque",
   BANK_TRANSFER: "Bank Transfer",
+  RAZORPAY: "Razorpay (Online)",
   FREE: "Free / Complimentary",
 };
 

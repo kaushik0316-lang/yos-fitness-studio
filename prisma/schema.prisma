@@ -41,6 +41,7 @@ enum PaymentMode {
   BANK_TRANSFER
   CHEQUE
   FREE
+  RAZORPAY
 }
 
 enum PaymentType {

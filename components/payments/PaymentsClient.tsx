@@ -49,15 +49,16 @@ const MODE_STYLES: Record<string, { bg: string; color: string }> = {
   UPI:           { bg: "rgba(59,130,246,0.12)",   color: "#60a5fa" },
   CARD:          { bg: "rgba(139,92,246,0.12)",   color: "#a78bfa" },
   BANK_TRANSFER: { bg: "rgba(99,102,241,0.12)",   color: "#818cf8" },
+  RAZORPAY:      { bg: "rgba(14,165,233,0.12)",   color: "#38bdf8" },
   CHEQUE:        { bg: "rgba(245,158,11,0.12)",   color: "#fbbf24" },
   FREE:          { bg: "rgba(107,114,128,0.12)",  color: "#9ca3af" },
 };
 const MODE_LABELS: Record<string, string> = {
   CASH: "Cash", UPI: "UPI", CARD: "Card",
-  BANK_TRANSFER: "Bank", CHEQUE: "Cheque", FREE: "Free",
+  BANK_TRANSFER: "Bank", CHEQUE: "Cheque", FREE: "Free", RAZORPAY: "Razorpay",
 };
 const MODE_ICONS: Record<string, string> = {
-  CASH: "💵", UPI: "📱", CARD: "💳", BANK_TRANSFER: "🏦", CHEQUE: "📄", FREE: "🎁",
+  CASH: "💵", UPI: "📱", CARD: "💳", BANK_TRANSFER: "🏦", CHEQUE: "📄", FREE: "🎁", RAZORPAY: "🔗",
 };
 
 const TYPE_STYLES: Record<string, { bg: string; color: string; label: string }> = {
@@ -253,6 +254,7 @@ export function PaymentsClient({
             <option value="UPI">UPI</option>
             <option value="CARD">Card</option>
             <option value="BANK_TRANSFER">Bank Transfer</option>
+            <option value="RAZORPAY">Razorpay</option>
             <option value="CHEQUE">Cheque</option>
             <option value="FREE">Free</option>
           </select>

@@ -5,7 +5,7 @@ import { toTitleCase } from "@/lib/utils/titleCase";
 
 function fmt(mode: string) {
   return (
-    { CASH: "Cash", UPI: "UPI", CARD: "Card", BANK_TRANSFER: "Bank Transfer", CHEQUE: "Cheque", FREE: "Free" }[mode] ?? mode
+    { CASH: "Cash", UPI: "UPI", CARD: "Card", BANK_TRANSFER: "Bank Transfer", CHEQUE: "Cheque", FREE: "Free", RAZORPAY: "Razorpay" }[mode] ?? mode
   );
 }
 function fmtDate(d: Date | string) {

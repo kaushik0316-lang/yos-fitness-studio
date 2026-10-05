@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { Company, PaymentMode } from "@prisma/client";
+import { Company } from "@prisma/client";
 
 export type ReceiptPayload = {
   paymentType: "ADMISSION" | "RENEWAL" | "BALANCE" | "UPGRADE";
@@ -20,10 +20,13 @@ export type ReceiptPayload = {
 
 export type Bill = ReceiptPayload & { memberId: string; company: Company };
 
-function modeFor(method: string): PaymentMode {
-  if (method === "upi" || method === "wallet") return "UPI";
-  if (method === "card" || method === "emi" || method === "paylater") return "CARD";
-  return "BANK_TRANSFER";
+function methodLabel(method: string): string {
+  const m = method.toLowerCase();
+  if (m === "upi") return "UPI";
+  if (m === "card") return "Card";
+  if (m === "netbanking") return "Net banking";
+  if (m === "wallet") return "Wallet";
+  return method ? method : "online";
 }
 
 // Links created before multi-bill support stored a single bill with no member/company.
@@ -46,10 +49,10 @@ export async function finalizePaidLink(
   if (rp.amountPaise < Math.round(Number(link.amount) * 100)) return { ok: false, reason: "amount paid is less than the bill" };
 
   const bills = billsOf(link);
-  const mode = modeFor(rp.method);
+  const via = methodLabel(rp.method);
   const note = bills.length > 1
-    ? `Paid online via Razorpay link (one payment, ${bills.length} receipts)`
-    : "Paid online via Razorpay link";
+    ? `Paid online via Razorpay link (${via}; one payment, ${bills.length} receipts)`
+    : `Paid online via Razorpay link (${via})`;
 
   for (let attempt = 0; ; attempt++) {
     try {
@@ -69,7 +72,7 @@ export async function finalizePaidLink(
               amount: p.amount,
               discount: p.discount,
               pendingAmount: p.pendingAmount,
-              paymentMode: mode,
+              paymentMode: "RAZORPAY",
               company: p.company,
               collectedById: link.createdById,
               soldById: p.soldById ?? null,

@@ -161,7 +161,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   const [amount, setAmount] = useState("");
   const [discount, setDiscount] = useState("");
   const [pendingAmount, setPendingAmount] = useState("");
-  const [paymentMode, setPaymentMode] = useState<"CASH" | "UPI" | "CARD" | "CHEQUE">("CASH");
+  const [paymentMode, setPaymentMode] = useState<"CASH" | "UPI" | "CARD" | "CHEQUE" | "RAZORPAY">("CASH");
   const [splitEnabled, setSplitEnabled] = useState(false);
   const [splitMode, setSplitMode] = useState<"CASH" | "UPI" | "CARD" | "CHEQUE">("UPI");
   const [splitAmt, setSplitAmt] = useState("");   // 2nd payment amount
@@ -744,7 +744,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Payment Details</p>
           <button
             type="button"
-            onClick={() => { setSplitEnabled(!splitEnabled); setSplitAmt(""); setSplitAmt1(""); }}
+            onClick={() => { if (!splitEnabled && paymentMode === "RAZORPAY") setPaymentMode("CASH"); setSplitEnabled(!splitEnabled); setSplitAmt(""); setSplitAmt1(""); }}
             className="text-xs font-bold px-3 py-1 rounded-full border-2 border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-all bg-white"
           >
             {splitEnabled ? "✕ Remove split" : "+ Split payment"}
@@ -861,8 +861,8 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
       {!splitEnabled && (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Payment Mode</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {(["CASH", "CARD", "UPI", "CHEQUE"] as const).map((mode) => (
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {(["CASH", "CARD", "UPI", "CHEQUE", "RAZORPAY"] as const).map((mode) => (
             <button
               key={mode}
               type="button"
@@ -877,6 +877,11 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
             </button>
           ))}
         </div>
+        {paymentMode === "RAZORPAY" && (
+          <p className="mt-3 text-xs text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+            Press <b>Send payment link</b> below. The client pays online and the receipt is issued automatically with mode Razorpay. Use the Record button only for a Razorpay payment that has already been received.
+          </p>
+        )}
       </div>
       )}
 
@@ -1082,7 +1087,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
           title={bills.length > 0 ? "Remove the stacked bills, or send them as a payment link" : undefined}
           className="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl shadow-md shadow-orange-200 text-sm transition-colors disabled:opacity-50"
         >
-          {loading ? "Creating Receipt…" : "Create Receipt & Print"}
+          {loading ? "Creating Receipt…" : paymentMode === "RAZORPAY" ? "Record Razorpay Payment Already Received" : "Create Receipt & Print"}
         </Button>
         {!isNewMember && selectedMemberId && !splitEnabled && (
           <button

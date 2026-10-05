@@ -32,10 +32,10 @@ type Props = {
 
 type MemberResult = { id: string; fullName: string; memberId: string; phone: string };
 
-const MODES = ["CASH", "UPI", "CARD", "CHEQUE", "BANK_TRANSFER", "FREE"];
+const MODES = ["CASH", "UPI", "CARD", "CHEQUE", "BANK_TRANSFER", "RAZORPAY", "FREE"];
 const MODE_LABELS: Record<string, string> = {
   CASH: "Cash", UPI: "GPay / UPI", CARD: "Card",
-  CHEQUE: "Cheque", BANK_TRANSFER: "Bank Transfer", FREE: "Free",
+  CHEQUE: "Cheque", BANK_TRANSFER: "Bank Transfer", RAZORPAY: "Razorpay", FREE: "Free",
 };
 const PAYMENT_TYPES = ["ADMISSION", "RENEWAL", "BALANCE", "UPGRADE"];
 const PAYMENT_TYPE_LABELS: Record<string, string> = {

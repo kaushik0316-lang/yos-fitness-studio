@@ -21,7 +21,7 @@ type Payment = {
 };
 
 function fmt(mode: string) {
-  return { CASH: "Cash", UPI: "UPI", CARD: "Card", BANK_TRANSFER: "Bank Transfer", CHEQUE: "Cheque", FREE: "Free" }[mode] ?? mode;
+  return { CASH: "Cash", UPI: "UPI", CARD: "Card", BANK_TRANSFER: "Bank Transfer", CHEQUE: "Cheque", FREE: "Free", RAZORPAY: "Razorpay" }[mode] ?? mode;
 }
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });

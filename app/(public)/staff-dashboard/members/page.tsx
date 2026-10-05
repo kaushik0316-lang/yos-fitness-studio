@@ -68,7 +68,7 @@ const SOURCE_LABELS: Record<string, string> = {
 const STATUSES = ["NEW", "CONTACTED", "FOLLOW_UP", "CONVERTED", "LOST"];
 const SOURCES  = ["WALK_IN", "INSTAGRAM", "REFERRAL", "PHONE", "WEBSITE", "OTHER"];
 const PAYMENT_MODE_LABELS: Record<string, string> = {
-  CASH: "Cash", CARD: "Card", UPI: "UPI", BANK_TRANSFER: "Bank Transfer", CHEQUE: "Cheque", OTHER: "Other",
+  CASH: "Cash", CARD: "Card", UPI: "UPI", RAZORPAY: "Razorpay", BANK_TRANSFER: "Bank Transfer", CHEQUE: "Cheque", OTHER: "Other",
 };
 
 function waLink(phone: string) {
