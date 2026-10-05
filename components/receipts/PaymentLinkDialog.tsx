@@ -13,6 +13,7 @@ type Props = {
   memberName: string;
   phone: string;
   description: string;
+  billCount?: number;
   onClose: () => void;
 };
 
@@ -21,7 +22,7 @@ function isFakePhone(p: string): boolean {
   return d.length < 10 || /^0+$/.test(d) || /^(.)\1+$/.test(d);
 }
 
-export function PaymentLinkDialog({ url, amount, validDays, memberId, memberName, phone, description, onClose }: Props) {
+export function PaymentLinkDialog({ url, amount, validDays, memberId, memberName, phone, description, billCount = 1, onClose }: Props) {
   const [copied, setCopied] = useState(false);
   const amountStr = new Intl.NumberFormat("en-IN").format(amount);
 
@@ -68,7 +69,7 @@ export function PaymentLinkDialog({ url, amount, validDays, memberId, memberName
             )}
           </div>
           <p className="text-xs text-gray-500">
-            When {toTitleCase(memberName)} pays, the receipt is created automatically and the membership is updated. You'll find it under Payments.
+            When {toTitleCase(memberName)} pays, {billCount > 1 ? `${billCount} separate receipts are` : "the receipt is"} created automatically and the membership{billCount > 1 ? "s are" : " is"} updated. You'll find {billCount > 1 ? "them" : "it"} under Payments.
           </p>
         </div>
       </div>

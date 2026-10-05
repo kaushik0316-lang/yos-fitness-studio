@@ -8,6 +8,14 @@ import { PaymentLinkDialog } from "@/components/receipts/PaymentLinkDialog";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { Button } from "@/components/ui/button";
 
+type BillDraft = {
+  memberId: string; memberName: string; phone: string; company: "YOS_FITNESS" | "YOS_FITNESS_STUDIO";
+  paymentType: "ADMISSION" | "RENEWAL" | "BALANCE" | "UPGRADE"; categoryLabel: string; periodLabel: string;
+  amount: number; discount: number; pendingAmount: number; startDate: string; expiryDate: string;
+  previousReceiptNo?: number; previousAmount?: number; notes?: string;
+  soldById?: string; soldById2?: string; soldByPct?: number;
+};
+
 type Member = {
   id: string;
   memberId: string;
@@ -78,7 +86,8 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [linkLoading, setLinkLoading] = useState(false);
-  const [linkResult, setLinkResult] = useState<{ url: string; amount: number; validDays: number } | null>(null);
+  const [linkResult, setLinkResult] = useState<{ url: string; amount: number; validDays: number; memberId: string; memberName: string; phone: string; billCount: number; description: string } | null>(null);
+  const [bills, setBills] = useState<BillDraft[]>([]);
 
   // Form state
   const [company, setCompany] = useState<"YOS_FITNESS" | "YOS_FITNESS_STUDIO">("YOS_FITNESS");
@@ -340,32 +349,62 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
     }
   }
 
+  const netOf = (b: { amount: number; discount: number }) => b.amount - b.discount;
+
+  // The bill currently filled in on the form (null if it isn't ready to be billed)
+  function draftFromForm(): BillDraft | null {
+    if (isNewMember || !selectedMemberId || splitEnabled) return null;
+    const amt = Number(amount) || 0;
+    const disc = Number(discount) || 0;
+    if (amt - disc < 1) return null;
+    const m = members.find((x) => x.id === selectedMemberId);
+    if (!m) return null;
+    return {
+      memberId: m.id, memberName: m.fullName, phone: m.phone ?? "", company, paymentType,
+      categoryLabel: categoryInput, periodLabel: periodInput,
+      amount: amt, discount: disc, pendingAmount: Number(pendingAmount) || 0, startDate, expiryDate,
+      previousReceiptNo: prevReceiptNo ? Number(prevReceiptNo) : undefined,
+      previousAmount: prevAmount ? Number(prevAmount) : undefined,
+      notes: notes || undefined,
+      soldById: soldById ?? undefined,
+      soldById2: soldById && soldById2 ? soldById2 : undefined,
+      soldByPct: soldById && soldById2 ? soldByPct : undefined,
+    };
+  }
+
+  const currentDraft = draftFromForm();
+  const allBills = [...bills, ...(currentDraft ? [currentDraft] : [])];
+  const linkTotal = allBills.reduce((s, b) => s + netOf(b), 0);
+
+  function addAnotherBill() {
+    setError(null);
+    const d = draftFromForm();
+    if (!d) { setError("Pick a member and enter the amount before adding another bill."); return; }
+    if (bills.length >= 9) { setError("A link can hold up to 10 bills."); return; }
+    setBills((prev) => [...prev, d]);
+    setSelectedMemberId(""); setMemberSearch(""); setShowMemberDropdown(false);
+    setAmount(""); setDiscount(""); setPendingAmount(""); setNotes("");
+    setPrevReceiptNo(""); setPrevAmount("");
+  }
+
   async function handleSendLink() {
     setError(null);
-    if (!selectedMemberId) { setError("Select an existing member to send a payment link."); return; }
-    if ((Number(amount) || 0) - (Number(discount) || 0) < 1) { setError("Enter the amount first."); return; }
+    if (allBills.length === 0) { setError("Select an existing member and enter the amount first."); return; }
 
     setLinkLoading(true);
     try {
       const res = await createPaymentLink({
-        memberId: selectedMemberId,
-        company,
-        paymentType,
-        categoryLabel: categoryInput,
-        periodLabel: periodInput,
-        amount: Number(amount),
-        discount: Number(discount) || 0,
-        pendingAmount: Number(pendingAmount) || 0,
-        startDate,
-        expiryDate,
-        previousReceiptNo: prevReceiptNo ? Number(prevReceiptNo) : undefined,
-        previousAmount: prevAmount ? Number(prevAmount) : undefined,
-        notes: notes || undefined,
-        soldById: soldById ?? undefined,
-        soldById2: soldById && soldById2 ? soldById2 : undefined,
-        soldByPct: soldById && soldById2 ? soldByPct : undefined,
+        bills: allBills.map(({ memberName, phone, ...bill }) => bill),
       });
-      setLinkResult({ url: res.shortUrl, amount: res.amount, validDays: res.validDays });
+      const payer = allBills[0];
+      setLinkResult({
+        url: res.shortUrl, amount: res.amount, validDays: res.validDays,
+        memberId: payer.memberId, memberName: payer.memberName, phone: payer.phone,
+        billCount: allBills.length,
+        description: allBills.length === 1
+          ? `${payer.categoryLabel} — ${payer.periodLabel}`
+          : `${allBills.length} receipts`,
+      });
     } catch (err: any) {
       setError(err?.message ?? "Could not create the payment link.");
     } finally {
@@ -1005,23 +1044,67 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
         />
       </div>
 
+      {/* ── Combined payment link ── */}
+      {bills.length > 0 && (
+        <div className="bg-white rounded-2xl border-2 border-green-200 shadow-sm p-5">
+          <p className="text-xs font-bold text-green-700 uppercase tracking-widest mb-3">Bills in this payment link</p>
+          <div className="space-y-2">
+            {bills.map((b, i) => (
+              <div key={i} className="flex items-center justify-between gap-3 rounded-xl bg-green-50 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800 truncate">{toTitleCase(b.memberName)}</p>
+                  <p className="text-xs text-gray-500 truncate">{b.categoryLabel} — {b.periodLabel}</p>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className="text-sm font-bold text-gray-800">₹{new Intl.NumberFormat("en-IN").format(netOf(b))}</span>
+                  <button type="button" onClick={() => setBills((prev) => prev.filter((_, j) => j !== i))}
+                    className="text-xs font-semibold text-red-500 hover:text-red-700">Remove</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mt-3">
+            The bill filled in above is added automatically when you send the link. Total ₹{new Intl.NumberFormat("en-IN").format(linkTotal)} across {allBills.length} receipt{allBills.length === 1 ? "" : "s"}.
+          </p>
+        </div>
+      )}
+      {linkTotal > 100000 && (
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+          UPI usually allows only about ₹1 lakh per payment, so this client may need to pay by card or net banking.
+        </p>
+      )}
+
       {/* ── Submit ── */}
-      <div className="flex items-center gap-3 pb-6">
+      <div className="flex flex-wrap items-center gap-3 pb-6">
         <Button
           type="submit"
-          disabled={loading}
-          className="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl shadow-md shadow-orange-200 text-sm transition-colors"
+          disabled={loading || bills.length > 0}
+          title={bills.length > 0 ? "Remove the stacked bills, or send them as a payment link" : undefined}
+          className="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl shadow-md shadow-orange-200 text-sm transition-colors disabled:opacity-50"
         >
           {loading ? "Creating Receipt…" : "Create Receipt & Print"}
         </Button>
         {!isNewMember && selectedMemberId && !splitEnabled && (
           <button
             type="button"
+            onClick={addAnotherBill}
+            className="px-5 py-3 border-2 border-gray-300 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 transition-colors"
+          >
+            + Add another bill
+          </button>
+        )}
+        {allBills.length > 0 && (
+          <button
+            type="button"
             onClick={handleSendLink}
             disabled={linkLoading}
             className="px-5 py-3 border-2 border-green-500 text-green-700 rounded-xl text-sm font-bold hover:bg-green-50 transition-colors disabled:opacity-60"
           >
-            {linkLoading ? "Creating link…" : "Send payment link"}
+            {linkLoading
+              ? "Creating link…"
+              : allBills.length > 1
+                ? `Send payment link (${allBills.length} bills · ₹${new Intl.NumberFormat("en-IN").format(linkTotal)})`
+                : "Send payment link"}
           </button>
         )}
         <button
@@ -1033,15 +1116,16 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
         </button>
       </div>
 
-      {linkResult && selectedMember && (
+      {linkResult && (
         <PaymentLinkDialog
           url={linkResult.url}
           amount={linkResult.amount}
           validDays={linkResult.validDays}
-          memberId={selectedMember.id}
-          memberName={selectedMember.fullName}
-          phone={selectedMember.phone ?? ""}
-          description={`${categoryInput} — ${periodInput}`}
+          memberId={linkResult.memberId}
+          memberName={linkResult.memberName}
+          phone={linkResult.phone}
+          description={linkResult.description}
+          billCount={linkResult.billCount}
           onClose={() => setLinkResult(null)}
         />
       )}
