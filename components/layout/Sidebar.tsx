@@ -73,7 +73,7 @@ export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onM
           <Image src="/Logo.png" alt="Yos Fitness" width={36} height={36} className="rounded-xl" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-bold text-white text-sm leading-tight">Yos CRM</p>
+          <p className="font-bold text-white text-sm leading-tight">Yos Desk</p>
           <p className="text-[10px] leading-tight" style={{ color: "#4b5563" }}>Gym Management</p>
         </div>
         {onMobileClose && (

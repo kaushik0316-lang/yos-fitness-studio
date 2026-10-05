@@ -186,12 +186,12 @@ export async function GET(req: NextRequest) {
   const dateStr = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
   const { error } = await resend.emails.send({
-    from: "Yos CRM Backup <onboarding@resend.dev>",
+    from: "Yos Desk Backup <onboarding@resend.dev>",
     to: BACKUP_EMAIL,
-    subject: `Yos CRM Backup — ${dateStr}`,
+    subject: `Yos Desk Backup — ${dateStr}`,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
-        <h2 style="color:#111;margin-bottom:4px">Yos CRM Backup</h2>
+        <h2 style="color:#111;margin-bottom:4px">Yos Desk Backup</h2>
         <p style="color:#666;margin-top:0">Generated on ${dateStr}</p>
         <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
         <table style="width:100%;border-collapse:collapse">

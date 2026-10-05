@@ -5,7 +5,7 @@ import { addDays, subDays, subMonths, startOfMonth } from "date-fns";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding Yos CRM database...\n");
+  console.log("🌱 Seeding Yos Desk database...\n");
 
   // ── Clean existing data ────────────────────────────────────────────────────
   await prisma.auditLog.deleteMany();

@@ -1,5 +1,5 @@
 /**
- * Yos CRM Weekly Backup
+ * Yos Desk Weekly Backup
  * Exports Members, Payments, Attendance to Excel and emails it.
  * Run: node scripts/backup.cjs
  */
@@ -86,7 +86,7 @@ async function buildMembersSheet(wb) {
 
   const ws = wb.addWorksheet("Members");
 
-  ws.addRow([`Yos CRM — Member List as of ${istDate(today)}`]);
+  ws.addRow([`Yos Desk — Member List as of ${istDate(today)}`]);
   ws.mergeCells("A1:N1");
   const titleRow = ws.getRow(1);
   titleRow.font  = { bold: true, size: 13, color: { argb: "FFF97316" } };
@@ -162,7 +162,7 @@ async function buildPaymentsSheet(wb) {
 
   const ws = wb.addWorksheet("Payments (3 months)");
 
-  ws.addRow([`Yos CRM — Payments — Last 3 Months (as of ${istDate(today)})`]);
+  ws.addRow([`Yos Desk — Payments — Last 3 Months (as of ${istDate(today)})`]);
   ws.mergeCells("A1:P1");
   const titleRow = ws.getRow(1);
   titleRow.font  = { bold: true, size: 13, color: { argb: "FFF97316" } };
@@ -255,7 +255,7 @@ async function buildAttendanceSheet(wb) {
   const monthLabel = today.toLocaleString("en-IN", { month: "long", year: "numeric", timeZone: "Asia/Kolkata" });
   const ws = wb.addWorksheet(`Attendance — ${monthLabel}`);
 
-  ws.addRow([`Yos CRM — Attendance Summary — ${monthLabel}`]);
+  ws.addRow([`Yos Desk — Attendance Summary — ${monthLabel}`]);
   ws.mergeCells("A1:G1");
   const titleRow = ws.getRow(1);
   titleRow.font  = { bold: true, size: 13, color: { argb: "FFF97316" } };
@@ -298,12 +298,12 @@ async function buildAttendanceSheet(wb) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log(`[${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}] Starting Yos CRM backup...`);
+  console.log(`[${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}] Starting Yos Desk backup...`);
 
   if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
 
   const wb = new ExcelJS.Workbook();
-  wb.creator  = "Yos CRM";
+  wb.creator  = "Yos Desk";
   wb.created  = today;
   wb.modified = today;
 
@@ -328,10 +328,10 @@ async function main() {
   });
 
   await transporter.sendMail({
-    from:    `"Yos CRM Backup" <${GMAIL_USER}>`,
+    from:    `"Yos Desk Backup" <${GMAIL_USER}>`,
     to:      SEND_TO,
-    subject: `Yos CRM Weekly Backup — ${dateLabel}`,
-    text:    `Hi,\n\nAttached is the weekly Yos CRM backup for ${dateLabel}.\n\nSheets included:\n- Members (${mCount} records)\n- Payments — last 3 months (${pCount} payments)\n- Attendance — this month (${aCount} check-ins)\n\nYos CRM`,
+    subject: `Yos Desk Weekly Backup — ${dateLabel}`,
+    text:    `Hi,\n\nAttached is the weekly Yos Desk backup for ${dateLabel}.\n\nSheets included:\n- Members (${mCount} records)\n- Payments — last 3 months (${pCount} payments)\n- Attendance — this month (${aCount} check-ins)\n\nYos Desk`,
     attachments: [{ filename: fileName, path: filePath }],
   });
 

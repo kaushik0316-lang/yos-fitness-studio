@@ -109,7 +109,7 @@ function readSheet(filePath, sheetIndex = 0) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
   console.log("=".repeat(60));
-  console.log("YOS CRM — Excel Import");
+  console.log("YOS Desk — Excel Import");
   console.log("=".repeat(60));
 
   // Load packages from DB, keyed by durationDays_company

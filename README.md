@@ -1,4 +1,4 @@
-# Yos CRM — Gym Management System
+# Yos Desk — Gym Management System
 
 A full-stack CRM built for **Yos Fitness** and **Yos Fitness Studio**.  
 Handles members, attendance, renewals, payments, payroll, messaging automation, and reports — all with strict two-company separation.

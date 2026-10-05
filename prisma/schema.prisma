@@ -1,4 +1,4 @@
-// Yos CRM — Prisma Schema
+// Yos Desk — Prisma Schema
 // Two business entities: Yos Fitness + Yos Fitness Studio
 
 generator client {
