@@ -4,20 +4,20 @@ import { useRouter } from "next/navigation";
 import { toTitleCase } from "@/lib/utils/titleCase";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Users, TrendingUp, RotateCcw, UserPlus, Zap } from "lucide-react";
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
-  PieChart, Pie, Cell, LineChart, Line, CartesianGrid,
-} from "recharts";
+import dynamic from "next/dynamic";
 import { formatCurrency, getMonthName } from "@/lib/utils";
+
+// The charting library is large, so it loads after the page is already usable
+const chartBox = (h: number) => () => <div style={{ height: h }} className="animate-pulse rounded-xl bg-white/[0.03]" />;
+const RevenueTrendChart = dynamic(() => import("./ReportCharts").then((m) => m.RevenueTrendChart), { ssr: false, loading: chartBox(220) });
+const StatusPieChart    = dynamic(() => import("./ReportCharts").then((m) => m.StatusPieChart),    { ssr: false, loading: chartBox(160) });
+const ModeBarsChart     = dynamic(() => import("./ReportCharts").then((m) => m.ModeBarsChart),     { ssr: false, loading: chartBox(180) });
+const AttendanceLineChart = dynamic(() => import("./ReportCharts").then((m) => m.AttendanceLineChart), { ssr: false, loading: chartBox(180) });
 import { waBusinessLink } from "@/lib/utils/waBusinessLink";
 import type { UserRole, Company, MemberStatus } from "@prisma/client";
 
 const COLORS = ["#f97316", "#6366f1", "#22c55e", "#eab308", "#ec4899", "#14b8a6"];
 const CARD = { background: "#161616", border: "1px solid rgba(255,255,255,0.06)" };
-const CHART_STYLE = {
-  background: "rgba(22,22,22,0.95)", border: "1px solid rgba(255,255,255,0.06)",
-  borderRadius: 8, fontSize: 12, color: "#e5e7eb",
-};
 
 type Props = {
   month: number; year: number;
@@ -191,31 +191,14 @@ export function ReportsClient({
         {/* 6-month revenue trend */}
         <div className="rounded-2xl p-5" style={CARD}>
           <h3 className="font-semibold text-white mb-4">Revenue — Last 6 Months</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={monthlyCollectionsTrend} margin={{ left: -10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#6b7280" }} />
-              <YAxis tick={{ fontSize: 11, fill: "#6b7280" }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={CHART_STYLE} />
-              <Legend wrapperStyle={{ fontSize: 12, color: "#9ca3af" }} />
-              <Bar dataKey="yosFitness" name="Yos Fitness" fill="#f97316" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="yosStudio"  name="Yos Studio"  fill="#6366f1" radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <RevenueTrendChart data={monthlyCollectionsTrend} />
         </div>
 
         {/* Member status pie */}
         <div className="rounded-2xl p-5" style={CARD}>
           <h3 className="font-semibold text-white mb-4">Member Status Breakdown</h3>
           <div className="flex items-center gap-4">
-            <ResponsiveContainer width={160} height={160}>
-              <PieChart>
-                <Pie data={memberStatusCounts} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={2} dataKey="count" nameKey="status">
-                  {memberStatusCounts.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip contentStyle={CHART_STYLE} />
-              </PieChart>
-            </ResponsiveContainer>
+            <StatusPieChart data={memberStatusCounts} colors={COLORS} />
             <div className="flex-1 space-y-2">
               {memberStatusCounts.map((s, i) => (
                 <div key={s.status} className="flex items-center justify-between text-sm">
@@ -236,14 +219,7 @@ export function ReportsClient({
           {collectionsByMode.length === 0 ? (
             <p className="text-sm text-gray-600">No payments this month.</p>
           ) : (
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={collectionsByMode} layout="vertical" margin={{ left: 20, right: 20 }}>
-                <XAxis type="number" tick={{ fontSize: 11, fill: "#6b7280" }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
-                <YAxis type="category" dataKey="mode" tick={{ fontSize: 11, fill: "#6b7280" }} width={80} />
-                <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={CHART_STYLE} />
-                <Bar dataKey="amount" fill="#f97316" radius={[0, 4, 4, 0]} name="Amount" />
-              </BarChart>
-            </ResponsiveContainer>
+            <ModeBarsChart data={collectionsByMode} />
           )}
         </div>
 
@@ -253,15 +229,7 @@ export function ReportsClient({
           {attendanceTrend.length === 0 ? (
             <p className="text-sm text-gray-600">No attendance data.</p>
           ) : (
-            <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={attendanceTrend} margin={{ left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#6b7280" }} interval={3} />
-                <YAxis tick={{ fontSize: 11, fill: "#6b7280" }} />
-                <Tooltip contentStyle={CHART_STYLE} />
-                <Line type="monotone" dataKey="count" stroke="#f97316" strokeWidth={2} dot={false} name="Check-ins" />
-              </LineChart>
-            </ResponsiveContainer>
+            <AttendanceLineChart data={attendanceTrend} />
           )}
         </div>
       </div>

@@ -15,11 +15,14 @@ export default async function NewReceiptPage({ searchParams }: { searchParams: {
     redirect("/payments");
   }
 
-  const [members, employees] = await Promise.all([
-    prisma.member.findMany({
-      select: { id: true, memberId: true, fullName: true, phone: true },
-      orderBy: { fullName: "asc" },
-    }),
+  // Only the member passed in the URL is loaded; everyone else is found by search-as-you-type
+  const [initialMembers, employees] = await Promise.all([
+    searchParams.memberId
+      ? prisma.member.findMany({
+          where: { id: searchParams.memberId },
+          select: { id: true, memberId: true, fullName: true, phone: true },
+        })
+      : Promise.resolve([]),
     prisma.employee.findMany({
       where: { isActive: true },
       select: { id: true, fullName: true, role: true, employeeId: true },
@@ -32,7 +35,7 @@ export default async function NewReceiptPage({ searchParams }: { searchParams: {
       <Header title="New Receipt" subtitle="Record a member payment" />
       <div className="flex-1 overflow-y-auto p-3 sm:p-6">
         <NewReceiptClient
-          members={members as any}
+          initialMembers={initialMembers as any}
           employees={employees}
           userId={session.user.id}
           initialMemberId={searchParams.memberId}

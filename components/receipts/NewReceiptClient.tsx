@@ -31,7 +31,7 @@ type Employee = {
 };
 
 type Props = {
-  members: Member[];
+  initialMembers: Member[];
   employees: Employee[];
   userId: string;
   initialMemberId?: string;
@@ -81,7 +81,7 @@ function todayStr(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-export function NewReceiptClient({ members, employees, initialMemberId, initialPaymentType }: Props) {
+export function NewReceiptClient({ initialMembers, employees, initialMemberId, initialPaymentType }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,12 +99,12 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   // Pre-fill member if initialMemberId was passed via URL
   useEffect(() => {
     if (!initialMemberId) return;
-    const member = members.find((m) => m.id === initialMemberId);
+    const member = initialMembers.find((m) => m.id === initialMemberId);
     if (member) {
       setSelectedMemberId(member.id);
       setMemberSearch(`${member.memberId} — ${toTitleCase(member.fullName)}`);
     }
-  }, [initialMemberId, members]);
+  }, [initialMemberId, initialMembers]);
 
   // Auto-fill from latest payment when member is selected
   useEffect(() => {
@@ -179,22 +179,27 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   const [cardChargePct, setCardChargePct] = useState("");
   const [cardChargeAmt, setCardChargeAmt] = useState("");
 
-  // Token search: split by spaces so "m vishal" matches "Vishal M" in any order
-  const filteredMembers = useMemo(() => {
-    if (!memberSearch) return members.slice(0, 20);
-    const tokens = memberSearch.toLowerCase().split(/\s+/).filter(Boolean);
-    return members
-      .filter((m) =>
-        tokens.every((t) =>
-          m.fullName.toLowerCase().includes(t) ||
-          m.memberId.toLowerCase().includes(t) ||
-          m.phone.includes(t)
-        )
-      )
-      .slice(0, 20);
-  }, [members, memberSearch]);
+  // Members are looked up as you type (the list is far too large to ship with the page)
+  const [known, setKnown] = useState<Record<string, Member>>(() => Object.fromEntries(initialMembers.map((m) => [m.id, m])));
+  const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
 
-  const selectedMember = members.find((m) => m.id === selectedMemberId);
+  useEffect(() => {
+    const q = memberSearch.trim();
+    if (!showMemberDropdown || !q) { setFilteredMembers([]); return; }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/members/search?q=${encodeURIComponent(q)}&limit=20`);
+        const data = await res.json();
+        if (cancelled || !Array.isArray(data)) return;
+        setFilteredMembers(data);
+        setKnown((prev) => ({ ...prev, ...Object.fromEntries(data.map((m: Member) => [m.id, m])) }));
+      } catch { /* offline — keep the previous results */ }
+    }, 200);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [memberSearch, showMemberDropdown]);
+
+  const selectedMember = known[selectedMemberId];
 
   // Card charge helpers
   const showCardCharge =
@@ -244,6 +249,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
   }
 
   function handleSelectMember(m: Member) {
+    setKnown((prev) => ({ ...prev, [m.id]: m }));
     setSelectedMemberId(m.id);
     setMemberSearch(`${m.memberId} — ${m.fullName}`);
     setShowMemberDropdown(false);
@@ -357,7 +363,7 @@ export function NewReceiptClient({ members, employees, initialMemberId, initialP
     const amt = Number(amount) || 0;
     const disc = Number(discount) || 0;
     if (amt - disc < 1) return null;
-    const m = members.find((x) => x.id === selectedMemberId);
+    const m = known[selectedMemberId];
     if (!m) return null;
     return {
       memberId: m.id, memberName: m.fullName, phone: m.phone ?? "", company, paymentType,
