@@ -6,7 +6,7 @@ import { signOut } from "next-auth/react";
 import {
   Users, CalendarCheck, RotateCcw, CreditCard,
   ClipboardList, DollarSign, BarChart3,
-  Settings, LogOut, Wrench, FileUp, UserSearch, TrendingUp, Trophy, Search, MessageSquare, Megaphone, Lock, PhoneCall,
+  Settings, LogOut, Wrench, FileUp, UserSearch, TrendingUp, Trophy, Search, MessageSquare, Megaphone, Lock, PhoneCall, Inbox,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ const navGroups = [
       { label: "Attendance",       href: "/attendance",         icon: CalendarCheck, roles: ["ADMIN", "FRONT_DESK", "TRAINER"] },
       { label: "Renewals",         href: "/renewals",           icon: RotateCcw,     roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
       { label: "Outreach",         href: "/outreach",           icon: PhoneCall,     roles: ["ADMIN", "FRONT_DESK"] },
+      { label: "Requests",         href: "/requests",           icon: Inbox,         roles: ["ADMIN", "FRONT_DESK"] },
       { label: "Payments",         href: "/payments",           icon: CreditCard,    roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
       { label: "Overview",         href: "/staff-tools",        icon: Wrench,        roles: ["ADMIN", "FRONT_DESK"] },
       { label: "Lockers",          href: "/lockers",            icon: Lock,          roles: ["ADMIN", "FRONT_DESK"] },
@@ -54,9 +55,10 @@ type Props = {
   mobileOpen?: boolean;
   onMobileClose?: () => void;
   newEnquiries?: number;
+  pendingRequests?: number;
 };
 
-export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onMobileClose, newEnquiries = 0 }: Props) {
+export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onMobileClose, newEnquiries = 0, pendingRequests = 0 }: Props) {
   const pathname = usePathname();
   const initials = userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -147,6 +149,12 @@ export function Sidebar({ userRole, userName, userEmail, mobileOpen = false, onM
                         <span className="flex-shrink-0 min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
                           style={{ background: "#f97316" }}>
                           {newEnquiries > 99 ? "99+" : newEnquiries}
+                        </span>
+                      )}
+                      {item.href === "/requests" && pendingRequests > 0 && (
+                        <span className="flex-shrink-0 min-w-[18px] h-[18px] px-1.5 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+                          style={{ background: "#f97316" }}>
+                          {pendingRequests > 99 ? "99+" : pendingRequests}
                         </span>
                       )}
                       {isActive && <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: "#f97316" }} />}
