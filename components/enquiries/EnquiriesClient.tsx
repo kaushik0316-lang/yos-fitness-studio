@@ -116,8 +116,8 @@ export function EnquiriesClient({ enquiries: initial, employees, funnel, userId,
 
   function refresh() { window.location.reload(); }
 
-  async function handleCreate(form: FormData) {
-    await createEnquiry({
+  async function handleCreate(form: FormData): Promise<string | void> {
+    const res = await createEnquiry({
       name:         form.get("name") as string,
       phone:        form.get("phone") as string,
       interest:     form.get("interest") as string || undefined,
@@ -126,6 +126,7 @@ export function EnquiriesClient({ enquiries: initial, employees, funnel, userId,
       followUpDate: form.get("followUpDate") as string || undefined,
       notes:        form.get("notes") as string || undefined,
     });
+    if (!res.ok) return res.error;
     setShowAdd(false);
     refresh();
   }
@@ -152,15 +153,19 @@ export function EnquiriesClient({ enquiries: initial, employees, funnel, userId,
     refresh();
   }
 
-  async function handleUpdate(form: FormData) {
+  async function handleUpdate(form: FormData): Promise<string | void> {
     if (!editing) return;
-    await updateEnquiry(editing.id, {
-      interest:     form.get("interest") as string || null,
-      assignedToId: form.get("assignedToId") as string || null,
-      followUpDate: form.get("followUpDate") as string || null,
-      notes:        form.get("notes") as string || null,
-      status:       form.get("status") as any,
-    });
+    try {
+      await updateEnquiry(editing.id, {
+        interest:     form.get("interest") as string || null,
+        assignedToId: form.get("assignedToId") as string || null,
+        followUpDate: form.get("followUpDate") as string || null,
+        notes:        form.get("notes") as string || null,
+        status:       form.get("status") as any,
+      });
+    } catch {
+      return "Could not save the changes. Check your connection, sign in again if needed, and retry.";
+    }
     setEditing(null);
     refresh();
   }
@@ -805,15 +810,23 @@ function EnquiryDialog({ title, employees, initial, onClose, onSubmit }: {
   employees: Employee[];
   initial?: Enquiry;
   onClose: () => void;
-  onSubmit: (form: FormData) => Promise<void>;
+  onSubmit: (form: FormData) => Promise<string | void>;
 }) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setError(null);
     setLoading(true);
-    await onSubmit(new FormData(e.currentTarget));
-    setLoading(false);
+    try {
+      const problem = await onSubmit(new FormData(e.currentTarget));
+      if (problem) setError(problem);
+    } catch {
+      setError("Could not save. Check your connection, sign in again if needed, and retry.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const inputStyle = {
@@ -842,7 +855,7 @@ function EnquiryDialog({ title, employees, initial, onClose, onSubmit }: {
               </div>
               <div className="col-span-2">
                 <label style={labelStyle}>Phone *</label>
-                <input name="phone" required defaultValue={initial?.phone ?? ""} placeholder="10-digit mobile" style={inputStyle} />
+                <input name="phone" type="tel" inputMode="tel" required defaultValue={initial?.phone ?? ""} placeholder="10-digit mobile" style={inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}>Interest</label>
@@ -885,6 +898,12 @@ function EnquiryDialog({ title, employees, initial, onClose, onSubmit }: {
               </div>
             </div>
           </div>
+          {error && (
+            <p className="mx-6 mb-3 rounded-xl px-3 py-2 text-sm font-medium" role="alert"
+              style={{ background: "rgba(239,68,68,0.12)", color: "#f87171", border: "1px solid rgba(239,68,68,0.25)" }}>
+              {error}
+            </p>
+          )}
           <div className="flex gap-3 px-6 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
             <button type="button" onClick={onClose}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white transition-colors"

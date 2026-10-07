@@ -9,7 +9,7 @@ import { toTitleCase, normalizeName } from "@/lib/utils/titleCase";
 
 const enquirySchema = z.object({
   name: z.string().min(1),
-  phone: z.string().min(10),
+  phone: z.string(),
   interest: z.string().optional(),
   source: z.nativeEnum(EnquirySource).default("WALK_IN"),
   assignedToId: z.string().optional(),
@@ -17,26 +17,39 @@ const enquirySchema = z.object({
   notes: z.string().optional(),
 });
 
-export async function createEnquiry(input: z.infer<typeof enquirySchema>) {
+// Returns a result instead of throwing: errors thrown from server actions are
+// hidden in production, which left the form silently stuck on "Saving…".
+export async function createEnquiry(
+  input: z.infer<typeof enquirySchema>,
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  if (!session?.user) return { ok: false, error: "Your session has expired. Please sign in again." };
 
-  const data = enquirySchema.parse(input);
+  const parsed = enquirySchema.safeParse(input);
+  if (!parsed.success || !parsed.data.name.trim()) return { ok: false, error: "Enter the person's name." };
+  const data = parsed.data;
+  if (data.phone.replace(/\D/g, "").length < 10) return { ok: false, error: "Enter a valid 10-digit mobile number." };
 
-  await prisma.enquiry.create({
-    data: {
-      name: toTitleCase(normalizeName(data.name)),
-      phone: data.phone.trim(),
-      interest: data.interest?.trim() || null,
-      source: data.source,
-      assignedToId: data.assignedToId || null,
-      followUpDate: data.followUpDate ? new Date(data.followUpDate) : null,
-      notes: data.notes?.trim() || null,
-      createdById: session.user.id,
-    },
-  });
+  try {
+    await prisma.enquiry.create({
+      data: {
+        name: toTitleCase(normalizeName(data.name)),
+        phone: data.phone.trim(),
+        interest: data.interest?.trim() || null,
+        source: data.source,
+        assignedToId: data.assignedToId || null,
+        followUpDate: data.followUpDate ? new Date(data.followUpDate) : null,
+        notes: data.notes?.trim() || null,
+        createdById: session.user.id,
+      },
+    });
+  } catch (e) {
+    console.error("[createEnquiry]", e);
+    return { ok: false, error: "Could not save the enquiry. Please try again." };
+  }
 
   revalidatePath("/enquiries");
+  return { ok: true };
 }
 
 export async function updateEnquiry(id: string, input: {
