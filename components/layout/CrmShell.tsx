@@ -6,7 +6,6 @@ import { Sidebar } from "./Sidebar";
 import { TitleCaseInput } from "./TitleCaseInput";
 import { GlobalSearch } from "./GlobalSearch";
 import { useNewEnquiryCount } from "@/hooks/useNewEnquiryCount";
-import { usePendingRequestCount } from "@/hooks/usePendingRequestCount";
 import type { UserRole } from "@prisma/client";
 
 type Props = {
@@ -19,7 +18,6 @@ type Props = {
 export function CrmShell({ userRole, userName, userEmail, children }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const newEnquiries = useNewEnquiryCount(["ADMIN", "FRONT_DESK", "TRAINER"].includes(userRole));
-  const pendingRequests = usePendingRequestCount(["ADMIN", "FRONT_DESK"].includes(userRole));
 
   // Apply dark class to <html> so Radix portals (dialogs, popovers) also use dark CSS variables
   useEffect(() => {
@@ -44,7 +42,6 @@ export function CrmShell({ userRole, userName, userEmail, children }: Props) {
         userEmail={userEmail}
         mobileOpen={sidebarOpen}
         newEnquiries={newEnquiries}
-        pendingRequests={pendingRequests}
         onMobileClose={() => setSidebarOpen(false)}
       />
 
@@ -62,7 +59,7 @@ export function CrmShell({ userRole, userName, userEmail, children }: Props) {
             className="relative p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/8 transition-colors"
           >
             <Menu className="h-5 w-5" />
-            {(newEnquiries + pendingRequests) > 0 && (
+            {newEnquiries > 0 && (
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ background: "#f97316" }} />
             )}
           </button>

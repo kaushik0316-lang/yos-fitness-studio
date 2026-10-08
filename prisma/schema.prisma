@@ -873,6 +873,8 @@ enum MemberRequestStatus {
   DECLINED
 }
 
+// Currently unused (the pause-request feature was removed). Kept so any rows already
+// saved aren't dropped by `prisma db push`.
 model MemberRequest {
   id           String              @id @default(cuid())
   memberId     String

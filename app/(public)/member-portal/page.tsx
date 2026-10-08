@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { MyDetailsCard } from "@/components/portal/MyDetailsCard";
-import { PauseRequestCard } from "@/components/portal/PauseRequestCard";
 import { useState, useEffect, useRef } from "react";
 import {
   LogOut, ChevronRight, CalendarCheck,
@@ -794,7 +793,6 @@ export default function MemberPortalPage() {
           </Link>
 
           <MyDetailsCard pin={pin} />
-          {isActive && <PauseRequestCard pin={pin} />}
         </div>
 
         {/* Expiring soon notice */}
