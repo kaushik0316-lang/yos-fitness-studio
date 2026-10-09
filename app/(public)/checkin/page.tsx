@@ -143,6 +143,7 @@ export default function CheckInPage() {
               pin: enteredPin,
               lat: pos.coords.latitude,
               lng: pos.coords.longitude,
+              accuracy: pos.coords.accuracy,
               deviceId: deviceId.current,
             }),
           });

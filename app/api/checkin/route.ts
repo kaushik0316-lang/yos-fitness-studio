@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { checkGymLocation } from "@/lib/geofence";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 // ── Per-device cooldown: prevent proxy check-ins ──────────────────────────────
@@ -27,10 +28,6 @@ function recordDeviceCheckin(deviceId: string, employeeId: string) {
   deviceMap.set(deviceId, { employeeId, at: Date.now() });
 }
 
-const GYM_LAT = 13.0347589;
-const GYM_LNG = 80.2713245;
-const GEOFENCE_RADIUS_M = 50;
-
 // Gym operating hours (IST)
 // Mon–Sat: 5:30 AM – 10:30 PM
 // Sunday:  8:00 AM – 11:00 AM (staff rotation only)
@@ -52,18 +49,6 @@ function isWithinOperatingHours(): { allowed: boolean; message?: string } {
 
   if (totalMinutes >= WEEKDAY_OPEN && totalMinutes <= WEEKDAY_CLOSE) return { allowed: true };
   return { allowed: false, message: "Check-in is only available between 5:30 AM and 10:30 PM." };
-}
-
-function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371000;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function getISTDate(): Date {
@@ -92,7 +77,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { pin, lat, lng, deviceId } = body as { pin: string; lat: number; lng: number; deviceId?: string };
+    const { pin, lat, lng, deviceId, accuracy } = body as { pin: string; lat: number; lng: number; deviceId?: string; accuracy?: number };
 
     if (!pin || lat === undefined || lng === undefined) {
       return NextResponse.json({ error: "PIN, latitude, and longitude are required." }, { status: 400 });
@@ -114,10 +99,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const distance = haversineDistance(lat, lng, GYM_LAT, GYM_LNG);
-    if (distance > GEOFENCE_RADIUS_M) {
-      return NextResponse.json({ error: "You must be at the gym to mark attendance." }, { status: 403 });
-    }
+    // Staff must really be inside the gym: valid numbers, a precise fix, and within the radius
+    const loc = checkGymLocation({ lat, lng, accuracy }, { outsideMessage: "You must be at the gym to mark attendance.", maxAccuracyM: 60 });
+    if (!loc.ok) return NextResponse.json({ error: loc.error }, { status: loc.status });
 
     const todayIST = getISTDate();
     const now = new Date();
