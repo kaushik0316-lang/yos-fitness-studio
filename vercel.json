@@ -1,6 +1,6 @@
 {
   "regions": [
-    "pdx1"
+    "sin1"
   ],
   "functions": {
     "app/api/cron/auto-checkout/route.ts": {
