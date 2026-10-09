@@ -40,7 +40,7 @@ const input = {
   borderRadius: "0.6rem", padding: "0.45rem 0.6rem", fontSize: "0.85rem", outline: "none", colorScheme: "dark",
 } as const;
 
-const TRAINER_PAGE = "https://www.yosfitnessstudio.in/trainer-pt";
+const TRAINER_PAGE = "https://www.yosfitnessstudio.in/staff-dashboard";
 const dayLabel = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 const t12 = (hhmm: string) => {
   const [h, m] = hhmm.split(":").map(Number);
@@ -262,7 +262,7 @@ export function PtSlotsClient({ isAdmin, config, trainers, bookings, today }: {
             ? <p className="px-5 py-6 text-center text-sm text-gray-500">No requests waiting. A member asks for a slot, then the trainer says whether it is free.</p>
             : requests.map((b) => <BookingRow key={b.id} b={b} />)}
         </div>
-        <p className="text-[11px] text-gray-600 mt-2">Trainers can also answer on their own at <span className="font-mono">/trainer-pt</span> using their staff PIN.</p>
+        <p className="text-[11px] text-gray-600 mt-2">Trainers can also answer on their own staff dashboard (<span className="font-mono">/staff-dashboard</span>) using their staff PIN.</p>
       </section>
 
       {awaiting.length > 0 && (

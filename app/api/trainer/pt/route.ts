@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     const trainer = await prisma.employee.findUnique({ where: { pin: String(pin) }, select: { id: true, fullName: true, role: true, isActive: true } });
     if (!trainer || !trainer.isActive) return NextResponse.json({ error: "Invalid PIN." }, { status: 401 });
-    if (trainer.role !== "TRAINER") return NextResponse.json({ error: "This page is for trainers." }, { status: 403 });
+    if (trainer.role !== "TRAINER") return NextResponse.json({ error: "This is for trainers only." }, { status: 403 });
 
     if (action === "respond") {
       const { bookingId, decision, note } = body as { bookingId?: string; decision?: "confirm" | "decline"; note?: string };

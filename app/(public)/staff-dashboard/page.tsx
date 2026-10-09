@@ -10,6 +10,7 @@ import {
   Delete, UserSearch, UserPlus,
 } from "lucide-react";
 import { REGISTRATION_FORM_URL } from "@/lib/site-config";
+import { TrainerPtCard } from "@/components/pt/TrainerPtCard";
 
 type Phase = "input" | "loading" | "dashboard" | "error";
 
@@ -404,6 +405,8 @@ export default function StaffDashboardPage() {
             </p>
           </div>
         </div>
+
+        {employee?.role === "TRAINER" && <TrainerPtCard pin={pin} />}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3">
