@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { isWeakPin, WEAK_PIN_MESSAGE } from "@/lib/pin";
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,6 +26,9 @@ export async function POST(req: NextRequest) {
     }
     if (!pin || !/^\d{4}$/.test(String(pin))) {
       return NextResponse.json({ error: "PIN must be exactly 4 digits." }, { status: 400 });
+    }
+    if (isWeakPin(String(pin))) {
+      return NextResponse.json({ error: WEAK_PIN_MESSAGE }, { status: 400 });
     }
 
     // Look up member by memberId
