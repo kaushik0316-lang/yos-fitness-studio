@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { MyDetailsCard } from "@/components/portal/MyDetailsCard";
 import { PtSessionCard } from "@/components/portal/PtSessionCard";
 import { useState, useEffect, useRef } from "react";
 import {
@@ -733,7 +732,7 @@ export default function MemberPortalPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3 grid-rows-2">
+        <div className="grid grid-cols-2 gap-3">
           {isExpired ? (
             <div className="flex flex-col gap-3 rounded-3xl p-5 opacity-30 cursor-not-allowed"
               style={{ background: "#1c1c1c" }}>
@@ -794,7 +793,6 @@ export default function MemberPortalPage() {
           </Link>
 
           {isActive && <PtSessionCard pin={pin} />}
-          <MyDetailsCard pin={pin} />
         </div>
 
         {/* Expiring soon notice */}
