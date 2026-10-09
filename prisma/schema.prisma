@@ -909,7 +909,9 @@ model MemberRequest {
 // ─────────────────────────────────────────────────────────────────────────────
 
 enum PtBookingStatus {
-  PENDING_PAYMENT // slot held while the member pays
+  REQUESTED       // member asked for the slot; waiting for the trainer to confirm it is free
+  DECLINED        // trainer said the slot is not free
+  PENDING_PAYMENT // trainer confirmed; slot held while the member pays
   CONFIRMED
   COMPLETED
   NO_SHOW
@@ -942,16 +944,18 @@ model PtBooking {
   durationMins Int
   price        Int             // rupees charged
 
-  status       PtBookingStatus @default(PENDING_PAYMENT)
+  status       PtBookingStatus @default(REQUESTED)
   // "trainerId|date|HH:MM" while the slot is held (pending or confirmed), otherwise null.
   // The unique index is what stops two members taking the same slot.
   slotKey      String?         @unique
-  expiresAt    DateTime?       // end of the payment hold
+  expiresAt    DateTime?       // end of the current hold: waiting for the trainer, then waiting for payment
   payUrl       String?
   paymentLinkId String?
   paymentId    String?         // receipt created once paid
 
   staffNote    String?
+  respondedAt  DateTime?       // when the trainer (or staff) confirmed or declined
+  respondedByName String?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 

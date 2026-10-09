@@ -26,7 +26,8 @@ export default async function PtSlotsPage() {
       orderBy: [{ date: "asc" }, { startTime: "asc" }],
       select: {
         id: true, status: true, date: true, startTime: true, durationMins: true, price: true, staffNote: true, paymentId: true,
-        trainer: { select: { fullName: true } },
+        payUrl: true, expiresAt: true, respondedByName: true,
+        trainer: { select: { fullName: true, phone: true } },
         member: { select: { id: true, memberId: true, fullName: true, phone: true } },
       },
     }),
@@ -42,7 +43,8 @@ export default async function PtSlotsPage() {
           trainers={trainers.map((t) => ({ id: t.id, fullName: t.fullName, ptEnabled: t.ptEnabled, windows: (t.ptWindows as PtWindows | null) ?? {} }))}
           bookings={bookings.map((b) => ({
             id: b.id, status: b.status, date: ymd(b.date), time: b.startTime, durationMins: b.durationMins, price: b.price,
-            staffNote: b.staffNote, paymentId: b.paymentId, trainer: b.trainer.fullName,
+            staffNote: b.staffNote, paymentId: b.paymentId, trainer: b.trainer.fullName, trainerPhone: b.trainer.phone,
+            payUrl: b.payUrl, expiresAt: b.expiresAt?.toISOString() ?? null, respondedByName: b.respondedByName,
             member: { id: b.member.id, memberId: b.member.memberId, fullName: b.member.fullName, phone: b.member.phone },
           }))}
           today={ymd(istToday())}

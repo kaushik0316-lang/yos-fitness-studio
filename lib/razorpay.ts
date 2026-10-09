@@ -48,3 +48,15 @@ export function verifyWebhookSignature(rawBody: string, signature: string | null
   const b = Buffer.from(signature);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
+
+// Best effort: stop a link from being paid after the slot it was for has been released.
+export async function cancelRazorpayLink(linkId: string): Promise<void> {
+  try {
+    const auth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString("base64");
+    await fetch(`https://api.razorpay.com/v1/payment_links/${linkId}/cancel`, {
+      method: "POST", headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    console.error("[razorpay] could not cancel link", linkId, e);
+  }
+}

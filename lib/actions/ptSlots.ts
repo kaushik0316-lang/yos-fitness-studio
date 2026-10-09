@@ -4,17 +4,18 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { getPtConfig, validWindow, type PtWindows } from "@/lib/pt";
+import { confirmPtRequest, declinePtRequest, releaseUnpaidBooking } from "@/lib/ptRespond";
 
 type Result = { ok: true } | { ok: false; error: string };
 
-async function staff(adminOnly: boolean): Promise<{ id: string } | { error: string }> {
+async function staff(adminOnly: boolean): Promise<{ id: string; name: string } | { error: string }> {
   const session = await auth();
   if (!session?.user) return { error: "Your session has expired. Please sign in again." };
   const role = session.user.role;
   if (adminOnly ? role !== "ADMIN" : role !== "ADMIN" && role !== "FRONT_DESK") {
     return { error: "You don't have permission to do this." };
   }
-  return { id: session.user.id };
+  return { id: session.user.id, name: session.user.name ?? session.user.email ?? "Front desk" };
 }
 
 export async function savePtConfig(input: { enabled: boolean; price: number; leadHours: number; daysAhead: number }): Promise<Result> {
@@ -62,7 +63,15 @@ export async function setPtBookingStatus(
 
   const booking = await prisma.ptBooking.findUnique({ where: { id }, select: { status: true } });
   if (!booking) return { ok: false, error: "Booking not found." };
-  if (["CANCELLED", "EXPIRED"].includes(booking.status)) return { ok: false, error: "This booking is already closed." };
+  if (["CANCELLED", "EXPIRED", "DECLINED"].includes(booking.status)) return { ok: false, error: "This booking is already closed." };
+
+  // Not paid yet: release the slot and stop the payment link
+  if (status === "CANCELLED" && (booking.status === "REQUESTED" || booking.status === "PENDING_PAYMENT")) {
+    await releaseUnpaidBooking(id);
+    if (note?.trim()) await prisma.ptBooking.update({ where: { id }, data: { staffNote: note.trim().slice(0, 200) } });
+    revalidatePath("/pt-slots");
+    return { ok: true };
+  }
 
   await prisma.ptBooking.update({
     where: { id },
@@ -75,4 +84,14 @@ export async function setPtBookingStatus(
   });
   revalidatePath("/pt-slots");
   return { ok: true };
+}
+
+// Front desk answers a request on the trainer's behalf (after checking with them).
+export async function respondToPtRequest(id: string, decision: "confirm" | "decline", note?: string): Promise<{ ok: true; payUrl?: string } | { ok: false; error: string }> {
+  const who = await staff(false);
+  if ("error" in who) return { ok: false, error: who.error };
+  const by = { name: `${who.name} (front desk)` };
+  const r = decision === "confirm" ? await confirmPtRequest(id, by) : await declinePtRequest(id, by, note);
+  revalidatePath("/pt-slots");
+  return r;
 }

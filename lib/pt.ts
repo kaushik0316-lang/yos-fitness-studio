@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma";
 
-// A slot is held for 25 minutes while the member pays; the Razorpay link itself
-// expires a little earlier (20 minutes), so a hold never outlives a payable link.
-export const HOLD_MINUTES = 25;
-export const LINK_MINUTES = 20;
+// Flow: the member REQUESTS a slot (held), the trainer confirms it is free, then the member pays.
+export const REQUEST_HOURS = 12;      // how long the trainer has to answer
+export const PAY_WINDOW_HOURS = 3;    // how long the member has to pay after the trainer confirms
+export const MIN_PAY_MINUTES = 20;    // never offer a payment window shorter than this
+export const SESSION_BUFFER_MINUTES = 30; // answers and payments must land this long before the session
+export const PAY_HOLD_EXTRA_MINUTES = 5;  // the slot hold outlasts the payment link by this much
 
 export type PtWindows = Record<string, { start: string; end: string }>;
 export type SlotDay = { date: string; slots: { trainerId: string; trainerName: string; time: string }[] };
@@ -37,10 +39,17 @@ export async function getPtConfig() {
   return prisma.ptConfig.upsert({ where: { id: "main" }, update: {}, create: { id: "main" } });
 }
 
-// Unpaid holds that ran out free their slot again.
+// When an unanswered request stops holding its slot.
+export function requestDeadline(date: Date, time: string): Date {
+  const byWindow = Date.now() + REQUEST_HOURS * 3600_000;
+  const bySession = slotInstant(date, time).getTime() - SESSION_BUFFER_MINUTES * 60_000;
+  return new Date(Math.min(byWindow, bySession));
+}
+
+// Requests nobody answered, and unpaid holds that ran out, free their slot again.
 export async function releaseExpiredHolds() {
   await prisma.ptBooking.updateMany({
-    where: { status: "PENDING_PAYMENT", expiresAt: { lt: new Date() } },
+    where: { status: { in: ["REQUESTED", "PENDING_PAYMENT"] }, expiresAt: { lt: new Date() } },
     data: { status: "EXPIRED", slotKey: null },
   });
 }

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Dumbbell, CheckCircle2 } from "lucide-react";
 
-type Booking = { id: string; status: string; date: string; time: string; durationMins: number; price: number; payUrl: string | null; trainer: string };
+type Booking = { id: string; status: string; date: string; time: string; durationMins: number; price: number; payUrl: string | null; expiresAt: string | null; trainer: string };
 type Day = { date: string; slots: { trainerId: string; trainerName: string; time: string }[] };
 type Overview = { eligible: boolean; price: number; durationMins: number; bookings: Booking[]; days: Day[] };
 
@@ -14,6 +14,8 @@ const t12 = (hhmm: string) => {
 };
 const dayLong = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 const first = (name: string) => name.trim().split(/\s+/)[0];
+const clock = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" }) : "";
 
 const chip = (active: boolean) => ({
   background: active ? "rgba(249,115,22,0.18)" : "#111",
@@ -29,8 +31,8 @@ export function PtSessionCard({ pin }: { pin: string }) {
   const [pick, setPick] = useState<{ trainerId: string; trainerName: string; time: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [paidMsg, setPaidMsg] = useState<string | null>(null);
   const polls = useRef(0);
 
   async function call(body: object) {
@@ -54,6 +56,15 @@ export function PtSessionCard({ pin }: { pin: string }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin]);
 
+  // While waiting for the trainer (or for payment to register), check back every so often
+  const waiting = !!data?.bookings.some((b) => b.status === "REQUESTED" || b.status === "PENDING_PAYMENT");
+  useEffect(() => {
+    if (!waiting || confirming) return;
+    const t = setInterval(() => { load(); }, 20_000);
+    return () => clearInterval(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waiting, confirming]);
+
   useEffect(() => {
     if (!confirming) return;
     const t = setInterval(async () => {
@@ -62,11 +73,11 @@ export function PtSessionCard({ pin }: { pin: string }) {
       const stillPending = d?.bookings.some((b) => b.status === "PENDING_PAYMENT");
       if (d && !stillPending) {
         setConfirming(false);
-        setPaidMsg(d.bookings.some((b) => b.status === "CONFIRMED") ? "Payment received. Your session is booked." : "Payment received. The studio will confirm your session shortly.");
+        setNotice(d.bookings.some((b) => b.status === "CONFIRMED") ? "Payment received. Your session is booked." : "Payment received. The studio will confirm your session shortly.");
         clearInterval(t);
       } else if (polls.current >= 12) {
         setConfirming(false);
-        setPaidMsg("We're still confirming your payment. It will show here shortly; if not, contact the studio.");
+        setNotice("We're still confirming your payment. It will show here shortly; if not, contact the studio.");
         clearInterval(t);
       }
     }, 3000);
@@ -75,20 +86,23 @@ export function PtSessionCard({ pin }: { pin: string }) {
   }, [confirming]);
 
   if (!data || !data.eligible) return null;
-  const pending = data.bookings.find((b) => b.status === "PENDING_PAYMENT");
-  if (data.days.length === 0 && data.bookings.length === 0 && !pending) return null;
+  if (data.days.length === 0 && data.bookings.length === 0) return null;
 
   const times = day ? data.days.find((d) => d.date === day)?.slots ?? [] : [];
 
-  async function book() {
+  async function requestSlot() {
     if (!day || !pick) return;
-    setBusy(true); setErr(null);
+    setBusy(true); setErr(null); setNotice(null);
     try {
-      const { ok, data: r } = await call({ action: "book", trainerId: pick.trainerId, date: day, time: pick.time });
-      if (ok && r.payUrl) { window.location.href = r.payUrl; return; }
-      setErr(r.error ?? "Could not start the payment. Please try again.");
+      const { ok, data: r } = await call({ action: "request", trainerId: pick.trainerId, date: day, time: pick.time });
+      if (ok) {
+        setNotice(`Request sent. We're asking ${first(pick.trainerName)} to confirm the slot is free. You'll see it here, and you pay only after they confirm.`);
+        setPick(null); setDay(null); setOpen(false);
+      } else {
+        setErr(r.error ?? "Could not send your request. Please try again.");
+        setPick(null);
+      }
       await load();
-      setPick(null);
     } catch {
       setErr("Network error. Check your connection and try again.");
     } finally { setBusy(false); }
@@ -112,10 +126,10 @@ export function PtSessionCard({ pin }: { pin: string }) {
         <ChevronRight className="h-4 w-4 transition-transform" style={{ color: "#374151", transform: open ? "rotate(90deg)" : "none" }} />
       </button>
 
-      {(confirming || paidMsg) && (
+      {(confirming || notice) && (
         <p role="status" className="mx-5 mb-3 text-sm font-medium rounded-xl px-3 py-2"
           style={{ background: "rgba(34,197,94,0.12)", color: "#4ade80" }}>
-          {confirming ? "Confirming your payment…" : paidMsg}
+          {confirming ? "Confirming your payment…" : notice}
         </p>
       )}
 
@@ -133,24 +147,39 @@ export function PtSessionCard({ pin }: { pin: string }) {
                     <CheckCircle2 className="h-3 w-3" /> Booked
                   </span>
                 ) : b.status === "PENDING_PAYMENT" ? (
-                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "rgba(245,158,11,0.14)", color: "#fbbf24" }}>Waiting for payment</span>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "rgba(14,165,233,0.14)", color: "#38bdf8" }}>Pay to book</span>
+                ) : b.status === "REQUESTED" ? (
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "rgba(245,158,11,0.14)", color: "#fbbf24" }}>Waiting for trainer</span>
+                ) : b.status === "DECLINED" ? (
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "rgba(107,114,128,0.2)", color: "#9ca3af" }}>Not available</span>
                 ) : (
                   <span className="text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "rgba(239,68,68,0.14)", color: "#f87171" }}>Contact studio</span>
                 )}
               </div>
-              {b.status === "PENDING_PAYMENT" && (
-                <div className="flex gap-2 mt-3">
-                  {b.payUrl && <a href={b.payUrl} className="flex-1 text-center py-2 rounded-xl text-sm font-bold text-white" style={{ background: "linear-gradient(135deg,#f97316,#ea580c)" }}>Pay {rupees(b.price)}</a>}
-                  <button type="button" disabled={busy} onClick={() => release(b.id)} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-300 disabled:opacity-50" style={{ background: "rgba(255,255,255,0.07)" }}>Release</button>
-                </div>
+
+              {b.status === "REQUESTED" && (
+                <>
+                  <p className="text-xs text-gray-400 mt-2">We&apos;ve asked {first(b.trainer)} whether this slot is free. You&apos;ll be able to pay as soon as they confirm. No payment yet.</p>
+                  <button type="button" disabled={busy} onClick={() => release(b.id)} className="mt-3 px-4 py-2 rounded-xl text-sm font-semibold text-gray-300 disabled:opacity-50" style={{ background: "rgba(255,255,255,0.07)" }}>Cancel request</button>
+                </>
               )}
+              {b.status === "PENDING_PAYMENT" && (
+                <>
+                  <p className="text-xs text-sky-300 mt-2">{first(b.trainer)} confirmed the slot is free. Pay {rupees(b.price)} to book it{b.expiresAt ? ` (please pay by ${clock(b.expiresAt)})` : ""}.</p>
+                  <div className="flex gap-2 mt-3">
+                    {b.payUrl && <a href={b.payUrl} className="flex-1 text-center py-2 rounded-xl text-sm font-bold text-white" style={{ background: "linear-gradient(135deg,#f97316,#ea580c)" }}>Pay {rupees(b.price)}</a>}
+                    <button type="button" disabled={busy} onClick={() => release(b.id)} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-300 disabled:opacity-50" style={{ background: "rgba(255,255,255,0.07)" }}>Release</button>
+                  </div>
+                </>
+              )}
+              {b.status === "DECLINED" && <p className="text-xs text-gray-400 mt-2">{first(b.trainer)} isn&apos;t free at this time. Please pick another slot below.</p>}
               {b.status === "PAID_SLOT_LOST" && <p className="text-xs text-red-400 mt-2">Your slot was taken before payment completed. The studio will contact you to reschedule or refund.</p>}
             </div>
           ))}
         </div>
       )}
 
-      {open && !pending && (
+      {open && !waiting && (
         <div className="px-5 pb-5 space-y-4">
           <div>
             <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2">1. Choose a day</p>
@@ -180,16 +209,16 @@ export function PtSessionCard({ pin }: { pin: string }) {
           {day && pick && (
             <div className="rounded-2xl p-4" style={{ background: "rgba(249,115,22,0.07)", border: "1px solid rgba(249,115,22,0.2)" }}>
               <p className="text-sm text-white font-bold">{dayLong(day)} · {t12(pick.time)} with {first(pick.trainerName)}</p>
-              <p className="text-xs text-gray-400 mt-1">{rupees(data.price)} for {data.durationMins} minutes. You pay now to secure the slot, and it is held for 25 minutes while you pay.</p>
+              <p className="text-xs text-gray-400 mt-1">{rupees(data.price)} for {data.durationMins} minutes. Nothing to pay now: {first(pick.trainerName)} confirms the slot is free first, then you pay to book it.</p>
             </div>
           )}
 
           {err && <p role="alert" className="text-sm font-medium rounded-xl px-3 py-2" style={{ background: "rgba(239,68,68,0.12)", color: "#f87171" }}>{err}</p>}
 
-          <button type="button" disabled={!day || !pick || busy} onClick={book}
+          <button type="button" disabled={!day || !pick || busy} onClick={requestSlot}
             className="w-full py-3 rounded-2xl font-bold text-sm text-white disabled:opacity-40"
             style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}>
-            {busy ? "Please wait…" : pick ? `Pay ${rupees(data.price)} and book` : "Choose a day, time and trainer"}
+            {busy ? "Please wait…" : pick ? "Request this session" : "Choose a day, time and trainer"}
           </button>
           <p className="text-xs text-gray-600">Need to change or cancel a booked session? Contact the front desk.</p>
         </div>
