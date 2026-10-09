@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { MyDetailsCard } from "@/components/portal/MyDetailsCard";
-import { isWeakPin, WEAK_PIN_MESSAGE } from "@/lib/pin";
 import { useState, useEffect, useRef } from "react";
 import {
   LogOut, ChevronRight, CalendarCheck,
@@ -259,7 +258,6 @@ export default function MemberPortalPage() {
     }
     if (setupStep === "choosePin") {
       if (!/^\d{4}$/.test(setupPin)) { setSetupError("PIN must be exactly 4 digits."); return; }
-      if (isWeakPin(setupPin)) { setSetupError(WEAK_PIN_MESSAGE); setSetupPin(""); return; }
       setSetupError(""); setSetupStep("confirmPin");
       return;
     }
