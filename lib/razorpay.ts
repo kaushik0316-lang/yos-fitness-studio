@@ -13,6 +13,7 @@ type CreateLinkArgs = {
   customerName: string;
   customerContact?: string; // 10-digit Indian mobile, optional
   expireBy: number;         // unix seconds
+  callbackPath?: string;    // where the customer lands after paying (default: thank-you page)
 };
 
 export async function createRazorpayPaymentLink(a: CreateLinkArgs): Promise<{ id: string; shortUrl: string }> {
@@ -30,7 +31,7 @@ export async function createRazorpayPaymentLink(a: CreateLinkArgs): Promise<{ id
       notify: { sms: false, email: false },
       reminder_enable: false,
       expire_by: a.expireBy,
-      callback_url: `${SITE_URL}/payment-received`,
+      callback_url: `${SITE_URL}${a.callbackPath ?? "/payment-received"}`,
       callback_method: "get",
     }),
   });

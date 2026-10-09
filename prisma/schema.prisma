@@ -222,6 +222,7 @@ model Member {
   lockerLinks      LockerMember[]
   paymentLinks     PaymentLink[]
   requests         MemberRequest[]
+  ptBookings       PtBooking[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -408,6 +409,10 @@ model Employee {
   salesCommissionPct Decimal? @db.Decimal(5,2) // % of monthly sales total credited as commission
   notes              String?
 
+  // PT sessions that members can book with this trainer
+  ptEnabled          Boolean  @default(false)
+  ptWindows          Json?    // {"1":{"start":"07:00","end":"10:00"}, ...} keyed by weekday, 0=Sun
+
   // Link to auth user (optional — not all employees need login access)
   userId String? @unique
   user   User?   @relation(fields: [userId], references: [id])
@@ -423,6 +428,7 @@ model Employee {
   lockers            Locker[]
   lockerHistory      LockerHistory[]
   lockerLinks        LockerStaff[]
+  ptBookings         PtBooking[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -896,4 +902,61 @@ model MemberRequest {
   @@index([status])
   @@index([memberId])
   @@map("member_requests")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PERSONAL TRAINING SESSIONS (booked and paid one at a time by members in the portal)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PtBookingStatus {
+  PENDING_PAYMENT // slot held while the member pays
+  CONFIRMED
+  COMPLETED
+  NO_SHOW
+  CANCELLED
+  EXPIRED         // payment not made in time, slot released
+  PAID_SLOT_LOST  // paid after the hold expired and the slot was taken: needs staff action
+}
+
+model PtConfig {
+  id            String   @id @default("main")
+  enabled       Boolean  @default(true)   // the card only shows once trainers have slots set
+  price         Int      @default(1500) // rupees per session
+  durationMins  Int      @default(60)
+  leadHours     Int      @default(3)  // earliest bookable time from now
+  daysAhead     Int      @default(14)
+  updatedAt     DateTime @updatedAt
+
+  @@map("pt_config")
+}
+
+model PtBooking {
+  id           String          @id @default(cuid())
+  memberId     String
+  member       Member          @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  trainerId    String
+  trainer      Employee        @relation(fields: [trainerId], references: [id])
+
+  date         DateTime        @db.Date // IST calendar day of the session
+  startTime    String          // "HH:MM" IST
+  durationMins Int
+  price        Int             // rupees charged
+
+  status       PtBookingStatus @default(PENDING_PAYMENT)
+  // "trainerId|date|HH:MM" while the slot is held (pending or confirmed), otherwise null.
+  // The unique index is what stops two members taking the same slot.
+  slotKey      String?         @unique
+  expiresAt    DateTime?       // end of the payment hold
+  payUrl       String?
+  paymentLinkId String?
+  paymentId    String?         // receipt created once paid
+
+  staffNote    String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([date])
+  @@index([memberId])
+  @@index([trainerId, date])
+  @@map("pt_bookings")
 }

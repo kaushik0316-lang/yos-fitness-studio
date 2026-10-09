@@ -53,6 +53,7 @@ const PROTECTED_PREFIXES = [
   "/outreach",
   "/renewals",
   "/lockers",
+  "/pt-slots",
   "/sales",
   "/reports",
   "/settings",

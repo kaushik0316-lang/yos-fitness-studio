@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { MyDetailsCard } from "@/components/portal/MyDetailsCard";
+import { PtSessionCard } from "@/components/portal/PtSessionCard";
 import { useState, useEffect, useRef } from "react";
 import {
   LogOut, ChevronRight, CalendarCheck,
@@ -792,6 +793,7 @@ export default function MemberPortalPage() {
             </div>
           </Link>
 
+          {isActive && <PtSessionCard pin={pin} />}
           <MyDetailsCard pin={pin} />
         </div>
 

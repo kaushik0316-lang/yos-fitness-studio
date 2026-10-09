@@ -6,7 +6,7 @@ import { signOut } from "next-auth/react";
 import {
   Users, CalendarCheck, RotateCcw, CreditCard,
   ClipboardList, DollarSign, BarChart3,
-  Settings, LogOut, Wrench, FileUp, UserSearch, TrendingUp, Trophy, Search, MessageSquare, Megaphone, Lock, PhoneCall,
+  Settings, LogOut, Wrench, FileUp, UserSearch, TrendingUp, Trophy, Search, MessageSquare, Megaphone, Lock, PhoneCall, Dumbbell,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,7 @@ const navGroups = [
       { label: "Payments",         href: "/payments",           icon: CreditCard,    roles: ["ADMIN", "FRONT_DESK", "ACCOUNTANT"] },
       { label: "Overview",         href: "/staff-tools",        icon: Wrench,        roles: ["ADMIN", "FRONT_DESK"] },
       { label: "Lockers",          href: "/lockers",            icon: Lock,          roles: ["ADMIN", "FRONT_DESK"] },
+      { label: "PT Sessions",      href: "/pt-slots",           icon: Dumbbell,      roles: ["ADMIN", "FRONT_DESK"] },
     ],
   },
   {
